@@ -1,0 +1,1559 @@
+HLA genes and stats
+https://www.ebi.ac.uk/ipd/imgt/hla/about/statistics/
+ftp://ftp.ebi.ac.uk/pub/databases/ipd/imgt/hla/
+
+Genbank query
+https://www.ncbi.nlm.nih.gov/nuccore/?term=DQA1+human+complete+cds
+in seq4d:/local/scratch01/jkb/quantum/
+
+Pangenome paper
+https://www.nature.com/articles/s41586-023-05896-x
+"We selected five clinically relevant complex SV loci for detailed
+structural analysis: RHD-RHCE, HLA-A, CYP2D6-CYP2D7, C4 and LPA".
+(Other useful targets for pangenome construction and tangle resolution?)
+
+# mamba install vcfbub vcflib wfmash
+
+See also pggb worked example:
+https://pggb.readthedocs.io/en/latest/rst/quick_start.html
+pggb -i data/HLA/DRB1-3123.fa.gz -p 70 -s 3000 -n 10 -t 16 -V 'gi|568815561' -o out
+
+odgi layout -i out2/*smooth.final.gfa -o _.layout
+odgi draw -i out2/*smooth.final.gfa -c _.layout -p _.png
+odgi draw -i out2/*smooth.final.gfa -c _.layout -s _.svg
+
+
+Also "bandage" for viewing the gfa
+
+pggb HLA defaults  	       4737 S nodes
+-c 2 -G 10,100	  	       3423
+-G 10			       1737
+-G 10 -s 1000	  	       1740
+-G 10 -s 1000 -p 90	       1685
+-G 10 -s 5000 -p 90	       1732
+-G 100 -s 5000 -p 90	       3380
+-G 100 -s 1000 -p 90 -k30      1852
+" -j 1			       1845
+" -e 1 	       	     	       1149
+" -e 10			       1137
+-G10 -s1000 -k30 -p90 -e10     1145
+-G10 -s5000 -k30 -p90 -e10     1165
+-G10 -s5000 -k30 -p92 -e10     1111
+-G10 -s5000 -k30 -p93 -e10      951 => 1 distinct graph
+-G10 -s5000 -k30 -p94 -e10      699 => 2 distinct graphs
+-G10 -s5000 -k30 -p95 -e10       61 => 4 distinct graphs
+-G10 -s5000 -k30 -p70 -e10     1173
+-G10 -s5000 -k35 -p93 -e10      726 (longer exact match needed)
+-G10 -s5000 -k35 -p93 -e10 -n5  727
+-G10 -s5000 -k35 -p93 -e10 -n1  711
+-G10 -s5000 -k35 -p93 -e10 -n20 740
+-G100 -s5000 -k35 -p93 -e10     725
+G*    -s5000 -k35 -p93 -e10     730  (-G 100,500,1000)
+G*    -s5000 -k35 -p93 -e0     4397
+-p70 -n10 -s500 -k35 -e1        893 (p70 n10 s500 is from HLA example
+-p70 -n10 -s500	     	       4687
+-p70 -n10 -s500 -k50 -e1        440
+-p70 -n10 -s500 -k75 -e1        195
+-p70 -n10 -s500 -k100 -e1        90 => 2 graphs
+
+Aligning the 12 input reads with GraphAligner against the 440 node
+graph gives 81,1,0,0,71,0,0,1,81,0,81,0 mismatches.
+Against the 4687 node graph it is 1,1,0,0,1,0,0,1,1,0,1,0 mismatches.
+
+An example of the alignment 'cg' tag for the first seq (81 vs 1
+mismatch) is:
+
+10938=3D1=30D5=1X4=2D1=4D1=1X3D6=1I2=3X3=2D2=2D2=3D1=1D2=2X1=1X2=1D5=1D1=1X2=1D1=3X3D3=1D1=4X2=7D2=13402=1D1=
+
+vs
+
+11067=1D1=
+
+So it's mostly deletions, with the biggest being 30 bp.  3 sequences
+have a 30bp deletion, and one has a 63bp deletion.
+
+Ideally we need a way to get those nodes added to this graph, but not
+to care about all the X cases and maybe the 1D/1I cases as they're
+largely irrelevant as far as alignment goes.
+
+
+With -k75 graph NMs are 63 max and we have 3 seqs with 58D.
+So that's actually a better graph?
+
+
+However there is more collapsing of nodes in the big graph:
+
+awk '/^S/ {a+=length($3)} END {print a}' /tmp/out.4687/*.gfa
+
+nodes    seq len
+4687	 23373
+ 440	 51545
+ 195	 53569
+
+/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -g _.gfa -f ../pggb/data/HLA/DRB1-3123.fa.gz -x vg -a /tmp/out.gaf
+
+sed -n 's/.*NM:i://p' /tmp/out.gaf |sed 's/[^0-9].*//'
+0
+783
+1099
+239
+71
+1105
+240
+71
+774
+1308
+783
+783
+0
+1313
+5
+534
+493
+240
+70
+
+So many differences, but small:
+
+sed -n 's/.*cg:Z://p' /tmp/out.gaf | sed 's/[X=ID]/&#/g'|tr '#' '\012'|sort -n|grep -v =
+8D
+8I
+8I
+9I
+9I
+9I
+10I
+10I
+10I
+11D
+11D
+11D
+11D
+12D
+12D
+16D
+16D
+19D
+19D
+
+
+With ./minigraph -cxggs /tmp/_[0-9]*.fa -l4000 -d4000 -L10 > _.gfa
+we see 132 nodes and:
+...
+5I
+5I
+6I
+6I
+6I
+6I
+8D
+9I
+9I
+9I
+
+
+So longest edit vs -L param:
+L  	nodes   longest	  NM	N.align
+2  	511	8D	  5126	39
+3  	473	12D	  5812	28
+4  	336	8D	  5802	39
+5  	308	8D	  6632	20
+6  	247	9I	  7313	21
+7  	229	9I	  7310	21
+8  	167	9I	  7882	21
+9  	138	9I	  8183	21
+10 	132	9I	  8230	19
+11 	117	9I	  8413	19
+12 	111	9I	  8492	19
+13 	92	9I	  8701	19
+14 	89	9I	  8725	19
+15 	77	11D	  8905	19
+16 	68	11D	  9059	19
+17 	62	11D	  9186	19
+18 	59	11D	  9234	19
+19 	53	16D	  9332	19
+20 	53	16D	  9332	19
+21 	50	16D
+22 	48	16D
+23 	48	16D
+24 	45	16D
+25-31 	42	19D
+32-33 	39	19D
+34-46 	36	19D
+47-50 	33	19D	  9911	19
+200	24	19D
+1000	1	19D	  9520	61 (of 12 seq)
+
+So 1 node seq is enough to maximise out at a 19bp deletion.
+
+-L 200 gives 24 nodes, biggest change is 19D, total change is 10445,
+ max change per seq is 1377.  21 alignments
+
+-L 20 is 53 node, 16D, 9331 1252, 19
+-L 18 is 59 node, 11D, 9234 1204, 19  <<<
+-L 14 is 89 node, 9I,  8725 1151, 19
+
+
+Maybe -L 18?
+
+-L 18 -k 19 and lower is good (55-59 nodes)
+-L 18 -k 20 is 28 nodes, but 30D and now 29 alignments
+
+
+-j 0.3 (was .1) reduces number of alingments down to ~13.  Also helps
+ to reduce node count too.
+
+-L 25 -k 15 -j 0.3 => 46 node, 11I, 9853 1272, 13 seq
+
+
+=============================================================================
+
+Manual.
+
+0,0 - 630,630  match              0.6kb
+630,630 - 1500,1030 inversion plus indel
+1500,1030 - 6233,5758 match      ~4.7kb
+6233,5758 - 6214,8095 deletion    2.3kb
+6214,8095 - 8589,10451 match      2.4kb
+8589,10451 - 8570,13130 deletion  2.7kb
+8570,13130 - 11068,15590 match    2.5kb
+
+Plus some sundry repeats
+
+TODO: CNV at ~12kb in.  3 vs 2 vs 1 copies in some seqs
+
+
+seq3: two copies with 1 SNP in 13KB.  Correct, or assembly error?
+
+--------------------
+6/10 vs 2/5/7/8
+
+1 - 600:  12% mismatch.
+
+601/597 - 937/1093  diff seq (bubble)
+
+938/1094 - 4043/4181 match
+
+4043/4181 - 5244/4181 gap (del in s6)
+
+5244/4181 - ?  match
+
+small ins in s2 (58bp)
+
+5290/4240 - 6325/5245 match
+
+s6: GGGAAGACACTATCTGGCCCCACCCGCAACCCCGACAACAC
+s2: TGAGAAGACACTGACAGTGACGCCGCCATCCGGGGCTCCCTGGGTGGGGTGCGGGCACTGGGAACCTTAACCGGCCCC*CGCCGCAACGCCCACCACCA
+
+6370/5345 - 7880/6822 match
+
+s6 ins vs s2 "AA" (AA could be attached to another node?)
+
+8195/6827 - 9360/7985 match
+
+s6 ins vs s2 small ins
+s6: ATGCCATGACAGACATATAGAACTTTTTTTTTTTTTTGAGACGGAGTTTCGCTCTTTTGCCCAGGGTGGAGCTGGAGTGCAGTGGCACGATCTCAGCTCACTGCAAGCTCCGCCTCCCAGGTTCATGCCATTCTCCTGCCTCAGCCTCCCAAGTAGCTGGGACTACAGGTGCACACCACCACGCCCAGCTAATTTTTTGTATTTTTAGTAGAGACGAGGTTTCACCATGTTAGCCAGGATGGTCTTCATCTCCTGACCTCGTGATCTGCCCGCCTTGGCCTCCCAAAGTGCTGGGATTACAGGCATGAGCCACCGCACCCAGCCT
+s2: CATTATAGACATAC
+
+9685/8007 - 12244/6125 match.  NB: last 600-900bp or so is 2 copies
+rep on s6 and 3 copies on s2.  Make a loop instead?  Maybe not
+accurate enough.  TODO
+
+3rd rep copy below in s2
+s6: AAATCTCCGTCTC
+s2: GAAACTCCGTCTCAAAAAAAAAAAAAATAGGCCAGGCGTGGTGGCTCACACCTGTAGTCTCAGCACTTTGGGAGGCTGAGGCAGGTGGATCACGAGGTCAGGAGATGGAGACCACCCTGGTTAACATGACAAAATGCCCTCACTACTAAAAATACTAAAAATTAGCCAGGCGTGGTGGCAGGTGCCTGTAGTCCCAGCTACTAGGGAGGCTGAGGCAGGAGAATGGCATGAACCCAGGAGGTGGAGCTTGCAGTGAGCTGAGATCACGCCACTGCACTCCAGCCTGGGCAACAAAGCGAGACTCCATCTTAAAAAAATAAATAAATAAATAAATAAAATAAAT
+
+12260/5770 - 13805/4215 match
+
+Small ins
+s6: GAGGAGTATCCAAGTATTCAGGGGTCTGAGAGACCGATCAAGAGGA
+s2: TA
+13853/4206 - end  match
+
+Overall 24% mismatch!
+
+--------------------
+2/5/7(+6/10) vs 1/9/11
+
+Ie 2 vs 1 in dotter.
+
+~1kb match (some small indels)
+
+~400bp ins in s1
+s1: TGTAGGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCGAGGCGGGCGGATCACGAGGTCAGGAGATCGAGACCATCCTGGCTAAAACGGTGAAACCCCGTCTCTACTAAAAATACAAAAAATTAGCCGGGCGTAGTGGCGGGCGCCTGTAGTCCCAGCTACTTGGGAGGCTGAGGCAGGAGAATGGCGTGAACCCGGGAGGCGGAGCTTGCAGTGAGCCGAGATCCCGCCACTGCACTCCAGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAACCTCTTGTAAGA
+s2: CCTAAGACAGG
+
+865/1380 - 4850/6200 match (noting existing indel from s10)
+
+s2: 6850-7880 ins in s1 (noting additional data in s10)
+
+9680/6380 - 11890/8610 match
+
+11890/8610
+Two ins, mainly s2, some variance in seqs
+
+s2: CAAAAAAATAAAATAAAATAAAAATAAATTGAATATAAATTGACTCTCCTTGTAACCATACAGTAGCTTCTCGTATCTATTTAAATAAAATTCAGTCCGGCCGCGGTGGCTCATGCCTGTAATCCCAGCACTTTGGGAGGCCAAGGCAGACAGATTATCTGAGGTCAGGAGTTCGAGACCAGCATGGTCAACATGGTGATACCCGATGTCTACTAAAAATACAAAAAAATAAAAATTAGCCAGGTATGGTGGTGGGTGCCTGTAATCTCAGATACTTGGGAAGCTGAGGCAGGAGAATCACTTGAACCAGGGAGGCGAAGGTTGCAGTGAGCCGAGATTGCACCATTGCACTCCAGCCTGGGCAACAAGAACGAAACTCCGTCTCAAAAAAAAAAAAAATAGGCCAGGCGTGGTGGCTCACACCTGTAGTCTCAGCACTTTGGGAGGCTGAGGCAGGTGGATCACGAGGTCAGGAGATGGAGACCACCCTGGTTAACATGACAAAATGCCCTCACTACTAAAAATACTAAAAATTAGCCAGGCGTGGTGGCAGGTGCCTGTAGTCCCAGCTACTAGGGAGGCTGAGGCAGGAGAATGGCATGAACCCAGGAGGTGGAGCTTGCAGTGAGCTGAGATCACGCCACTGCACTCCAGCCTGGGCAACAAAGCGAGACTCCATCTTAAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAAATAAAATTCAAA
+s1: AAAATAAAATAAAATAAACAAACAAATAAATAAATAATAAAATTTAATTT
+
+8660 to end: match
+
+--------------------
+
+s3 vs s2 et al
+Trim s3 at 15600 (2 copies)
+
+1/1 - ~600 match
+600 - 1030/930  bubble
+
+1030/930 - 6740  match
+s3 insertion; but approx matches another insertion in s6/s10 too.
+Realign to that
+
+s3: CCATAAAGAACTGAATTGGGCAGTGACTGTATAAAAGATGTGAGTCTAGGCCAGGCGCGGTGGCTCAAGCCTGTAATCCTAGCACTTTGGGAGACTGAGGCAGGTGGATTGCCTGAGCTCAGGAGATCAGCCTGGGCAACATGGTAAAACCCCGTCTCTACTAAAATACAAAAAATTAGCTGGGCATGGCGGGGTGCACCTGTAATCCCAGCTACTCGGGAGGCTGAGACGGGAGAATCACTTGAACCTCGGAGGCAGAGGTTGCAGTGAGCCGAGAGGGAGCCACTGCACTCCAGCCTGGGTGACAGAGCAAGACCCCATTTCAAAAAAACAAACAAACAAAAAAGTGAGTCTAG
+
+6800-10800 match
+
+~2.3kb ins in s3
+
+s3 ~13k onwards match (from AAAATAAAATTCAAATTTTTTACCGTGGACATCAGAG)
+(12950/12275 onwards)
+
+
+12950 vs 12275
+
+18449 at 18410   49<
+
+
+TODO: compare s6/s10 ins vs others. (b3.0 vs b3.1 vs b3.i1 etc)
+s6 vs s2,5,8?
+
+It's about 600 in.
+s6 600-935 has no match vs 2,5,8
+s6 600-941 has inverse match vs 1,9,11  <<<<<
+(last 40-10% or so of the 1,9,11 insertion)
+
+Can replicate this way, or just make a new node.
+
+
+-----------------------------------------------------------------------------
+
+Cons for CNV:
+
+prefix:
+TAAATTGAATATAAATTGACTCTCCTTGTAACCATACAGTAGCTTCTCGTATCTATTTAAATAAAATT
+
+CNV:
+CAGGCCGGGCGTGGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCAAGGCAGGTGGATCACGAGGTCAGGAGATCGAGACCAGCCTGGCTAACATGGTGAAACCCCATCTCTACTAAAAATACAAAAAATTAGCCAGGTGTGGTGGCAGGTACCTGTAGTCCCAGCTACTTGGGAGGCTGAGGCAGGAGAATCGCTTGAACCCAGGAGGCAGAGGTTGCAGTGAGCCGAGATTGCGCCACTGCACTCCAGCCTGGGCAACAGAGCAAGACTCCGTCTCAAAAAAATAAAAAAAAATAAAAA
+
+suffix:
+TTGACTGTCCTTGTAACCATACAGTAGCTTCTCATATCTATTCAAATAAAATT
+
+
+Good match to s2 from CNV bp 22:
+GCCTGTAATCCCAGCACTTTGGGAGGCCAAGGCAG
+============t===================tg=
+a======g==t================tg======
+             ^^^^^^^^^^^^^^
+
+TAAATTGAATATAAATTGACTCTCCTTGTAACCATACAGTAGCTTCTCGTATCTATTTAAATAAAATT prefix
+               TTGACTGTCCTTGTAACCATACAGTAGCTTCTCATATCTATTCAAATAAAATT suffix
+
+So (CNV SUFFIX?)* (TAAA)*
+
+(CNV TTGACTGTCCTTGTAACCATACAGTAGCTTCTCATATCTATTC? AAAT*)*
+
+
+
+/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -b 50 -C -1 -g mafft.gfa -f pggb/data/HLA/DRB1-3123.fa.gz -x vg -a mafft.gaf;awk '{print $1}' mafft.gaf|uniq -c
+
+See
+https://github.com/lh3/gfatools/blob/master/doc/rGFA.md#the-graph-alignment-format-gaf
+for output format.
+
+
+s3 vs mafft      aligns with 0-15600
+s3 vs mafft+loop aligns with 0-10858, 11964-13164 and 13142-15600
+Similarly for s4.
+
+=> graph is wrong somewhere :(
+
+s3 start (0-11k) is:
+
+>m1>m2>b3.0>cons2>cons3>i3>cons4>i4.1>i4.1.1>i4.2>cons5>cons6>cnv>cnvx>cnvstr>cnvstr>cnv
+
+Then s3 ~12k to 13k is:  >i2>cons3
+
+Finally s3 13k-16k is: >cnv>cnvstr>cons7>cons8
+
+
+
+
+
+=============================================================================
+
+1. First 11 seqs from PGGB.  Rename s1 to s11 and complement s7.
+
+2. Align with mafft:
+   mafft --thread 8 --maxiterate 1000 --globalpair train.fa > train.mafft
+
+3. Build a gap5 database, one read per contig.
+   tr '-' '*' < train.mafft > train.mafft2
+   tg_index -Q 30 train.mafft2
+
+4. Manually merge the contigs together to form one contig.  (Need to
+   automate this).  Generally up to 20% divergent.
+
+5. Annotate via tags.
+
+   Cons for consensus regions		blue
+   A1 to Ax for differing alleles	yellow/green
+   I1 to Ix for insertions
+   CNV for copies			
+   STR for short reps			red
+
+See /nfs/users/nfs_j/jkb/work/quantum/train.2
+
+
+Model as (CNV STR+ link*)+
+
+link*.  Right now it's just "link"
+
+s3/s4 still fail.  Why?
+
+
+----------------------------------------------------------------------
+
+Comparison
+
+/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -C -1 -b 100 -g pggb-2667.gfa -f DRB-train.fa -x vg -a out.gaf;awk '{print $1,$3,$4}' out.gaf
+s1 0 11068
+s2 0 13403
+s3 0 15600
+s4 0 15590
+s5 0 13413
+s6 0 14739
+s7 0 13403
+s8 0 13403
+s9 0 11068
+s10 0 14733
+s11 0 11065
+
+NMs are 0.
+
+/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -C -1 -b 100 -g mafft+cons.gfa -f DRB-train.fa -x vg -a out.gaf;awk '{print $1,$3,$4}' out.gaf
+s1 1 11068
+s2 1 13403
+s3 0 15600
+s4 0 15590
+s5 1 13413
+s6 0 14739
+s7 0 13401
+s8 1 13403
+s9 1 11068
+s10 0 14733
+s11 1 11065
+
+NMs are:
+s1  479
+s2  521
+s3  844
+s4  853
+s5  520
+s6  894
+s7  521
+s8  521
+s9  479
+s10 893
+s11 480
+total 7005
+
+Biggest indel is 11I, 11D, 8I, 8D, etc.
+
+49 hla-drb1.fasta.gz
+
+mafft+cons.gfa:	NM total 25664 (biggest 606, avg 524)
+pggb-2667.gfa:  NM total  2465 (biggest 364, avg  50)
+
+--------------------
+/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -g mafft+cons.gfa -f hla-drb1.fasta.gz -x vg -a out.gaf
+sed -n 's/.*cg:Z://p' out.gaf|awk '{print $1}'|sed 's/[=XID]/&#/g'|tr '#' '\012'|sort -n|grep -v =|uniq -c
+...
+   1499 2X
+     90 3D
+      8 3I
+    197 3X
+     40 4D
+     41 4I
+     37 5D
+     15 5I
+      6 6D
+     21 7I
+      5 8D
+      1 8I
+      2 9D
+      3 10I
+
+total NM 25044 (between 475 and 591 per alignment)
+
+TODO: plot diff per site per node position in graph?  Would allow us
+to optimise the graph further
+
+Common mis-hits:
+# c1    69 C    5       15      75	8 3 0 0 in train
+# c1    131 C   7       13      65	6 5 0 0
+# c1    138 G   7       13      65	8 3 0 1
+# c1    151 A   7       13      65	7 4 0 0
+# c1    152 A   7       13      65	8 3 0 0
+# c1    254 C   5       15      75	8 3 0 0
+# c1    256 A   6       14      70	8 3 0 0
+# c1    300 T   6       14      70	8 3 0 0
+# c1    372 C   6       14      70	8 3 0 0
+# c1    395 T   6       14      70	8 3 0 0
+# c1    404 T   6       14      70	8 3 0 0
+# c1    458 C   5       15      75	8 3 0 3
+# c1    473 C   6       14      70	8 3 0 0
+# c10   36 C    1       14      93	4 4 0 0  fixed
+
+a1c0 TGTGTCCAGAGTTTGTTCCTTCCGGTGGGTTTGTGGTCTCGCTGACTTC
+     TGTGTCCAGAGTTTGTTCCTTCCGGTGGGTTCGTGGTTTCGCTGACTTC
+                                    ^     ^
+
+a1i2 GGCGCGGTGGCTCACGCCTGTAAT...TCTCAAAAAAAAAAAAAAAAAAAAAAACAA...
+     GGCGCGGTGGCTCACACCTGTAAT...TCTCAAAAAAAAAAAAAAAAAGAAAC...
+                    ^
+c10  ATTTTCAGAAAGAGCACAGTGTGAACCAGTGCTCTTAG...
+     ATTTTCAGAAAGAGCACAGCGTGAACCAGTGCTCTCAG...
+                                         ^
+
+./gaf2gfa.pl mafft.gaf $f mafft+cons.gfa | perl -lane 'next unless /^#/;chomp($_);print "$_\t",int(100*($F[5]+$F[6]+$F[7])/($F[4]+$F[5]+$F[6]+$F[7]))' | less
+
+--------------------
+cnvstr differences.
+Maybe this matters if first, second or third occurence of this node
+due to 1, 2 or 3 copies numbers of cnv?
+
+# cnvstr        0 A     459     0       0       15      15
+# cnvstr        1 A     457     2       0       0       2
+# cnvstr        2 A     454     5       0       17      22
+# cnvstr        3 T     373     65      21      120     206 <<<
+
+AAAT vs AAAAT?
+
+# cnvstr	0 A	346	30	0	0	30
+# cnvstr	1 A	376	0	0	61	61
+# cnvstr	2 A	376	0	0	3	3
+# cnvstr	3 A	329	18	29	65	112
+# cnvstr	4 T	267	88	21	21	130
+
+AAAT is fewer errs than AAAAT
+
+AAAAAAAAAAAAAAT
+AAAAAAAAAAAAAAT
+AAAAAAAAAAAAAAT
+AAAAAAAAAAAAAAT
+AAAAAAAAAAAAAAT
+AAAAAAAAAAAAAAT
+AAAAAAAAAAAAAAT
+AAAAAAAAAAAAAAT
+AAAAAAAAAAAAAAT
+AAAAAAAAAAAAAT
+AAAAAAAAAAAAAT
+AAAAAAAAAAAAAT
+AAAAAAAAAAAAAT
+AAAAAAAAAAAAAT
+AAAAAAAAAAAAAT
+
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+
+AAAAAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+                       xx
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+                                                        xx   xx
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+
+AAAATAAAATAAAATAAACAAACAAATAAATAAATAATAAAAT
+
+AAAATAAAATAAAATAAACAAATAAATAAATAATAAAAAT
+AAAATAAAATAAAATAAACAAATAAATAAATAATAAAAAT
+
+AAAATAAAATAAAATAAATAAACAAATAAATAGGTAAATAAATAATAAAAT
+AAAATAAAATAAAATAAATAAACAAATAAATAGGTAAATAAATAATAAAAT
+
+Mix of AAAT and AAAAT?
+
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+   x                       xx  xx  xx  xx  xx  xx  xx  xx  x x x  x
+AAATAAATAAATAAATAAATAAATAAATAAATAAATAAATAAATAAATAAATAAATAAATAAATAAAT
+
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+   x       xx  x x x        xx xx xx  x
+AAATAAATAAATAAATAAATAAATAAATAAATAAATAAAT
+
+It's a mix of repeats A*T for differing lengths of A.
+Ideal model is ((AAA|AAAA|AAAAA)T)*
+
+Eg:
+AAAAAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+   x
+AAATAAATAAATAAATAAATAAATAAAATAAATAAATAAATAAATAAATAAATAAATAAAATAAAAT
+
+AAAAAAATAAAATAAAATAAAAATAAATTGAATATAAAT
+   x                        xx    x
+AAATAAATAAAATAAAATAAAAATAAATAAAATAAAAAT
+
+But matching kmers to it is complex.
+
+
+=============================================================================
+
+a1i2: one sequence with big difference
+      also 12 poly-A diff at end with some seqs
+
+c1:   several large differences.  Needs a separate seq entry?  Dotplot this
+
+c10: mostly good, but an 8bp common deletion
+     TTACCAACAGTCACAATCATATAATTTATCTTTCACATCATCTTCTTT
+     TTACCAA--------ATCATATAATTTATCTCTCACATCATCTTCTTT
+
+     Long segment so wouldn't affect path.
+
+c11: long and mostly fine, but some variations and indels
+GTTGCTGTCACTGTGGCT------TGCATGGTTAGCACTGTAATCCATGTCCATGTGTC
+GTCGCTGTCACTGTGGCTGTGGCTTCCATGGGTAACACCGTAATCCATGCTCATGTGTC
+
+c15: a small fluctuation in indels
+c17: as above; +- 7bp
+c19: a small fluctuation in indels
+
+c2: a collection of indels that add up, 7bp biggest?
+    AGGAGCAGAAACAGACCATGT-GACCCATGAA--GCGTGAAG-------TGTCTGTCACAGGATCCA
+    AGGGGCAGAAAGGAGCAGAGACAGACCATGTGACCCATGAAGCCTGAAGTGTCTGTCACAGGATCCA
+
+c3: many indels that add up over time
+TGTCCATTACCTACCAAATACAACAGGTAATTCGTAGAGCAGAGCAGTAATTACAACTGGCCAAT
+TGTCCATTAC---------ACAACAGGTAATTGGTTGAGCAG-----TAATTATAACTGGCCAAT
+
+c8:  12bp del
+AGGGTGCCAGAGAAGGACCCTCTTAATAGTGACGGTT-CAGATGTGACTT
+AGGGTGCCAGAGAAG------------AGTGACAGTTACAGATGTGACTT
+
+c9: graph seems the rarer variant (9 of 40)
+TAAAACACTATGTACATGTTTTTGATGTTTTTGTCTTTATGTTTGATTGAAGTGTGAAAAT
+TAAAACACTAT------ATTTTTGATGTTTTTGTCTTTATGTTTGA----AGTGTGAAAAT
+...
+CAAGCAAAAATAAACCA-TAAAGAACTGAATTGGGCAGTGACTGTATAAAAGATGTGAGTCTAG
+CAAGCAAAAATAAAAGACTAAAC--------TGTGTGGTGAGTGTATAACAGATGTGAGTCTAG
+
+cnv: several small common indels between copies of rep.
+
+cnvstr: highly variable in length!
+Plus mix of AAAT, AAAAT, AAAAAT
+
+Maybe better modelled as a complex of repeated choices?
+
+
+Main changes:
+# a1c0  7 A     28      21      0       0 21
+# a1c0  31 C    30      19      0       0 19
+# a1c0  37 T    28      21      0       0 21
+
+# a1c1  0 C     44      5       0       0 5
+# a1c1  1 C     31      18      0       0 18
+# a1c1  2 G     46      3       0       0 3
+# a1c1  3 C     49      0       0       0 0
+# a1c1  4 G     31      18      0       2 20
+# a1c1  5 A     30      19      0       0 19
+# a1c1  6 A     47      2       0       0 2
+# a1c1  7 T     28      21      0       0 21
+Maybe just two alternative sequences here?
+
+# a1c1  38 T    31      18      0       0 18
+# a1c1  39 G    49      0       0       0 0
+# a1c1  40 G    49      0       0       0 0
+# a1c1  41 C    49      0       0       0 0
+# a1c1  42 A    49      0       0       0 0
+# a1c1  43 C    31      18      0       0 18
+# a1c1  44 A    28      21      0       0 21
+# a1c1  45 G    49      0       0       0 0
+# a1c1  46 A    49      0       0       0 0
+# a1c1  47 C    39      10      0       0 10
+# a1c1  48 C    49      0       0       0 0
+# a1c1  49 C    49      0       0       0 0
+# a1c1  50 G    28      21      0       0 21
+# a1c1  51 A    49      0       0       0 0
+# a1c1  52 A    49      0       0       0 0
+# a1c1  53 G    49      0       0       0 0
+# a1c1  54 A    49      0       0       0 0
+# a1c1  55 G    49      0       0       0 0
+# a1c1  56 T    49      0       0       0 0
+# a1c1  57 G    44      5       0       0 5
+# a1c1  58 A    31      18      0       0 18
+# a1c1  59 G    49      0       0       0 0
+# a1c1  60 C    49      0       0       0 0
+# a1c1  61 A    49      0       0       0 0
+# a1c1  62 A    28      19      2       0 21
+Similarly 2 populations
+
+# a1c2  0 G     49      0       0       0 0
+# a1c2  1 C     28      21      0       0 21
+# a1c2  2 A     28      21      0       0 21
+# a1c2  3 T     28      21      0       0 21
+Rare version in graph
+
+# a1c2  20 C    31      18      0       0 18
+# a1c2  21 A    49      0       0       0 0
+# a1c2  22 G    48      1       0       0 1
+# a1c2  23 A    49      0       0       0 0
+# a1c2  24 G    44      5       0       0 5
+# a1c2  25 T    49      0       0       0 0
+# a1c2  26 G    49      0       0       0 0
+# a1c2  27 T    30      19      0       0 19
+# a1c2  28 G    30      19      0       0 19
+Diff segment?
+
+# a1c2  52 T    31      18      0       0 18
+# a1c2  53 G    31      18      0       0 18
+# a1c2  54 A    49      0       0       0 0
+# a1c2  55 T    49      0       0       0 0
+# a1c2  56 T    49      0       0       0 0
+# a1c2  57 A    28      21      0       0 21
+
+# a1c2  143 C   28      21      0       0 21
+# a1c2  144 C   28      21      0       0 21
+# a1c2  145 T   49      0       0       0 0
+# a1c2  146 A   49      0       0       0 0
+# a1c2  147 A   36      13      0       0 13
+# a1c2  148 G   49      0       0       0 0
+# a1c2  149 A   36      13      0       0 13
+# a1c2  150 C   43      1       5       0 6
+end also different
+
+# a1c3  0 A     50      0       0       0 0
+# a1c3  1 G     45      0       5       0 5
+# a1c3  2 G     24      21      5       0 26
+# a1c3  3 A     50      0       0       0 0
+# a1c3  4 A     50      0       0       0 0
+# a1c3  5 A     45      0       5       0 5
+# a1c3  6 G     50      0       0       0 0
+# a1c3  7 T     50      0       0       0 0
+# a1c3  8 T     50      0       0       0 0
+# a1c3  9 C     50      0       0       0 0
+# a1c3  10 T    50      0       0       0 0
+# a1c3  11 G    28      22      0       0 22
+# a1c3  12 C    50      0       0       0 0
+# a1c3  13 A    50      0       0       0 0
+# a1c3  14 A    50      0       0       0 0
+# a1c3  15 G    50      0       0       0 0
+# a1c3  16 T    50      0       0       0 0
+# a1c3  17 C    49      1       0       0 1
+# a1c3  18 C    50      0       0       0 0
+# a1c3  19 C    50      0       0       0 0
+# a1c3  20 T    28      22      0       0 22
+# a1c3  21 A    50      0       0       0 0
+# a1c3  22 C    50      0       0       0 0
+# a1c3  23 C    50      0       0       0 0
+# a1c3  24 C    50      0       0       0 0
+# a1c3  25 G    28      22      0       0 22
+start is rare var
+
+
+# c1    69 C    28      28      0       0 28
+# c1    70 A    56      0       0       0 0
+# c1    71 C    51      5       0       0 5
+# c1    72 G    56      0       0       0 0
+# c1    73 G    56      0       0       0 0
+# c1    74 G    56      0       0       0 0
+# c1    75 A    56      0       0       0 0
+# c1    76 G    50      6       0       0 6
+# c1    77 G    14      42      0       0 42
+# c1    78 C    51      5       0       0 5
+# c1    79 C    51      5       0       0 5
+# c1    80 G    15      41      0       0 41
+rare version in graph
+
+# c1    131 C   31      25      0       0 25
+# c1    132 A   56      0       0       0 0
+# c1    133 A   56      0       0       0 0
+# c1    134 T   56      0       0       0 0
+# c1    135 G   55      1       0       1 2
+# c1    136 C   56      0       0       23 23
+Common ins
+
+# c1    249 A   38      18      0       0 18
+# c1    250 A   56      0       0       0 0
+# c1    251 C   52      4       0       0 4
+# c1    252 A   56      0       0       0 0
+# c1    253 G   55      1       0       0 1
+# c1    254 C   28      28      0       0 28
+# c1    255 C   54      2       0       0 2
+# c1    256 A   30      26      0       0 26
+# c1    257 A   40      16      0       0 16
+
+# c1    299 C   53      3       0       0 3
+# c1    300 T   30      26      0       0 26
+# c1    301 T   56      0       0       0 0
+# c1    302 C   56      0       0       0 0
+# c1    303 C   55      1       0       0 1
+# c1    304 T   55      1       0       0 1
+# c1    305 T   52      4       0       0 4
+# c1    306 G   56      0       0       0 0
+# c1    307 A   55      0       1       0 1
+# c1    308 A   56      0       0       0 0
+# c1    309 T   54      1       1       0 2
+# c1    310 G   29      0       27      0 27
+# c1    311 T   56      0       0       0 0
+# c1    312 G   56      0       0       0 0
+# c1    313 G   56      0       0       0 0
+# c1    314 T   56      0       0       0 0
+# c1    315 C   56      0       0       0 0
+# c1    316 A   56      0       0       0 0
+# c1    317 T   53      3       0       0 3
+# c1    318 C   56      0       0       0 0
+# c1    319 T   56      0       0       0 0
+# c1    320 G   38      18      0       0 18
+# c1    321 C   55      1       0       0 1
+
+# c1    371 C   55      1       0       0 1
+# c1    372 C   30      26      0       0 26
+# c1    373 T   55      1       0       0 1
+
+# c1    394 T   51      5       0       0 5
+# c1    395 T   30      26      0       0 26
+# c1    396 C   52      4       0       0 4
+# c1    397 C   55      0       0       0 0
+# c1    398 C   55      0       0       0 0
+# c1    399 C   55      0       0       0 0
+# c1    400 T   55      0       0       0 0
+# c1    401 C   55      0       0       0 0
+# c1    402 T   54      1       0       0 1
+# c1    403 T   54      1       0       0 1
+# c1    404 T   29      26      0       0 26
+# c1    405 C   53      2       0       0 2
+# c1    406 A   50      5       0       0 5
+
+# c1    457 T   51      4       0       0 4
+# c1    458 C   27      28      0       14 42
+# c1    459 C   55      0       0       0 0
+# c1    460 C   51      4       0       0 4
+# c1    461 T   55      0       0       0 0
+# c1    462 G   52      3       0       0 3
+# c1    463 A   54      1       0       0 1
+# c1    464 G   55      0       0       0 0
+# c1    465 C   51      4       0       0 4
+# c1    466 C   55      0       0       0 0
+# c1    467 A   55      0       0       0 0
+# c1    468 A   52      3       0       0 3
+# c1    469 T   55      0       0       0 0
+# c1    470 A   53      2       0       0 2
+# c1    471 G   51      4       0       0 4
+# c1    472 T   50      5       0       0 5
+# c1    473 C   28      27      0       0 27
+# c1    474 C   55      0       0       0 0
+
+# c10   73 C    39      0       0       0 0
+# c10   74 T    8       31      0       0 31
+# c10   75 T    39      0       0       0 0
+# c10   76 T    36      3       0       0 3
+# c10   77 G    39      0       0       0 0
+# c10   78 T    39      0       0       0 0
+# c10   79 T    39      0       0       0 0
+# c10   80 G    39      0       0       0 0
+# c10   81 G    8       31      0       0 31
+# c10   82 T    39      0       0       0 0
+# c10   83 G    34      5       0       0 5
+# c10   84 A    8       31      0       0 31
+# c10   85 T    8       31      0       0 31
+# c10   86 G    8       31      0       0 31
+# c10   87 G    39      0       0       0 0
+# c10   88 A    39      0       0       0 0
+# c10   89 G    39      0       0       0 0
+# c10   90 T    8       31      0       0 31
+# c10   91 C    39      0       0       0 0
+rare var in graph
+
+# c10   141 T   39      0       0       0 0
+# c10   142 A   8       31      0       0 31
+# c10   143 A   39      0       0       0 0
+# c10   144 A   39      0       0       0 0
+# c10   145 T   39      0       0       0 0
+# c10   146 A   39      0       0       0 0
+# c10   147 T   39      0       0       0 0
+# c10   148 C   39      0       0       0 0
+# c10   149 A   39      0       0       0 0
+# c10   150 G   39      0       0       0 0
+# c10   151 A   39      0       0       0 0
+# c10   152 A   39      0       0       0 0
+# c10   153 G   39      0       0       0 0
+# c10   154 A   39      0       0       0 0
+# c10   155 A   39      0       0       0 0
+# c10   156 A   39      0       0       0 0
+# c10   157 C   38      1       0       0 1
+# c10   158 C   39      0       0       0 0
+# c10   159 C   39      0       0       0 0
+# c10   160 C   39      0       0       0 0
+# c10   161 T   39      0       0       0 0
+# c10   162 G   39      0       0       0 0
+# c10   163 T   39      0       0       0 0
+# c10   164 T   39      0       0       0 0
+# c10   165 G   39      0       0       30 30
+# c10   166 T   39      0       0       0 0
+
+# c10   187 A   39      0       0       0 0
+# c10   188 C   39      0       0       31 31
+# c10   189 A   39      0       0       0 0
+# c10   190 T   39      0       0       0 0
+# c10   191 T   39      0       0       0 0
+# c10   192 G   39      0       0       0 0
+# c10   193 C   8       31      0       0 31
+# c10   194 C   39      0       0       0 0
+# c10   195 A   39      0       0       0 0
+# c10   196 C   39      0       0       0 0
+# c10   197 A   8       0       31      0 31
+# c10   198 C   36      3       0       0 3
+# c10   199 G   34      5       0       0 5
+# c10   200 T   39      0       0       0 0
+# c10   201 T   39      0       0       0 0
+# c10   202 C   39      0       0       0 0
+# c10   203 C   39      0       0       0 0
+# c10   204 C   36      3       0       0 3
+# c10   205 C   34      5       0       0 5
+# c10   206 A   39      0       0       0 0
+# c10   207 A   39      0       0       0 0
+# c10   208 G   8       31      0       0 31
+# c10   209 G   36      3       0       0 3
+# c10   210 G   8       31      0       0 31
+# c10   211 T   39      0       0       0 0
+
+# c10   239 C   39      0       0       0 0
+# c10   240 T   10      29      0       0 29
+# c10   241 A   36      3       0       0 3
+# c10   242 T   39      0       0       0 0
+# c10   243 C   39      0       0       0 0
+# c10   244 C   39      0       0       0 0
+# c10   245 C   39      0       0       0 0
+# c10   246 T   39      0       0       0 0
+# c10   247 G   39      0       0       0 0
+# c10   248 G   39      0       0       0 0
+# c10   249 G   39      0       0       0 0
+# c10   250 T   39      0       0       0 0
+# c10   251 A   39      0       0       0 0
+# c10   252 A   39      0       0       0 0
+# c10   253 G   39      0       0       0 0
+# c10   254 A   10      29      0       0 29
+# c10   255 A   39      0       0       0 0
+# c10   256 C   36      3       0       0 3
+# c10   257 C   37      2       0       0 2
+# c10   258 A   39      0       0       0 0
+# c10   259 C   36      3       0       0 3
+# c10   260 G   8       31      0       0 31
+# c10   261 G   39      0       0       0 0
+# c10   262 G   39      0       0       0 0
+# c10   263 T   39      0       0       0 0
+# c10   264 G   39      0       0       0 0
+# c10   265 T   39      0       0       0 0
+# c10   266 G   39      0       0       0 0
+# c10   267 A   39      0       0       0 0
+# c10   268 A   39      0       0       0 0
+# c10   269 C   10      29      0       0 29
+# c10   270 C   39      0       0       0 0
+
+# c10   291 A   39      0       0       0 0
+# c10   292 A   39      0       0       0 0
+# c10   293 T   8       31      0       0 31
+# c10   294 A   39      0       0       0 0
+# c10   295 A   39      0       0       0 0
+# c10   296 G   39      0       0       0 0
+# c10   297 C   36      3       0       0 3
+# c10   298 C   8       31      0       0 31
+# c10   299 A   39      0       0       0 0
+# c10   300 C   39      0       0       0 0
+
+# c10   360 T   39      0       0       0 0
+# c10   361 A   39      0       0       0 0
+# c10   362 C   8       31      0       0 31
+# c10   363 A   8       31      0       0 31
+# c10   364 T   39      0       0       0 0
+# c10   365 A   39      0       0       0 0
+# c10   366 A   39      0       0       0 0
+# c10   367 A   39      0       0       0 0
+# c10   368 A   39      0       0       0 0
+# c10   369 C   8       31      0       0 31
+# c10   370 G   39      0       0       0 0
+# c10   371 A   36      3       0       0 3
+# c10   372 A   39      0       0       0 0
+# c10   373 T   8       31      0       0 31
+# c10   374 G   39      0       0       0 0
+# c10   375 T   39      0       0       0 0
+
+# c10   389 G   39      0       0       0 0
+# c10   390 G   8       31      0       0 31
+# c10   391 T   39      0       0       0 0
+# c10   392 C   39      0       0       0 0
+# c10   393 C   39      0       0       0 0
+# c10   394 C   39      0       0       0 0
+# c10   395 A   39      0       0       0 0
+# c10   396 G   8       31      0       0 31
+# c10   397 T   39      0       0       0 0
+
+# c10   439 G   39      0       0       0 0
+# c10   440 A   39      0       0       0 0
+# c10   441 T   39      0       0       0 0
+# c10   442 T   39      0       0       0 0
+# c10   443 T   34      5       0       0 5
+# c10   444 A   39      0       0       0 0
+# c10   445 C   8       31      0       0 31
+# c10   446 T   39      0       0       0 0
+# c10   447 G   39      0       0       0 0
+# c10   448 A   39      0       0       0 0
+
+# c10   463 C   38      0       1       0 1
+# c10   464 A   37      0       2       0 2
+# c10   465 A   37      0       2       0 2
+# c10   466 C   37      0       2       36 38
+# c10   467 A   36      0       3       0 3
+# c10   468 G   36      0       3       0 3
+# c10   469 T   36      0       3       0 3
+# c10   470 C   37      0       2       0 2
+# c10   471 A   38      0       1       0 1
+# c10   472 C   36      0       3       0 3
+# c10   473 A   38      0       1       36 37
+# c10   474 A   39      0       0       0 0
+# c10   475 T   39      0       0       5 5
+# c10   476 C   39      0       0       0 0
+# c10   477 A   39      0       0       0 0
+# c10   478 T   39      0       0       0 0
+# c10   479 A   39      0       0       0 0
+# c10   480 T   39      0       0       0 0
+# c10   481 A   8       31      0       0 31
+# c10   482 A   39      0       0       0 0
+# c10   483 T   39      0       0       0 0
+# c10   484 T   39      0       0       0 0
+# c10   485 T   39      0       0       0 0
+# c10   486 A   39      0       0       0 0
+# c10   487 T   39      0       0       0 0
+# c10   488 C   35      4       0       0 4
+# c10   489 T   8       31      0       0 31
+# c10   490 T   36      3       0       0 3
+# c10   491 T   39      0       0       0 0
+# c10   492 C   39      0       0       0 0
+
+# c10   501 T   39      0       0       0 0
+# c10   502 T   39      0       0       0 0
+# c10   503 C   8       31      0       0 31
+# c10   504 T   39      0       0       0 0
+# c10   505 T   39      0       0       0 0
+# c10   506 T   39      0       0       0 0
+# c10   507 C   39      0       0       0 0
+# c10   508 T   39      0       0       0 0
+# c10   509 T   39      0       0       0 0
+# c10   510 A   39      0       0       0 0
+
+# c10   548 T   39      0       0       0 0
+# c10   549 G   39      0       0       0 0
+# c10   550 A   39      0       0       0 0
+# c10   551 A   15      24      0       0 24
+# c10   552 T   39      0       0       0 0
+# c10   553 C   39      0       0       0 0
+
+# c10   573 T   39      0       0       0 0
+# c10   574 C   39      0       0       0 0
+# c10   575 C   39      0       0       0 0
+# c10   576 T   8       31      0       0 31
+# c10   577 G   39      0       0       0 0
+# c10   578 T   39      0       0       0 0
+# c10   579 T   39      0       0       0 0
+# c10   580 T   8       31      0       0 31
+# c10   581 A   39      0       0       0 0
+# c10   582 A   39      0       0       0 0
+# c10   583 T   39      0       0       0 0
+
+# c10   601 T   39      0       0       0 0
+# c10   602 A   8       31      0       0 31
+# c10   603 T   39      0       0       0 0
+# c10   604 T   37      2       0       0 2
+# c10   605 T   39      0       0       0 0
+# c10   606 C   39      0       0       0 0
+# c10   607 A   39      0       0       0 0
+# c10   608 G   39      0       0       0 0
+# c10   609 T   39      0       0       0 0
+# c10   610 C   39      0       0       0 0
+# c10   611 T   39      0       0       0 0
+# c10   612 C   39      0       0       0 0
+# c10   613 C   39      0       0       0 0
+# c10   614 C   39      0       0       0 0
+# c10   615 A   39      0       0       0 0
+# c10   616 T   8       31      0       0 31
+# c10   617 T   39      0       0       0 0
+# c10   618 C   39      0       0       0 0
+
+# c10   660 A   39      0       0       0 0
+# c10   661 G   39      0       0       0 0
+# c10   662 G   39      0       0       0 0
+# c10   663 T   8       31      0       0 31
+# c10   664 A   39      0       0       0 0
+# c10   665 G   39      0       0       0 0
+# c10   666 A   39      0       0       0 0
+# c10   667 A   39      0       0       0 0
+# c10   668 C   39      0       0       0 0
+# c10   669 T   39      0       0       0 0
+# c10   670 C   39      0       0       0 0
+# c10   671 T   39      0       0       0 0
+# c10   672 C   8       31      0       0 31
+# c10   673 A   8       31      0       0 31
+# c10   674 G   39      0       0       0 0
+# c10   675 T   39      0       0       0 0
+
+# c10   693 T   39      0       0       0 0
+# c10   694 C   39      0       0       0 0
+# c10   695 A   13      26      0       0 26
+# c10   696 G   37      2       0       0 2
+# c10   697 A   39      0       0       0 0
+# c10   698 A   39      0       0       0 0
+# c10   699 A   39      0       0       0 0
+# c10   700 G   39      0       0       0 0
+# c10   701 G   39      0       0       0 0
+# c10   702 G   8       31      0       0 31
+# c10   703 A   8       31      0       0 31
+# c10   704 G   39      0       0       0 0
+
+# c10   734 C   39      0       0       0 0
+# c10   735 A   39      0       0       0 0
+# c10   736 G   8       31      0       0 31
+# c10   737 T   39      0       0       0 0
+# c10   738 T   39      0       0       0 0
+# c10   739 T   39      0       0       0 0
+# c10   740 C   39      0       0       31 31
+# c10   741 A   39      0       0       0 0
+# c10   742 A   39      0       0       0 0
+# c10   743 A   39      0       0       0 0
+# c10   744 A   36      3       0       0 3
+# c10   745 C   8       0       31      0 31
+# c10   746 A   39      0       0       0 0
+# c10   747 T   39      0       0       0 0
+# c10   748 G   39      0       0       0 0
+# c10   749 A   39      0       0       0 0
+# c10   750 G   39      0       0       0 0
+# c10   751 C   39      0       0       0 0
+# c10   752 A   39      0       0       0 0
+# c10   753 G   39      0       0       0 0
+# c10   754 G   8       31      0       0 31
+# c10   755 T   39      0       0       0 0
+# c10   756 C   39      0       0       0 0
+# c10   757 C   38      1       0       0 1
+# c10   758 C   39      0       0       0 0
+
+# c11   19 G    39      0       0       0 0
+# c11   20 C    35      4       0       0 4
+# c11   21 G    13      26      0       0 26
+# c11   22 G    39      0       0       0 0
+# c11   23 A    39      0       0       0 0
+
+# c11   75 C    39      0       0       0 0
+# c11   76 A    39      0       0       0 0
+# c11   77 A    39      0       0       0 0
+# c11   78 A    8       31      0       0 31
+# c11   79 C    34      5       0       0 5
+# c11   80 A    39      0       0       0 0
+# c11   81 A    39      0       0       0 0
+# c11   82 T    38      1       0       0 1
+
+# c11   119 C   39      0       0       0 0
+# c11   120 T   39      0       0       0 0
+# c11   121 T   39      0       0       0 0
+# c11   122 A   39      0       0       8 8
+# c11   123 G   8       31      0       8 39
+# c11   124 A   39      0       0       0 0
+# c11   125 G   39      0       0       0 0
+
+# c11   161 C   39      0       0       0 0
+# c11   162 A   39      0       0       0 0
+# c11   163 C   39      0       0       0 0
+# c11   164 T   8       31      0       0 31
+# c11   165 G   39      0       0       0 0
+# c11   166 T   39      0       0       0 0
+# c11   167 G   39      0       0       0 0
+
+# c11   193 A   39      0       0       0 0
+# c11   194 T   39      0       0       0 0
+# c11   195 G   39      0       0       0 0
+# c11   196 C   8       31      0       0 31
+# c11   197 T   8       31      0       0 31
+# c11   198 C   39      0       0       0 0
+# c11   199 A   39      0       0       0 0
+
+# c12   40 G    53      5       0       0 5
+# c12   41 T    58      0       0       0 0
+# c12   42 T    58      0       0       0 0
+# c12   43 G    27      31      0       0 31
+# c12   44 T    58      0       0       0 0
+# c12   45 G    58      0       0       0 0
+# c12   46 T    58      0       0       0 0
+# c12   47 A    58      0       0       0 0
+
+# c12   72 A    58      0       0       0 0
+# c12   73 C    58      0       0       0 0
+# c12   74 C    27      31      0       0 31
+# c12   75 T    58      0       0       0 0
+# c12   76 G    58      0       0       0 0
+
+# c13   7 C     58      0       0       0 0
+# c13   8 C     53      5       0       0 5
+# c13   9 T     58      0       0       0 0
+# c13   10 C    27      31      0       0 31
+# c13   11 A    58      0       0       0 0
+# c13   12 G    58      0       0       0 0
+
+# c13   54 T    58      0       0       0 0
+# c13   55 G    58      0       0       0 0
+# c13   56 C    27      31      0       0 31
+# c13   57 C    58      0       0       0 0
+# c13   58 C    55      0       3       0 3
+# c13   59 A    58      0       0       0 0
+# c13   60 T    39      5       14      0 19
+# c13   61 G    27      31      0       0 31
+# c13   62 A    58      0       0       0 0
+# c13   63 T    50      8       0       0 8
+# c13   64 A    58      0       0       0 0
+
+#node c14 gfa{c14}{=} 0
+# c14   0 T     27      31      0       0 31
+# c14   1 A     58      0       0       0 0
+# c14   2 G     44      14      0       0 14
+# c14   3 A     58      0       0       0 0
+
+# c15   16 T    58      0       0       0 0
+# c15   17 C    58      0       0       0 0
+# c15   18 T    27      31      0       0 31
+# c15   19 C    58      0       0       0 0
+# c15   20 C    58      0       0       0 0
+# c15   21 T    27      31      0       0 31
+# c15   22 A    58      0       0       0 0
+
+# c15   48 T    58      0       0       0 0
+# c15   49 C    44      14      0       0 14
+# c15   50 T    58      0       0       0 0
+# c15   51 C    58      0       0       0 0
+# c15   52 T    58      0       0       0 0
+# c15   53 G    32      26      0       0 26
+# c15   54 T    45      13      0       0 13
+# c15   55 C    53      5       0       0 5
+
+# c15   271 C   58      0       0       0 0
+# c15   272 A   58      0       0       0 0
+# c15   273 C   58      0       0       0 0
+# c15   274 A   30      28      0       0 28
+# c15   275 G   32      26      0       0 26
+# c15   276 G   58      0       0       0 0
+# c15   277 A   58      0       0       0 0
+# c15   278 T   58      0       0       0 0
+
+# c15   326 C   58      0       0       0 0
+# c15   327 A   58      0       0       0 0
+# c15   328 T   58      0       0       0 0
+# c15   329 A   58      0       0       0 0
+# c15   330 A   27      0       31      0 31
+# c15   331 T   27      0       31      0 31
+# c15   332 A   27      0       31      0 31
+# c15   333 A   27      0       31      0 31
+# c15   334 A   23      4       31      0 35
+# c15   335 C   58      0       0       0 0
+# c15   336 A   27      0       31      0 31
+# c15   337 C   27      0       31      0 31
+# c15   338 T   58      0       0       0 0
+# c15   339 C   58      0       0       0 0
+common del
+
+# c15   354 T   58      0       0       0 0
+# c15   355 T   53      5       0       0 5
+# c15   356 T   27      31      0       0 31
+# c15   357 A   58      0       0       0 0
+# c15   358 A   58      0       0       0 0
+# c15   359 C   58      0       0       0 0
+
+# c15   377 C   58      0       0       0 0
+# c15   378 T   58      0       0       0 0
+# c15   379 G   32      26      0       0 26
+# c15   380 C   58      0       0       0 0
+# c15   381 A   58      0       0       0 0
+
+# c15   421 T   58      0       0       0 0
+# c15   422 A   58      0       0       0 0
+# c15   423 G   27      31      0       0 31
+# c15   424 T   55      3       0       0 3
+# c15   425 A   58      0       0       0 0
+
+# c15   444 A   58      0       0       0 0
+# c15   445 A   28      30      0       0 30
+# c15   446 T   58      0       0       0 0
+# c15   447 T   58      0       0       0 0
+
+# c15   463 A   58      0       0       0 0
+# c15   464 T   58      0       0       0 0
+# c15   465 T   29      29      0       0 29
+# c15   466 A   58      0       0       0 0
+# c15   467 G   58      0       0       0 0
+
+# c15   532 G   58      0       0       0 0
+# c15   533 T   58      0       0       0 0
+# c15   534 A   27      31      0       0 31
+# c15   535 T   27      31      0       0 31
+# c15   536 A   58      0       0       0 0
+# c15   537 C   27      31      0       0 31
+# c15   538 C   58      0       0       0 0
+# c15   539 T   58      0       0       0 0
+
+# c15   625 C   53      5       0       0 5
+# c15   626 T   58      0       0       0 0
+# c15   627 A   27      31      0       0 31
+# c15   628 A   58      0       0       0 0
+# c15   629 A   58      0       0       0 0
+
+# c15   694 A   58      0       0       0 0
+# c15   695 A   58      0       0       0 0
+# c15   696 C   34      24      0       0 24
+# c15   697 A   58      0       0       0 0
+# c15   698 C   58      0       0       0 0
+
+# c15   708 A   58      0       0       0 0
+# c15   709 A   27      31      0       0 31
+# c15   710 C   58      0       0       0 0
+
+# c15   742 C   58      0       0       0 0
+# c15   743 A   58      0       0       0 0
+# c15   744 T   32      26      0       0 26
+# c15   745 A   58      0       0       0 0
+# c15   746 G   58      0       0       0 0
+
+
+# c17   0 A     58      0       0       0 0
+# c17   1 C     58      0       0       0 0
+# c17   2 C     39      19      0       0 19
+# c17   3 T     58      0       0       0 0
+# c17   4 T     58      0       0       0 0
+# c17   5 T     28      30      0       0 30
+# c17   6 T     58      0       0       0 0
+# c17   7 G     58      0       0       0 0
+
+# c17   18 C    53      5       0       0 5
+# c17   19 A    58      0       0       0 0
+# c17   20 G    8       50      0       0 50
+# c17   21 C    58      0       0       0 0
+# c17   22 A    58      0       0       0 0
+
+# c17   36 C    58      0       0       0 0
+# c17   37 T    50      8       0       0 8
+# c17   38 C    33      25      0       0 25
+# c17   39 T    58      0       0       0 0
+# c17   40 C    58      0       0       0 0
+# c17   41 T    44      14      0       0 14
+# c17   42 A    42      5       11      0 16
+# c17   43 G    55      0       3       0 3
+# c17   44 T    58      0       0       0 0
+
+# c17   91 C    57      0       1       0 1
+# c17   92 T    58      0       0       0 0
+# c17   93 C    27      31      0       0 31
+# c17   94 C    58      0       0       0 0
+# c17   95 T    58      0       0       0 0
+
+# c17   123 T   58      0       0       0 0
+# c17   124 T   58      0       0       0 0
+# c17   125 A   27      31      0       0 31
+# c17   126 G   58      0       0       0 0
+# c17   127 A   39      19      0       0 19
+# c17   128 T   53      5       0       0 5
+# c17   129 C   34      24      0       0 24
+# c17   130 C   58      0       0       0 0
+# c17   131 A   58      0       0       0 0
+# c17   132 G   58      0       0       0 0
+# c17   133 C   53      5       0       0 5
+# c17   134 T   47      11      0       0 11
+# c17   135 G   58      0       0       0 0
+# c17   136 G   58      0       0       0 0
+
+# c17   151 A   58      0       0       0 0
+# c17   152 G   58      0       0       0 0
+# c17   153 C   8       50      0       0 50
+# c17   154 A   27      31      0       0 31
+# c17   155 C   58      0       0       0 0
+# c17   156 A   58      0       0       0 0
+# c17   157 G   39      19      0       0 19
+# c17   158 T   58      0       0       0 0
+# c17   159 C   58      0       0       0 0
+
+# c17   200 T   58      0       0       0 0
+# c17   201 C   53      5       0       0 5
+# c17   202 G   27      31      0       0 31
+# c17   203 T   58      0       0       0 0
+# c17   204 C   58      0       0       0 0
+
+# c17   227 A   58      0       0       0 0
+# c17   228 T   53      5       0       0 5
+# c17   229 G   27      31      0       0 31
+# c17   230 G   57      1       0       0 1
+# c17   231 T   58      0       0       0 0
+
+# c17   259 C   58      0       0       0 0
+# c17   260 A   58      0       0       0 0
+# c17   261 T   27      31      0       0 31
+# c17   262 T   58      0       0       0 0
+
+# c17   327 C   58      0       0       0 0
+# c17   328 C   58      0       0       0 0
+# c17   329 T   31      27      0       0 27
+# c17   330 C   58      0       0       0 0
+# c17   331 T   58      0       0       0 0
+
+# c17   373 A   58      0       0       0 0
+# c17   374 A   58      0       0       0 0
+# c17   375 T   22      36      0       0 36
+# c17   376 A   58      0       0       0 0
+# c17   377 A   58      0       0       0 0
+# c17   378 T   58      0       0       0 0
+
+# c17   411 C   58      0       0       0 0
+# c17   412 T   58      0       0       0 0
+# c17   413 T   58      0       0       0 0
+# c17   414 G   53      0       5       0 5
+# c17   415 G   22      31      5       0 36
+# c17   416 T   55      3       0       0 3
+# c17   417 T   58      0       0       0 0
+# c17   418 T   53      0       5       0 5
+
+# c17   565 A   58      0       0       0 0
+# c17   566 C   58      0       0       0 0
+# c17   567 C   24      34      0       0 34
+# c17   568 T   58      0       0       0 0
+# c17   569 G   58      0       0       0 0
+
+# c17   688 A   58      0       0       0 0
+# c17   689 T   58      0       0       0 0
+# c17   690 C   27      31      0       0 31
+# c17   691 A   58      0       0       0 0
+# c17   692 T   58      0       0       0 0
+# c17   693 T   58      0       0       0 0
+
+# c17   815 A   58      0       0       0 0
+# c17   816 G   58      0       0       0 0
+# c17   817 C   31      27      0       0 27
+# c17   818 A   58      0       0       0 0
+# c17   819 A   58      0       0       0 0
+
+# c17   901 C   58      0       0       0 0
+# c17   902 C   27      31      0       0 31
+# c17   903 C   58      0       0       0 0
+# c17   904 T   58      0       0       0 0
+# c17   905 G   58      0       0       0 0
+# c17   906 G   44      14      0       0 14
+# c17   907 A   53      5       0       0 5
+
+# c17   960 C   58      0       0       0 0
+# c17   961 A   58      0       0       0 0
+# c17   962 A   27      31      0       0 31
+# c17   963 T   58      0       0       0 0
+# c17   964 C   58      0       0       0 0
+
+# c19   47 G    58      0       0       0 0
+# c19   48 A    58      0       0       0 0
+# c19   49 C    44      14      0       0 14
+# c19   50 T    58      0       0       0 0
+# c19   51 T    58      0       0       0 0
+# c19   52 C    27      31      0       0 31
+# c19   53 C    58      0       0       0 0
+
+# c19   92 T    58      0       0       0 0
+# c19   93 T    58      0       0       0 0
+# c19   94 G    27      31      0       0 31
+# c19   95 C    58      0       0       0 0
+# c19   96 T    58      0       0       0 0
+
+... only most severe from here on ...
+
+# c19   170 T   58      0       0       0 0
+# c19   171 C   17      41      0       0 41
+# c19   172 G   55      3       0       0 3
+
+# c19   397 T   53      5       0       0 5
+# c19   398 A   58      0       0       0 0
+# c19   399 C   27      31      0       0 31
+# c19   400 T   58      0       0       0 0
+# c19   401 C   22      36      0       0 36
+# c19   402 T   58      0       0       0 0
+
+# c19   474 C   58      0       0       0 0
+# c19   475 C   57      1       0       0 1
+# c19   476 C   27      31      0       0 31
+# c19   477 A   58      0       0       0 0
+# c19   478 G   58      0       0       0 0
+# c19   479 T   58      0       0       0 0
+# c19   480 A   58      0       0       0 0
+# c19   481 A   27      31      0       0 31
+# c19   482 A   58      0       0       0 0
+# c19   483 G   27      31      0       0 31
+# c19   484 A   58      0       0       0 0
+# c19   485 G   58      0       0       0 0
+# c19   486 T   58      0       0       0 0
+# c19   487 A   58      0       0       0 0
+# c19   488 G   58      0       0       0 0
+# c19   489 C   58      0       0       0 0
+# c19   490 T   58      0       0       0 0
+# c19   491 G   58      0       0       0 0
+# c19   492 C   58      0       0       0 0
+# c19   493 T   58      0       0       0 0
+# c19   494 G   27      31      0       0 31
+# c19   495 A   58      0       0       0 0
+# c19   496 G   55      3       0       0 3
+
+# c19   647 A   58      0       0       0 0
+# c19   648 C   58      0       0       0 0
+# c19   649 T   58      0       0       0 0
+# c19   650 T   58      0       0       0 0
+# c19   651 C   58      0       0       0 0
+# c19   652 T   58      0       0       0 0
+# c19   653 T   58      0       0       0 0
+# c19   654 C   8       19      31      0 50
+# c19   655 T   58      0       0       0 0
+# c19   656 T   27      0       31      0 31
+# c19   657 T   27      0       31      0 31
+# c19   658 C   58      0       0       0 0
+
+
+# c2    863 C   58      0       0       0 0 
+# c2    864 A   58      0       0       0 0 
+# c2    865 G   8       50      0       0 50 *
+# c2    866 G   44      14      0       0 14 
+# c2    867 A   53      5       0       0 5 
+# c2    868 G   50      8       0       0 8 
+# c2    907 G   53      5       0       0 5 
+# c2    908 G   58      0       0       0 0 
+# c2    909 T   9       49      0       0 49 *
+# c2    910 T   58      0       0       0 0 
+# c2    911 A   58      0       0       0 0 
+
+See file "__"
