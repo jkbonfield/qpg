@@ -1557,3 +1557,225 @@ common del
 # c2    911 A   58      0       0       0 0 
 
 See file "__"
+
+=============================================================================
+
+kmer alignment.
+
+1. Align
+
+f=DRB-train.fa;/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -g mafft+cons.gfa -f $f -x vg -a mafft.gaf
+
+2. Construct the nodeseq file (node names + node seq + aligned seq to nodes)
+from the GraphAligner output + FASTA and GFA.
+
+./gaf2gfa.pl mafft.gaf $f mafft+cons.gfa > $f.nodeseq
+
+3. Kmer analysis, indexing the nodeseq to assign kmers to nodes, and
+then indexing an individual sequence to count kmer hits per node.
+
+./kmer2node $f.nodeseq s1.fa|grep Node|sort
+
+
+The GAF file for s1 claims:
+
+>c1>a1c0>a1c1>a1i1>a1c2>a1i2>a1c3>c2>i2>c3>c4>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCT>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>rCA>c5>i5>c6>c6a1>c7>c12>c13>c14>i14>c15>r16>r16>r16>c17>cnv>cnvstr>cnvstr>cnvstr>cnvstr>cnvstr>cnvstr>cnvstr>cnvstr>cnvstr>cnvstr>c19>c20
+
+Our output looks like:
+...
+Node        i19	len     44	exp     44	hit      0	ratio 0.00
+Node        r16	len     16	exp     16	hit     45	ratio 2.81
+Node        rCA	len      2	exp      2	hit     40	ratio 19.91
+Node        rCT	len      2	exp      2	hit     43	ratio 21.40
+Node       a0c0	len     44	exp     33	hit      0	ratio 0.00
+Node       a0c1	len    279	exp    279	hit      0	ratio 0.00
+...
+
+Marrying the two together I see
+
+node	 GAF freq  12-kmer ratio	15-mer
+>c1	 1   	   0.98	   		0.97
+>a1c0	 1	   1.00			0.94
+>a1c1	 1	   1.01			1.00
+>a1i1	 1	   0.94			0.87 l
+>a1c2	 1	   0.89			0.88 l
+>a1i2	 1	   1.00			0.99
+>a1c3	 1	   1.00			0.95
+>c2	 1	   1.00			1.00
+>i2	 1	   1.00			0.85 l
+>c3	 1	   1.01			1.01
+>c4	 1	   1.00			1.00
+>rCT	 21	   23.45 high		20.90
+>rCA	 21	   20.45		18.91
+>c5	 1	   1.00			0.99
+>i5	 1	   0.98			0.93
+>c6	 1	   0.97			0.96
+>c6a1	 1	   0.97			0.50 LOW
+>c7	 1	   1.00			0.99
+>c12	 1	   0.98			0.96
+>c13	 1 	   0.99			0.94
+>c14	 1	   1.07			0.74 low
+>i14	 1	   1.05			0.77 low
+>c15	 1	   1.00			1.00
+>r16	 3	   2.92			2.87
+>c17	 1	   1.00			1.00
+>cnv	 1	   0.88			0.86
+>cnvstr	 10	   16.88 HIGH (dup)	13.51 high
+>c19	 1	   1.00	      		1.00
+>c20	 1	   1.00			1.00
+
+Plus a minor false hit:
+>c10i0	 0	   0.02
+
+-----------------------------------------------------------------------------
+
+Renamed nodes to be sortable in their standard left to right
+alignment.
+
+f=DRB-train.fa;/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -g mafft+cons.gfa -f $f -x vg -a mafft.gaf; ./gaf2gfa.pl mafft.gaf $f mafft+cons.gfa > $f.nodeseq;./kmer2node $f.nodeseq s1.fa|grep Node | sort -k2 -b|awk '$NF > 0'
+
+Node      aa-c1	len    603	exp  603.0  601.3	hit    587	ratio 0.98
+Node    ae-a1c0	len     49	exp   49.0   49.0	hit     49	ratio 1.00
+Node    ag-a1c1	len    211	exp  211.0  200.1	hit    202	ratio 1.01
+...
+
+
+Bandage load mafft+cons.gfa --edgelen 15 --edgewidth 0.5 --iter 4 --singlearr 
+
+
+=============================================================================
+
+HLA-DRB1*14:54:01/rc vs kmer-index from aligning DRB-train.fa to mafft+cons.gfa
+
+     aa-c1	len    603	exp  603.0  601.3	hit    563	ratio 0.94  1
+   ae-a1c0	len     49	exp   49.0   49.0	hit     39	ratio 0.80  1
+   af-a1i0	len     10	exp   10.0   10.0	hit      8	ratio 0.80  1
+   ag-a1c1	len    211	exp  211.0  200.1	hit    199	ratio 0.99  1
+   ah-a1i1	len     47	exp   47.0   21.4	hit      5	ratio 0.23  0
+   ai-a1c2	len    151	exp  151.0  134.4	hit    124	ratio 0.92  1
+   ak-a1c3	len     65	exp   65.0   65.0	hit     53	ratio 0.82  1
+     ba-c2	len   1967	exp 1967.0 1929.8	hit   1881	ratio 0.97  1
+     ca-c3	len   1126	exp 1126.0 1097.4	hit   1055	ratio 0.96  1
+     da-c4	len    650	exp  650.0  643.0	hit    626	ratio 0.97  1
+    db-rCT	len      2	exp    2.0    1.8	hit     31	ratio 16.92 20
+    dc-rCA	len      2	exp    2.0    1.9	hit     50	ratio 25.56 26
+     ea-c5	len    371	exp  371.0  370.1	hit    327	ratio 0.88  1
+     eb-i5	len     56	exp   56.0   56.0	hit     32	ratio 0.57  1*
+     fa-c6	len    258	exp  258.0  257.8	hit    224	ratio 0.87  1
+   fb-c6a0	len      5	exp    5.0    3.1	hit      1	ratio 0.33  1*
+   fc-c6a1	len      6	exp    6.0    4.1	hit      2	ratio 0.49  0*
+     ga-c7	len    234	exp  234.0  230.0	hit    215	ratio 0.93  1
+     ha-c8	len    450	exp  450.0  441.4	hit    424	ratio 0.96  1
+     ia-c9	len    574	exp  574.0  569.3	hit    540	ratio 0.95  1
+    ja-c10	len    759	exp  759.0  752.7	hit    727	ratio 0.97  1
+  jb-c10i0	len     12	exp   12.0    0.5	hit      0	ratio 0.02  0
+    ka-c11	len    240	exp  240.0  235.8	hit    212	ratio 0.90  1
+    la-c12	len    109	exp  109.0  108.3	hit    109	ratio 1.01  1
+    ma-c13	len     71	exp   71.0   71.0	hit     71	ratio 1.00  1
+    na-c14	len     11	exp   11.0   10.3	hit     11	ratio 1.07  1
+    nb-i14	len     13	exp   13.0   12.3	hit     12	ratio 0.97  1
+    oa-c15	len    868	exp  868.0  862.7	hit    832	ratio 0.96  1
+    ob-r16	len     16	exp   16.0   15.4	hit     47	ratio 3.05  3
+    pa-c17	len   1008	exp 1008.0 1001.4	hit    974	ratio 0.97  1
+    pb-cnv	len    282	exp  282.0  194.2	hit    544	ratio 2.80  3
+ pc-cnvstr	len      4	exp    4.0    2.4	hit     61	ratio 25.74 26
+pd-cnvlink	len     53	exp   53.0   53.0	hit     53	ratio 1.00  1
+    qa-c19	len   1533	exp 1533.0 1481.5	hit   1385	ratio 0.93  1
+    ra-c20	len    886	exp  886.0  880.8	hit    883	ratio 1.00  1
+
+GraphAligner CNV complex is:
+ 1 cnv
+ 8 STR
+ 1 link
+ 1 cnv
+ 5 STR
+ 1 cnv
+13 STR
+
+We have 8+5+13 = 26 STR copies, but we cannot assign the numbers to the
+3 loops through the CNV.
+
+We under-represent i5, and and we have a much reduced c6a0 (should be
+1) and over present c6a0 (should be 0).  However the hit counts are 1
+and 2, demonstrating the problem with tiny nodes in the graph.
+
+Indexing based on hla-drb1.fasta alignments instead we see:
+Node      eb-i5	len     56	exp   56.0   56.0	hit     45	ratio 0.80
+Node    fb-c6a0	len      5	exp    5.0    1.2	hit      0	ratio 0.01
+Node    fd-c6a2	len     16	exp   16.0   16.0	hit      0	ratio 0.00
+
+That 's better on i5 and c6a2, but completely misses c6a0
+
+Indexing based on all.fa instead:
+Node      eb-i5	len     56	exp   56.0   56.0	hit     56	ratio 1.00
+Node    fb-c6a0	len      5	exp    5.0    1.0	hit      0	ratio 0.01
+Node    fc-c6a1	len      6	exp    6.0    2.0	hit      0	ratio 0.01
+
+Also no c6a0.
+
+GraphAligner is adamant we go through it.  Our graph has us going
+through one of the 3 choices there, but we go through none.  This
+implies the sequence is more divergent than the 3 options we had
+available at that position.
+
+Matching:
+ 21 009d7ddd GCTCCTTCTCTC fa-c6
+ 21 0075f774 CTCCTTCTCTCA fa-c6
+ 21 00d7ddd3 TCCTTCTCTCAT fa-c6
+ 21 005f774d CCTTCTCTCATC fa-c6
+ 21 007ddd35 CTTCTCTCATCC fa-c6
+ 21 00f774d5 TTCTCTCATCCC fa-c6
+ -1 00ddd354 TCTCTCATCCCA ?
+ -1 00774d51 CTCTCATCCCAC ?
+ -1 00dd3544 TCTCATCCCACA ?
+ -1 0074d511 CTCATCCCACAC ?
+ -1 00d35446 TCATCCCACACG ?
+ 25 004d511b CATCCCACACGT ga-c7
+ 25 0035446f ATCCCACACGTT ga-c7
+ 25 00d511bf TCCCACACGTTT ga-c7
+ 25 005446fc CCCACACGTTTA ga-c7
+ 25 00511bf1 CCACACGTTTAC ga-c7
+ 25 00446fc5 CACACGTTTACC ga-c7
+ 25 0011bf16 ACACGTTTACCG ga-c7
+
+c6 is ...CCTTCTCTCATCCC$
+our seq  CCTTCTCTCATCCC$
+
+         ---pre-----         I
+c7 is    TTTACCGGTTCCTTAAACAG-ACCCACCGCGTTCATCCTGTGAACACTTCCTTAGTGATGA
+our seq        GGTTCCTTAAACAGCACCCACCGC
+
+c6a0     acatg
+c6a2     tttaccctttaaaggc
+c6a1     acacgc
+our seq  ACACGTTTACCGGTTC
+              XIIIIIIIIII
+
+We obviously need c6a3 too
+
+Ie:
+                                  c6 c6a0             c7
+Graph                 CCTTCTCTCATCCC ACATG            CTTAAACAG-ACCCACCGC
+HLA-DRB1*14:54:01/rc  CCTTCTCTCATCCC ACACGTTTACCGGTTC CTTAAACAGCACCCACCGC
+                                        X IIIIIIIIIII          I
+
+Problematic GRCh38 c6a* nodes:
+h11-h14
+
+HLA-DRB1*11:01:01/rc
+HLA-DRB1*12:17/rc
+HLA-DRB1*13:02:01/rc
+HLA-DRB1*14:54:01/rc>h14.fa
+
+Maybes:
+HLA-DRB1*03:01:01:01/rc
+HLA-DRB1*08:03:02/rc
+HLA-DRB1*10:01:01/rc
+HLA-DRB1*16:02:01/rc
+
+
+c6a0     acatg;            only expect 1 hit due to dups.  Error prone!
+c6a2     tttaccctttaaaggc
+c6a1     acacgc
+
+c6a0 needs k=14 or 15 to be reliable

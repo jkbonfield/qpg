@@ -13,11 +13,13 @@
 
 use strict;
 
-# Usage: gaf2gfa.pl align.gaf in.fasta graph.gfa
+# Usage: gaf2gfa.pl align.gaf in.fasta graph.gfa [kmer]
 
 open(my $gaf,   "<", shift(@ARGV)) || die;
 open(my $fasta, "<", shift(@ARGV)) || die;
 open(my $gfa,   "<", shift(@ARGV)) || die;
+my $kmer = shift(@ARGV);
+$kmer = 12 unless defined($kmer);
 
 # Data structures, indexed by name
 # seq{}{seq}    sequence
@@ -122,6 +124,12 @@ foreach my $name (sort keys %seq) {
 	#print "\t$1\t",length($seq),"\t$subn\t$subq\t$lenn,$pstart,$qstart\t",length($seqn),"\n";
 
 	my $query = "";
+	my $prefix;
+	if ($qstart >= $kmer-1) {
+	    $prefix = substr($seq,$qstart-($kmer-1),$kmer-1);
+	} else {
+	    $prefix = substr($seq, 0, $qstart);
+	}
 
 	while ($lenn > 0) {
 	    if ($oplen == 0) {
@@ -180,7 +188,7 @@ foreach my $name (sort keys %seq) {
 	#print "# $node $seqn\n@ $node $query\n";
 
 	if ($last_node ne $node) {
-	    push(@{$gfa{$node}{query}}, $query);
+	    push(@{$gfa{$node}{query}}, $prefix . $query);
 	} else {
 	    @{$gfa{$node}{query}}[-1] .= $query;
 	}

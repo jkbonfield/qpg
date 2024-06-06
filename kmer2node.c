@@ -55,6 +55,8 @@ typedef struct {
 
     // Maybe also an expected kmer count, as a fraction so small nodes will be
     // partial kmer.
+    //double kmer_dup; // expected fraction of kmers that are uniquely mapping
+    int kmer_unique, kmer_dup; // how many indexed uniquely/dups
 
     int hit_count;
 } node;
@@ -112,7 +114,8 @@ KHASH_MAP_INIT_STR(node, node*)
 typedef struct {
     khash_t(node) *nodes;
     int nnodes;
-    int kmer[KSIZE]; // maps kmer to node number
+    int kmer[KSIZE];   // maps kmer to node number
+    int unique[KSIZE]; // number of unique maps for this kmer
     node *num2node[MAX_NODES];
 } nodeset;
 
@@ -173,11 +176,24 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str) {
     // Assign "kmer" to node "num".  Duplicates get number -1
     for (; i < len; i++) {
 	kmer = ((kmer<<2) | base4[str[i]]) & KMASK;
-	if (ns->kmer[kmer] && ns->kmer[kmer] != num)
+	int unique = 0;
+	if (ns->kmer[kmer] && ns->kmer[kmer] != num) {
+	    if (ns->kmer[kmer] != -1) {
+		// Dups with an old node, we need to fix kmer_unique/dup.
+		node *dup_n = ns->num2node[ns->kmer[kmer]];
+		dup_n->kmer_unique -= ns->unique[kmer];
+		dup_n->kmer_dup    += ns->unique[kmer];
+	    }
 	    ns->kmer[kmer] = -1;
-	else
+	    n->kmer_dup++;
+	} else {
 	    ns->kmer[kmer] = num;
-	//printf("Index %08x %s %s\n", kmer, kmer2str(kmer), n->name);
+	    ns->unique[kmer]++;
+	    n->kmer_unique++;
+	    unique = 1;
+	}
+//	printf("Index %08x %s %s %s\n", kmer, kmer2str(kmer), n->name,
+//	       unique?"":"dup");
     }
 }
 
@@ -236,12 +252,17 @@ nodeset *nodeset_load(char *fn) {
 void nodeset_report(nodeset *ns) {
     for (int i = 1; i <= ns->nnodes; i++) {
 	node *n = ns->num2node[i];
-	int expected = n->length - (KMER-1);
-	//double ratio = (n->hit_count+0.01)/(expected+0.01);
+	// First node, assuming sensible graph order, doesn't have a prefix
+	// context sequence.
+	//double expected = n->length - (i==1 ? KMER-1 : 0), expected2 = expected;
+	double expected = n->length, expected2 = expected;
+	// Account for expected unique vs dup hit rate.
+	expected2 *= (n->kmer_unique+1.0) / (n->kmer_unique + n->kmer_dup+1.0);
+	double ratio = (n->hit_count+0.01)/(expected2+0.01);
 	//double ratio = (n->hit_count-expected+0.01)/(n->length+0.01);
-	double ratio = (n->hit_count+0.01)/(n->length-expected+0.01);
-	printf("Node %10s\tlen %6d\texp %6d\thit %6d\tratio %.2f\n",
-	       n->name, n->length, expected, n->hit_count, ratio);
+	//double ratio = (n->hit_count+0.01)/(n->length-expected+0.01);
+	printf("Node %10s\tlen %6d\texp %6.1f %6.1f\thit %6d\tratio %.2f\n",
+	       n->name, n->length, expected, expected2, n->hit_count, ratio);
     }
 }
 
