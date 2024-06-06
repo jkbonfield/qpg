@@ -27,8 +27,23 @@
 // normalised for the number we'd expect given the node length.
 
 #ifndef KMER
-#define KMER 12
+#define KMER 13
 #endif
+
+#define KSIZE (1<<(2*KMER))
+#define KMASK (KSIZE-1)
+
+// AND off the middle base from the KMER so we have BBBB-BBBB.
+//#define KGAP  (KMASK & ~(3<<(2*(KMER/2))))
+
+// AND off two bases within the KMER so we have BBB-BBB-BBB
+#define KGAP  (KMASK & ~((3<<(2*(KMER/3))) | (3<<(2*(2*KMER/3)))))
+
+// AND off 3 bases
+//#define KGAP  (KMASK & ~((3<<(2*(KMER/4)))|(3<<(2*(2*KMER/4)))|(3<<(2*(3*KMER/4)))))
+
+// Use the KMER as-is without gaps
+//#define KGAP KMASK
 
 #define MAX_NODES (100*1024)
 
@@ -44,9 +59,6 @@ static char *kmer2str(int kmer) {
 /* ----------------------------------------------------------------------
  * A node has a name, a length, and a bitvector of which kmers are present.
  */
-#define KSIZE (1<<(2*KMER))
-#define KMASK (KSIZE-1)
-
 typedef struct {
     int num; // Nth node number
     char *name;
@@ -92,19 +104,6 @@ static inline void base4_init(void) {
 	base4['t']=base4['T']=3;
     }
 }
-
-//void node_add_kmers(node *n, char *str) {
-//    base4_init();
-//
-//    int kmer = 0, i, len = n->length;
-//    for (i = 0; i < len && i < KMER-1; i++)
-//	kmer = (kmer<<2) | base4[str[i]];
-//
-//    for (; i < len; i++) {
-//	kmer = ((kmer<<2) | base4[str[i]]) & KMASK;
-//	kbs_insert(n->kmers, kmer);
-//    }
-//}
 
 /* ----------------------------------------------------------------------
  * A nodeset is a collection of nodes.  It is a node map indexed by name.
@@ -169,13 +168,16 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str) {
     base4_init();
 
     int num = n->num;
-    int kmer = 0, i, len = strlen(str);
+    int kmer = 0, kmer2 = 0, i, len = strlen(str);
     for (i = 0; i < len && i < KMER-1; i++)
-	kmer = (kmer<<2) | base4[str[i]];
+	kmer2 = (kmer2<<2) | base4[str[i]];
 
     // Assign "kmer" to node "num".  Duplicates get number -1
     for (; i < len; i++) {
-	kmer = ((kmer<<2) | base4[str[i]]) & KMASK;
+	kmer2 = ((kmer2<<2) | base4[str[i]]) & KMASK;
+	kmer = kmer2 & KGAP;
+	//fprintf(stderr, "%s", kmer2str(kmer2));
+	//fprintf(stderr, " %s\n", kmer2str(kmer));
 	int unique = 0;
 	if (ns->kmer[kmer] && ns->kmer[kmer] != num) {
 	    if (ns->kmer[kmer] != -1) {
@@ -274,14 +276,15 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
     //                             A C    G        T at 1, 2, 4, 8
     static int base16to4[16] = { _,0,1,_, 2,_,_,_, 3,_,_,_, _,_,_,_ };
 
-    int kmer = 0, i, len = b->core.l_qseq;
+    int kmer = 0, kmer2 = 0, i, len = b->core.l_qseq;
     uint8_t *seq = bam_get_seq(b);
     for (i = 0; i < len && i < KMER-1; i++)
-	kmer = (kmer<<2) | base16to4[bam_seqi(seq, i)];
+	kmer2 = (kmer2<<2) | base16to4[bam_seqi(seq, i)];
 
     printf("Seq %s\n", bam_get_qname(b));
     for (; i < len; i++) {
-	kmer = ((kmer<<2) | base16to4[bam_seqi(seq, i)]) & KMASK;
+	kmer2 = ((kmer2<<2) | base16to4[bam_seqi(seq, i)]) & KMASK;
+	kmer = kmer2 & KGAP;
 	int num = ns->kmer[kmer];
 	printf(" %2d %08x %s %s\n", num, kmer, kmer2str(kmer),
 	       num > 0 ? ns->num2node[num]->name : "?");
