@@ -1909,3 +1909,8 @@ a1c0 a1c1 a1c2 and a1c3 are all low
 We need additional entries maybe?
 
 h12,15,16 match the s1,9,11 group, but h10 is a blend of several
+
+Solved (ish): fix up on SNPs if not -1 match (dup). So it's percentage of
+bases covered by a unique kmer than kmers counted.
+
+

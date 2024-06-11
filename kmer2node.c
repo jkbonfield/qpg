@@ -282,14 +282,27 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	kmer2 = (kmer2<<2) | base16to4[bam_seqi(seq, i)];
 
     printf("Seq %s\n", bam_get_qname(b));
+    int last_node = -1, last_node_base = 0;
     for (; i < len; i++) {
 	kmer2 = ((kmer2<<2) | base16to4[bam_seqi(seq, i)]) & KMASK;
 	kmer = kmer2 & KGAP;
 	int num = ns->kmer[kmer];
-	printf(" %2d %08x %s %s\n", num, kmer, kmer2str(kmer),
-	       num > 0 ? ns->num2node[num]->name : "?");
-	if (num > 0)
+	printf(" %2d %08x %s %s %d\n", num, kmer, kmer2str(kmer),
+	       num > 0 ? ns->num2node[num]->name : "?", i);
+	if (num > 0) {
 	    ns->num2node[num]->hit_count++;
+	    if (i > last_node_base+1 && last_node == num) {
+		// Correct for missing kmers from SNPs
+		for (int j = i-1; j > last_node_base && j > i-KMER; j--) {
+		    printf("Fix-up %d:%d  last_node_base %d\n", i, j, last_node_base);
+		    ns->num2node[num]->hit_count++;
+		}
+	    }
+	}
+	if (num) {
+	    last_node_base = i; // records dup too so we only correct SNPs
+	    last_node = num;
+	}
     }
     puts("");
 }
