@@ -263,8 +263,8 @@ void nodeset_report(nodeset *ns) {
 	double ratio = (n->hit_count+0.01)/(expected2+0.01);
 	//double ratio = (n->hit_count-expected+0.01)/(n->length+0.01);
 	//double ratio = (n->hit_count+0.01)/(n->length-expected+0.01);
-	printf("Node %10s\tlen %6d\texp %6.1f %6.1f\thit %6d\tratio %.2f\n",
-	       n->name, n->length, expected, expected2, n->hit_count, ratio);
+	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d\tratio %.2f\n",
+	       n->name, n->length, expected2, n->hit_count, ratio);
     }
 }
 

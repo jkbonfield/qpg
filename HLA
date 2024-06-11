@@ -1780,3 +1780,132 @@ c6a1     acacgc
 
 c6a0 needs k=14 or 15 to be reliable
 Use gapped kmer?
+
+-----------------------------------------------------------------------------
+10/6/2024
+
+S	fb-c6a0	acatg
+S	fc-c6a1	acacgc
+S	fd-c6a2	tttaccctttaaaggc
+S	fe-c6a3	ACACG
+
+          acatg
+          acacgc
+tttaccctttaaaggc
+          ACACG
+           x x x
+          ACACGC
+So maybe  ACACGC or ACACG to c7 and tttacccttt to c6a0
+c7 is long enough to absorb alignment SNPs too
+
+Plus c21 tail after previous graph for the GRCh38 HLA* alignments.
+Most have 500+ bps, but some fewer:
+
+h16   60
+h1   110
+h10  111
+h8   353
+h11  495 (common)
+
+
+h3/10/11/13/14 are similar to each other
+
+s3/4 closely match h7/9
+
+h15 no match?
+
+
+TODO:
+s6/10/h4 major sub-seq at pos 610: CHECK is this a0c0?
+i2 - could be 3 shorter and then 3bp ins in c3?
+c8 has sub-seq, including 12bp gaccctcttaat del.
+Matters?
+
+Check s6 vs ib-c9i0?
+
+
+
+Investigate h10.fa vs hla+train.fa
+
+GraphAligner
+      1 aa-c1
+      1 ae-a1c0
+      1 af-a1i0
+      1 ag-a1c1
+      1 ai-a1c2
+      1 ak-a1c3
+      1 ba-c2
+      1 bb-i2
+      1 ca-c3
+      1 da-c4
+      9 db-rCT
+     18 dc-rCA
+      1 ea-c5
+      1 eb-i5
+      1 fa-c6
+      1 fd-c6a2
+      1 ga-c7
+      1 ha-c8
+      1 ia-c9
+      1 ja-c10
+      1 ka-c11
+      1 la-c12
+      1 ma-c13
+      1 na-c14
+      1 nb-i14
+      1 oa-c15
+      3 ob-r16
+      1 pa-c17
+      1 pb-cnv
+      8 pc-cnvstr
+      1 pd-cnvlink
+      1 pb-cnv
+      5 pc-cnvstr
+      1 pb-cnv
+     13 pc-cnvstr
+      1 qa-c19
+      1 ra-c20
+      1 sa-c21
+
+Node      aa-c1	len    603	exp  588.8	hit    446	ratio 0.76 1
+Node    ae-a1c0	len     49	exp   48.3	hit     22	ratio 0.46 1
+Node    af-a1i0	len     10	exp    8.0	hit      9	ratio 1.12 1
+Node    ag-a1c1	len    211	exp  195.0	hit     69	ratio 0.35 1
+Node    ai-a1c2	len    151	exp  132.0	hit     39	ratio 0.30 1
+Node    aj-a1i2	len    319	exp  104.3	hit      5	ratio 0.05 0
+Node    ak-a1c3	len     65	exp   63.6	hit     34	ratio 0.53 1
+Node      ba-c2	len   1967	exp 1903.2	hit   1436	ratio 0.75 1
+Node      bb-i2	len     20	exp   20.0	hit      3	ratio 0.15 1
+Node      ca-c3	len   1126	exp 1069.6	hit    722	ratio 0.68 1
+Node      da-c4	len    650	exp  629.4	hit    415	ratio 0.66 1
+Node     db-rCT	len      2	exp    1.9	hit     14	ratio 7.52 9
+Node     dc-rCA	len      2	exp    2.0	hit     32	ratio 16.31 18
+Node      ea-c5	len    371	exp  367.0	hit    264	ratio 0.72 1
+Node      eb-i5	len     56	exp   55.0	hit     55	ratio 1.00 1
+Node      fa-c6	len    258	exp  249.9	hit    160	ratio 0.64 1
+Node    fd-c6a2	len     10	exp   10.0	hit      2	ratio 0.20 1
+Node      ga-c7	len    240	exp  236.8	hit    225	ratio 0.95 1
+Node      ha-c8	len    450	exp  434.8	hit    408	ratio 0.94 1
+Node      ia-c9	len    574	exp  560.8	hit    527	ratio 0.94 1
+Node    ib-c9i0	len    307	exp  184.1	hit      1	ratio 0.01 0
+Node     ja-c10	len    759	exp  744.2	hit    692	ratio 0.93 1
+Node   jb-c10i0	len     12	exp    1.6	hit      0	ratio 0.01 0
+Node     ka-c11	len    240	exp  231.3	hit    208	ratio 0.90 1
+Node     la-c12	len    109	exp  105.9	hit    105	ratio 0.99 1
+Node     ma-c13	len     71	exp   68.3	hit     67	ratio 0.98 1
+Node     na-c14	len     11	exp    8.5	hit      7	ratio 0.82 1
+Node     nb-i14	len     13	exp   12.2	hit     11	ratio 0.90 1
+Node     oa-c15	len    868	exp  848.5	hit    819	ratio 0.97 1
+Node     ob-r16	len     16	exp   15.7	hit     47	ratio 3.00 3
+Node     pa-c17	len   1008	exp  987.5	hit    962	ratio 0.97 1
+Node     pb-cnv	len    282	exp  191.1	hit    514	ratio 2.69 3
+Node  pc-cnvstr	len      4	exp    2.1	hit     56	ratio 26.94 26
+Node pd-cnvlink	len     53	exp   52.0	hit     51	ratio 0.98 1
+Node     qa-c19	len   1533	exp 1446.9	hit   1367	ratio 0.94 1
+Node     ra-c20	len    886	exp  873.1	hit    875	ratio 1.00 1
+Node     sa-c21	len    513	exp  144.6	hit    112	ratio 0.77 1
+a1c0 a1c1 a1c2 and a1c3 are all low
+
+We need additional entries maybe?
+
+h12,15,16 match the s1,9,11 group, but h10 is a blend of several

@@ -217,7 +217,7 @@ foreach my $node (sort keys %gfa) {
 }
 
 # DEBUGGING below
-__END__
+#__END__
 
 # Report frequency of mismatch by node by position
 foreach my $node (sort keys %gfa) {
