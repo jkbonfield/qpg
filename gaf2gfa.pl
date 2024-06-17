@@ -68,6 +68,7 @@ while (<$gaf>) {
     my @F = split("\t", $_);
     $F[0]=~s/\s.*//;
     next unless exists($seq{$F[0]});
+    next if exists($seq{$F[0]}{start});
     #die "No $F[0]" unless exists($seq{$F[0]});
     $seq{$F[0]}{start} = $F[2];
     $seq{$F[0]}{end} = $F[3];

@@ -2658,3 +2658,34 @@ Frequencies are 23,17,10,5,4,4,4,3,3,3,2,2,2,1,.....
 
 So lots of loop count differences (STRs), but not too many canonical
 alignments needed to train on.
+
+-----------------------------------------------------------------------------
+
+s=s7;f=hla+train.fa;/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -g mafft+cons.gfa -f $s.fa -x vg -a query.gaf > /dev/null;/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -g drb1+tangle1.gfa -f $f -x vg -a mafft.gaf >/dev/null; ./gaf2gfa.pl mafft.gaf $f drb1+tangle1.gfa > $f.nodeseq;./kmer2node $f.nodeseq $s.fa|grep Node | sort -k2 -b | perl -lane 'BEGIN{open(M,"query.gaf"); while (<M>) {chomp($_);@F=split(/\s+/,$_);if (/'$s'/) {foreach (split(">",$F[5])) {$h{$_}++}}}} if ($F[-1] > 0) {print "$_\t$h{$F[1]}"}';./kmer2node $f.nodeseq $s.fa|awk 'BEGIN {print "Node name,Freq"} /Node/ {printf("%s,%s\n",$2,$NF)}' > $s.csv
+
+Node     pa-c17	len   1008	exp 1006.3	hit    956	ratio 0.95	1
+Node     pb-cnv	len    282	exp  188.2	hit    249	ratio 1.32	3
+Node  pc-cnvstr	len      4	exp    3.4	hit     17	ratio 5.00	27
+Node pd-cnvlink	len     53	exp   53.0	hit     53	ratio 1.00	1
+Node     qa-c19	len   1533	exp 1504.3	hit   1381	ratio 0.92	1
+
+s7 cnv and cnvstr are far lower hit rate than expected.  We should
+have:
+
+      1 pa-c17
+      1 pb-cnv
+      8 pc-cnvstr
+      1 pd-cnvlink
+      1 pb-cnv
+      4 pc-cnvstr
+      1 pb-cnv
+     15 pc-cnvstr
+      1 qa-c19
+
+gaf2seq.pl confirms this path matches our sequence, albeit not very
+accurately.  kmer2seq shows many misses.
+
+This is a bug in gaf2gfa.pl (now fixed) where split alignments only
+got the last one recorded rather than the first (or ideally all).
+
+The hit rate is simply too low due to base calling differences.
