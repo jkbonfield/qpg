@@ -1,4 +1,5 @@
 #include <stdio.h>
+
 #include <htslib/sam.h>
 #include <htslib/khash.h>
 #include <htslib/kbitset.h>
@@ -71,6 +72,9 @@ typedef struct {
     int kmer_unique, kmer_dup; // how many indexed uniquely/dups
 
     int hit_count;
+    // Possible hits as we didn't switch node inbetween.  This is an upper-bound on
+    // the counting for cycles.
+    int hit_possible;
 } node;
 
 void node_free(node *n) {
@@ -194,8 +198,8 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str) {
 	    n->kmer_unique++;
 	    unique = 1;
 	}
-	printf("Index %08x %s %s %s\n", kmer, kmer2str(kmer), n->name,
-	       unique?"":"dup");
+	//printf("Index %08x %s %s %s\n", kmer, kmer2str(kmer), n->name,
+	//       unique?"":"dup");
     }
 }
 
@@ -261,10 +265,13 @@ void nodeset_report(nodeset *ns) {
 	// Account for expected unique vs dup hit rate.
 	expected2 *= (n->kmer_unique+1.0) / (n->kmer_unique + n->kmer_dup+1.0);
 	double ratio = (n->hit_count+0.01)/(expected2+0.01);
+	// maximum possible based on length of node
+	double ratio2 = (n->hit_count+n->hit_possible+0.01)/(n->length+0.01);
 	//double ratio = (n->hit_count-expected+0.01)/(n->length+0.01);
 	//double ratio = (n->hit_count+0.01)/(n->length-expected+0.01);
-	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d\tratio %.2f\n",
-	       n->name, n->length, expected2, n->hit_count, ratio);
+	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d+%d\tratio %.2f\n",
+	       n->name, n->length, expected2, n->hit_count,n->hit_possible,
+	       ratio < ratio2 ? ratio : ratio2);
     }
 }
 
@@ -282,26 +289,50 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	kmer2 = (kmer2<<2) | base16to4[bam_seqi(seq, i)];
 
     printf("Seq %s\n", bam_get_qname(b));
-    int last_node = -1, last_node_base = 0;
+    int last_node = -1, last_node_base = 0, last_node_poss = 0;
+    int nposs_run = 0; // for node -1 and then changing node
     for (; i < len; i++) {
 	kmer2 = ((kmer2<<2) | base16to4[bam_seqi(seq, i)]) & KMASK;
 	kmer = kmer2 & KGAP;
 	int num = ns->kmer[kmer];
-	printf(" %2d %08x %s %s %d\n", num, kmer, kmer2str(kmer),
-	       num > 0 ? ns->num2node[num]->name : "?", i);
+	printf(" %2d %08x %s %s %d   %d %d %d\n", num, kmer, kmer2str(kmer),
+	       num > 0 ? ns->num2node[num]->name : "?", i, nposs_run, last_node, last_node_poss);
 	if (num > 0) {
 	    ns->num2node[num]->hit_count++;
 	    if (i > last_node_base+1 && last_node == num) {
 		// Correct for missing kmers from SNPs
-		for (int j = i-1; j > last_node_base && j > i-KMER; j--) {
+		int j;
+		for (j = i-1; j > last_node_base && j > i-KMER; j--) {
 		    printf("Fix-up %d:%d  last_node_base %d\n", i, j, last_node_base);
 		    ns->num2node[num]->hit_count++;
 		}
+		if (j > last_node_base)
+		    printf("Possible hits from %d to %d\n", last_node_base, j);
+		for (; j > last_node_base; j--)
+		    ns->num2node[num]->hit_possible++;
 	    }
+	    if (nposs_run && last_node_poss > 0) {
+		printf("Possible %d hits in new node %s\n",
+		       nposs_run, ns->num2node[num]->name);
+		ns->num2node[num]->hit_possible+=nposs_run;
+	    }
+//	} else if (last_node_poss > 0) {
+//	    printf("Possible hit in node %d\n", last_node_poss);
+//	    ns->num2node[last_node_poss]->hit_possible++;
+	} else if (nposs_run && last_node_poss > 0) {
+		printf("Possible %d hits in NEW node %s\n",
+		       nposs_run, ns->num2node[last_node_poss]->name);
+		ns->num2node[last_node_poss]->hit_possible+=nposs_run;
 	}
 	if (num) {
 	    last_node_base = i; // records dup too so we only correct SNPs
 	    last_node = num;
+	    if (num > 0) {
+		last_node_poss = num;
+		nposs_run = 0;
+	    } else {
+		nposs_run++;
+	    }
 	}
     }
     puts("");
