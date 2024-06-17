@@ -19,7 +19,7 @@ open(my $gaf,   "<", shift(@ARGV)) || die;
 open(my $fasta, "<", shift(@ARGV)) || die;
 open(my $gfa,   "<", shift(@ARGV)) || die;
 my $kmer = shift(@ARGV);
-$kmer = 12 unless defined($kmer);
+$kmer = 13 unless defined($kmer);
 
 # Data structures, indexed by name
 # seq{}{seq}    sequence
@@ -67,7 +67,8 @@ while (<$gaf>) {
     chomp($_);
     my @F = split("\t", $_);
     $F[0]=~s/\s.*//;
-    die "No $F[0]" unless exists($seq{$F[0]});
+    next unless exists($seq{$F[0]});
+    #die "No $F[0]" unless exists($seq{$F[0]});
     $seq{$F[0]}{start} = $F[2];
     $seq{$F[0]}{end} = $F[3];
     $seq{$F[0]}{path} = $F[5];
@@ -217,7 +218,7 @@ foreach my $node (sort keys %gfa) {
 }
 
 # DEBUGGING below
-#__END__
+__END__
 
 # Report frequency of mismatch by node by position
 foreach my $node (sort keys %gfa) {

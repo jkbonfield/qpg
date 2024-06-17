@@ -1913,4 +1913,748 @@ h12,15,16 match the s1,9,11 group, but h10 is a blend of several
 Solved (ish): fix up on SNPs if not -1 match (dup). So it's percentage of
 bases covered by a unique kmer than kmers counted.
 
+						Fix KMER-1   all    none
+Node      aa-c1	exp  588.8	hit    564	ratio 0.96   0.96   0.76 
+Node    ae-a1c0	exp   48.3	hit     28	ratio 0.58   0.58   0.46 
+Node    af-a1i0	exp    8.0	hit      9	ratio 1.12   1.12   1.12 
+Node    ag-a1c1	exp  195.0	hit    195	ratio 1.00   0.85   0.35 
+Node    ai-a1c2	exp  132.0	hit    102	ratio 0.77   0.72   0.30 
+Node    aj-a1i2	exp  104.3	hit      5	ratio 0.05   0.05   0.05 
+Node    ak-a1c3	exp   63.6	hit     59	ratio 0.93   0.93   0.53 
+Node      ba-c2	exp 1903.2	hit   1817	ratio 0.95   0.95   0.75 
+Node      bb-i2	exp   20.0	hit     19	ratio 0.95   0.75   0.15 
+Node      ca-c3	exp 1069.6	hit    938	ratio 0.88   0.88   0.68 
+Node      da-c4	exp  629.4	hit    592	ratio 0.94   0.92   0.66 
+Node     db-rCT	exp    1.9	hit     14	ratio 7.52   7.52   7.52 
+Node     dc-rCA	exp    2.0	hit     32	ratio 16.31  16.31  16.31
+Node      ea-c5	exp  367.0	hit    364	ratio 0.99   0.97   0.72 
+Node      eb-i5	exp   55.0	hit     55	ratio 1.00   1.00   1.00 
+Node      fa-c6	exp  249.9	hit    235	ratio 0.94   0.94   0.64 
+Node    fd-c6a2	exp   10.0	hit      2	ratio 0.20   0.20   0.20 
+Node      ga-c7	exp  236.8	hit    237	ratio 1.00   1.00   0.95 
+Node      ha-c8	exp  434.8	hit    438	ratio 1.01   1.01   0.94 
+Node      ia-c9	exp  560.8	hit    545	ratio 0.97   0.97   0.94 
+Node    ib-c9i0	exp  184.1	hit      1	ratio 0.01   0.01   0.01 
+Node     ja-c10	exp  744.2	hit    739	ratio 0.99   0.99   0.93 
+Node   jb-c10i0	exp    1.6	hit      0	ratio 0.01   0.01   0.01 
+Node     ka-c11	exp  231.3	hit    234	ratio 1.01   1.01   0.90 
+Node     la-c12	exp  105.9	hit    105	ratio 0.99   0.99   0.99 
+Node     ma-c13	exp   68.3	hit     67	ratio 0.98   0.98   0.98 
+Node     na-c14	exp    8.5	hit      7	ratio 0.82   0.82   0.82 
+Node     nb-i14	exp   12.2	hit     11	ratio 0.90   0.90   0.90 
+Node     oa-c15	exp  848.5	hit    841	ratio 0.99   0.99   0.97 
+Node     ob-r16	exp   15.7	hit     47	ratio 3.00   3.00   3.00 
+Node     pa-c17	exp  987.5	hit    963	ratio 0.98   0.98   0.97 
+Node     pb-cnv	exp  191.1	hit    548	ratio 2.87   2.87   2.69 
+Node  pc-cnvstr	exp    2.1	hit     56	ratio 26.94  26.94  26.94
+Node pd-cnvlink	exp   52.0	hit     51	ratio 0.98   0.98   0.98 
+Node     qa-c19	exp 1446.9	hit   1431	ratio 0.99   0.99   0.94 
+Node     ra-c20	exp  873.1	hit    876	ratio 1.00   1.00   1.00 
+Node     sa-c21	exp  144.6	hit    112	ratio 0.77   0.77   0.77 
 
+
+=============================================================================
+
+a1c2:  aaacctct cctaagac                                         aggaaagttctgc
+           "  t tgtaggcc   <gggcgcgg... a1i2 ins ... cctcttgta>  agaaaagttctcc
+                xx  x x                                            x        x
+
+     |----------------------------ishort------------------|
+ACCTCTCCTAAGAC*****************************************AGGAAAGTTCT
+      xx  x x                                            x
+ACCTCTTGTAGGCCGGGCGCGGTGGCTAAAAAAAAACAAAAAAAAACCTCTTGTAAGAAAAGTTCT
+     |----------------------------ilong-------------------|
+
+So a1i2 becomes a1i2a and a1i2b and no skip?
+
+PROBLEM: ishort has multiple variants and just hard to align as rep.
+Drop it maybe as count is unnecessary.
+DONE: add CCTAAGAC to c2 as this is the one without the ins.  The
+other seq (TTGTAGGCC) can may be covered by the kmer representing the
+first base of a1i2.
+
+-----
+
+a1c2 has a small rep
+gcattgattggtccattttacagagtgtggattgctccattttacagagtgctgattagtccattttacaaa-catctatctagccacagagtgccaattggtgtgtttttacagagcactgattggtgcatttagaaacctct
+                                       ttttacagagCAct          ttttacagagca-ct                             ttttacagagcact
+
+Some seqs (h8) have an additional                             TTTTTACAGAGGCACTC
+
+Not easy to model as differing linker seqs.  It's also dup in c1 and
+c2 anyway, so ignore!
+
+-----
+
+a0:  No variation in a0 observed?
+
+GGAAAGGAAATCTGTTTCTTTCTTTCTTTTTTTTGTTTTTTTGAGATGGGGTCTCACTCTGTCACCTAGGCTGGAGTGCAGTGGCCCAATCTCGGCTCACTGCAACCTCTGCCTCCCGGGTTCCAGCGATTCTCCTGCCTTGGCCTCCTGAGTAGCTGGGATTACAGGCGCACACCACCACGCCCGACTGATTTTTTTTTGTATTTTTAGTAGAGACGGGGTTTCACCACGTTGGTCAGGCTGGTCTCGAACTCCTGACCTCATGATTCGCCCGCCTCGGCCTCCC
+
+
+DONE
+
+
+-----
+
+bb-i2 is:
+
+--c2--                    
+TGCCTT********************AAGAGTTTGATTC
+TGCCTTTTACTGGTTGATCCTGGAAGAGTTTTTTGATTC
+      ----old bbi2--------======c3=====
+      ----new bbi2-------------
+                    bbi3  -----
+                               ==c3====
+
+Short new bb-i3 worth it? (AAGAG)
+???
+
+IGNORE: Probably so short it'll just create problems.
+
+
+=====
+
+
+c5 variation:
+     =====x   x  xxx x  xxx x xx  x======
+h8   GAAATAACACTCACCCGTAGAGTACTCCAAGAAACG d5a
+h1   GAAATGACATTCAAACTTAAGCTGCCACAAGAAACG d5b
+s7   GAAATGACACTCAGACGTAGAGTACTCCAAGAAACG d5c
+s1   GAAATGACACTCCCTCTTAGGCTGCCACAGGAAACG d5d
+s4   GAAATGACACTTATACTTACCCTGCCACAGGAAACG d5e
+s6   GAAATGACACTCATGTTTAACCTGCTCCAAGAAACG d5f
+
+Split into 6 alternatives for that segment
+
+
+ea-{c5 -> d5[a-f] -> e5} -> fa-c6
+
+----------
+
+c5 i5 c6
+CCTGAAAGACAC TGACAGTGACGCCGCCATCCGGGGCTCCCTGGGTGGGGTGCGGGCACTGGGAACCT TAACCGGCCCCCGCCGCAA
+
+Old c6 start:    TAACCGGCCCCACCCGCAACGCCCACCACCCGCAGCCCAGGGGCTCAT
+without ins:	 TATCTGGCCCCACCCGCAACCCCGACAACACGCAGCCCAGGGGCTCAT
+		   x x               x     x xx
+
+It's ok, but we aligned it poorly in gap5.
+	     
+--------------------
+
+c7 (c8..c11) c12
+
+         x    x     x   x             xxx                        x
+TCAGTTAAAA*AAACTTGTTTC              CACAACTCATCTGATAAGGGTAAGTGGTCGAA
+TCAGTTAAAAGAAATTTGTTCCCAAAACTCATTTGGCAAATCTCATCTGATAAGGGTAAGTGGTCAAA
+---------c8-----------=====c8i1=====---------c9---------------------
+
+c8i1 correct
+
+c9 end before c9i0 variable:
+      x  x      x                   xxxxxxxxx   x  x  x xx  x x       x
+s7 CTAATTGTTTATAATGAAACAAGCAAAAATAAAAG-------ACTAAACTGTGTGGTGAGTGTATAACAGATG
+s4 CTAGTTTTTTATAGTGAAACAAGCAAAAATAAACCATAAAGAACTGAATTGGGCAGTGACTGTATAAAAGATG
+s6 CTAGTTTTTTATAATGAAACAAGCAAAAATAAACCATAAAGAACTGAATTGGGCAGTAAGTGTATAAAAGATG
+
+   ===4==4======7===================444444444===7==7==7=77==7=7=======4=====
+
+c9i0 correct
+
+Big variance in c10, split by whether c9i0 is present.
+Could replicate first seq?  (But some non-unique kmers then)
+First 93 bp with 15 diffs (16% divergence).
+
+TTTTTCAGAAAGAGCACAGTGTGAACCAATGCTTCCAGCCTCAGCACTATTGACATTTTG
+ x                          x    xxx
+
+GACGAGATAAATCTTGGTTGGTGATGGAGTCTA
+   x      x  x x    x  xxx   x  x
+
+Or a small bubble (but that's also dup again)?
+
+26bp match + 27bp match, so 57% covered by kmer already.  A bit more with
+gapped kmer?
+
+Check s6, s10, h4 vs node c10
+Looks good!
+s6
+Node    ib-c9i0	len    307	exp  184.1	hit    180	ratio 0.98
+Node     ja-c10	len    759	exp  744.2	hit    731	ratio 0.98
+Node   jb-c10i0	len     12	exp    1.6	hit      1	ratio 0.64 <<
+Node     ka-c11	len    240	exp  231.3	hit    245	ratio 1.06
+
+c9 c9i10 c10 stats:
+
+    c9   c9i10 c10  r10
+s7  0.98    -  1.00 1.00
+s4  1.00 1.03  1.00 1.00
+s6  1.01 0.97  0.98 2.00
+
+Good enough!
+
+-----
+
+c10:
+
+Early gap correctly align to:
+s4  CCTTACCAATCAGTCACCAAATCATATAATTTATCTTTCACA
+s6  CCTTACC-----------AAATCATATAATTTATCTCTCACA
+
+11bp, but not included in graph
+
+c10i0 looks iffy, but r10 solves it
+Improved alignment:
+s7 GAGCAGCTCCCCAGACTGTG***********-AGCAAGACCTGCAGAAA
+s4 GAGCAGGTCCCCAGACTGT-***********AAGCAAGACCTGCGGAAA
+s6 GAGCAGGTCCCCAGACTGTGAGTCAGACTGTGAGTAAGACCTGTGGAAA
+--------------------
+
+c10 		                   c10i0        c11
+CATACAGACAGTTTACAAAGCATGAGCAGGTCCC cagactgtgagt CAGACTGTGAGCAAGACCTGCGGAA
+CATACAGACACTTTACAAA*AATGAGCAGCTCCC              CAGACTGTGAGCAAGACCTGCAGAA
+                   x
+
+CATACAGACAGTTTACAAAGCATGAGCAGGTCCC cagactgtgagt CAGACTGTGAGCAAGACCTGCGGAA
+CATACAGACAGTTT*CAAAGCATGAGCAGGTCCC CAGACTGTGAGT CAGACTGTGAGTAAGACCTGTGGAA
+              x                                            x
+
+Problem is c10i0 kmers are dup bar one position.
+
+Aligning s6.fa:
+ 27 024c24ad GCATAAGCAGGTC ja-c10 8938
+ 27 013890b5 CATGAGCAAGTCC ja-c10 8939
+ 27 00e048d5 ATGAACAGATCCC ja-c10 8940
+ -1 03882855 TGAGAAGGACCCC ? 8941 dup
+ -1 0224ac54 GAGCAGGTACCCA ? 8942
+ -1 0090b452 AGCAAGTCACCAG ? 8943
+ -1 0248d448 GCAGATCCACAGA ? 8944
+ -1 01285421 CAGGACCCAAGAC ? 8945
+ -1 00ac5487 AGGTACCCAGACT ? 8946
+ -1 02b4501e GGTCACCAAACTG ? 8947
+ -1 02d4487b GTCCACAGACTGT ? 8948
+ -1 035420ee TCCCAAGAATGTG ? 8949
+ -1 015484b8 CCCCAGACAGTGA ? 8950
+ -1 01501ce2 CCCAAACTATGAG ? 8951 dup
+ 28 0148788b CCAGACTGAGAGT jb-c10i0 8952 unique
+ 29 0120ec2d CAGAATGTAAGTC ka-c11 8953
+ 29 0084b8b4 AGACAGTGAGTCA ka-c11 8954
+
+TGAGCAGGTCCCC is the last bp of c10 and also the first bases of c11 in
+some seqs.  Hence dup.  Is this just bad alignment?
+
+eg s4
+gfa              CAGACTGTGAGCAAGACCTGCGGAAATCTCC
+s4   TGAGCAGGTCCCCAGACTGTAAGCAAGACCTGCGGAAATCTCC (in $f.nodeseq)
+
+>aa-c1>ab-a0c0>ba-c2>bb-i2>ca-c3>da-c4>db-rCT>db-rCT>db-rCT>db-rCT>db-rCT>db-rCT>db-rCT>db-rCT>db-rCT>db-rCT>db-rCT>dc-rCA>dc-rCA>dc-rCA>dc-rCA>dc-rCA>dc-rCA>dc-rCA>dc-rCA>dc-rCA>dc-rCA>dc-rCA>ea-c5>eb-i5>fa-c6>fd-c6a2>ga-c7>ha-c8>hb-c8i1>ia-c9>ib-c9i0>ja-c10>ka-c11>la-c12>lb-i12>ma-c13>na-c14>oa-c15>ob-r16>pa-c17>pb-cnv>pc-cnvstr>pc-cnvstr>pc-cnvstr>pc-cnvstr>pc-cnvstr>pd-cnvlink>pb-cnv>pc-cnvstr>pc-cnvstr>pc-cnvstr>pc-cnvstr>pe-i18>qa-c19>ra-c20
+
+Note it aligns >c10>c11
+So has no c10i0 insertion
+
+
+c11                           CAGACTGTGAGCAAGACCTGCGGAAATCTCC
+s4    TGAGCAGGTCCC            CAGACTGTAAGCAAGACCTGCGGAAATCTCC (in $f.nodeseq)
+c10   TGAGCAGGTCCC             
+s6    TGAGCAGGTCCCCAGACTGTGAGTCAGACTGTGAGTAAGACCTGTGGAAATCTCT
+                  CAGACTGTGAGT		     c10i0
+			      CAGACTGTGAGT   c10i0/c11 start
+
+=> c10i0 should be a 1+ loop and shrink c11.          
+
+DONE: works
+
+s4:
+Node     ja-c10	len    760	exp  758.3	hit    759	ratio 1.00
+Node     jb-r10	len     12	exp   12.0	hit     12	ratio 1.00
+Node     ka-c11	len    228	exp  228.0	hit    238	ratio 1.04
+
+s6:
+Node     ja-c10	len    760	exp  758.3	hit    746	ratio 0.98
+Node     jb-r10	len     12	exp   12.0	hit     24	ratio 2.00
+Node     ka-c11	len    228	exp  228.0	hit    238	ratio 1.04
+
+--------------------
+
+c12 (i12) c13 (c14) (14) c15
+
+i12 only in s4 h7 h9
+Node     la-c12	len    109	exp  108.5	hit    109	ratio 1.00
+Node     lb-i12	len     10	exp   10.0	hit     10	ratio 1.00
+Node     ma-c13	len     71	exp   71.0	hit     71	ratio 1.00
+
+TODO: 10bp only.  Need to model it?  We have bigger indels elsewhere I
+think.
+
+i13 is where?  s6 and s10 only. 250bp so needed
+
+>c14>i14>c15 always co-locate, so merge c14/i14/c15 together?
+
+Although s04 lacks i14.  Does it really!?
+
+TODO: not quite, but maybe diff rearrangement?
+
+We have s1,2,5,6,7,8,9,10,11
+Missing s3,4
+
+   c12 i12 c13 i13 c15
+s1 1.0     1.0     1.0
+s3 1.0 1.0 1.0     1.0
+s4 1.0 1.0 1.0     1.0
+h7 1.0 1.0 1.0     1.0
+h9 1.0 1.0 0.9     1.0
+s7 1.0     1.0     1.0
+s6 1.0     0.9 1.0 1.0
+h4 1.0     0.9 1.0 1.0
+
+   c13      i13                     c14         c15
+   TAGACATA CTTTTTTTTT...GCACCCAGCC TAGAACTTTTA AAAATGAATGAAA
+s4 CAGACATA                         TAGAGCTTTT  AAAATGAATG...
+h9 AAAATGAATG...
+s7 TAGACATA            CAGAACTTTTAAAATGATAAATGC AAAATGAATG...
+
+   c13      ?          i13                 ?              c15
+   TAGACATA xAGAxCTTTT TTTTTTTTTTGAG...GCC AAAATGATAAATGC AAAATGAATGAAAG
+
+Add TA?A?CTTTT to c13.  Cull c14.  i13 still follows c13.
+
+c13 extended to end (CCAGCC)TAGAACTTTT
+c15 starts AAAATGATAAATGC(plus old c14)
+Or...      AAAATGATAAATGC is kept as i14 (but likely a rep)
+
+
+TAGAGCTTTT
+
+TACAACGTTT
+--------------------
+DONE
+s3 TTCTAGGGAAAGGAAATCTCTTTCTTTTCTTTCTTTCTTTCCTTCTTTCCTTCCTTCCTTCCTTCCTT
+a0c0     GGAAAGGAAATCTGTTTCTTTCTTTCTTTTTTTTGTTTTTTTGAGATGGGG...
+a1c0     TGTGTCCAGAGTTTGTTCCTTCCGGTGGGTTCGTGGTTTCGCTGACTTC
+
+4bp rep.  {TTCC|TTTC}*
+
+a0c0  GGAAAGGAAATCTGTTTCTTTCTTTCTTTTTTTTGTTTTTTTGAGATGGGG...
+                    TTTCTTTCTTTCTTTCTTTCTTTCTTTC 7x
+		       7x
+
+                    TTTCTTT-CTTTCTTTCTTTCTTTCTTTCTTTCTTTCTTTCTTTC 11x
+s3    GGAAAGGAAATCTCTTTCTTTTCTTTCTTTCTTTCCTTCTTTCCTTCCTTCCTTCCTTC
+
+      TTTC-TTTCTTTCTTTCTTTCTTTCTTTCTTTCTTTCTTTCTTTCTTTC-TTTCTTTCTTTC 15x
+s3    CTTCCTTCCTTCCTTCCTTCCTT-CTTTCTTCCTTCCCTCCCTCCCTCCCTTTCTTTCTTTC
+
+      TTTCTTTCTTTC- 3x
+s3    TTTTTTTTTTTTTGAGACGGAGTCTC
+
+a0c0 vs s3
+
+a0c0 GGAAAGGAAATCTG(TTTC x7)GAGATGGGGTCTCACTCTGTCACCTAGGCTGGAGTGCAGTGGCCCAAT
+s3   GGAAAGGAAATCTC(TTTCx29)GAGACGGAGTCTCATTCTGTTGCCTAGGCTGGAGTGCAGCGGTGCAAT
+                  x             x         x     xx                xx  xx
+
+a0c0 CTCGGCTCACTGCAACCTCTGCCTCCCGGGTTCCAGCGATTCTCCTGCCTTGGCCTCCTGAGTAGCTGG
+s3   CTCGGCTCACTGCAACCTCTGCCTCCCGGGTTCAAGCGATTCTCCTGCCTCAGTCTCCTGAGTAGCTGG
+                                      x                x  x         
+
+So TTTC or similar loop in a0c0 handles s3 OK
+a0c0 present in h4 h7 h9 s3 s4 s6 s10
+(h4,s6,s10 already in gap5 db)
+
+s3 has ~100bp extra, so needs big gap in s6 etc
+
+s3/4 vs s6/10 has reordering at ~4.6k-5.8k (padded) vs 13.8-15.1k
+padded.  A large piece of DNA has moved.
+
+
+Diff at   (find CCATTGCACTCCAGCCTGGGCAACA)
+13443 s3
+13510 s6
+
+Resync at (find TCAGAGTCTAATATGATGAGGCT)
+15869 s3
+15936 s6
+
+
+2.3kb pads
+
+div s6/s1 at 13500
+
+13475,13494 - 14797,13824  =  +1312 s6, +330 s1
+
+16180 AATAAAATTCAAATTTTTTACCGTGGACATCAGAGTCTAATATGATGAGGCTTCTGACTTCCTCTC
+
+-----------------------------------------------------------------------------
+
+
+=============================================================================
+
+TODO
+----
+
+c3: s1 / s4 / s6
+
+      x                       x   x    xx x     xxxxxx      x  xx
+s1: CATTGTCCATTACCTACCAAATACAATAGGGAATTCTTAGAGCAA*****TAATTATAATCGGCCAAT
+s6: CATTGTCCATTACCTACCAAATACAACAGGTAATTCGTAGAGCAGAGCAGTAATTACAACTGGCCAAT
+s4: CACTGTCCATTAC*********ACAACAGGTAATTGGTTGAGCAG*****TAATTATAACTGGCCAAT
+
+Could add a CTACCAAAT short ins?  Maybe an AGCAG too, but both quite short.
+
+
+-----
+c6                                         c6a2      c7
+                 x      x              x   xxxxxxxxxx x x x
+GAGCCTCCACCCCAAAGGCA**CTTTGCTCCTTCTCTCAACCCTTTACCATTTAAAGGCTTTA
+GAGCCTCCACCCCAAAGACA**CTCTGCTCCTTCTCTCATCCC**********ACATG*TTTA
+GAGCC******CCAAAGACA**CTCT*CTGCTCCTCTCATCCC**********ACACGCTTTA
+     xxxxxx         xx    x                xxxxxxxxxx
+
+c7 long enough to match OK with first few bases missing
+Similarly c6 and end
+
+-----
+c8 small ins:
+
+      x          x  x
+CCAGAGAAG------------AGTGAC
+CCAGAGGAGGACCCTCTGAAGAGTGAC
+CCAGAGAAGGACCCTCTTAATAGTGAC <--- node seq
+
+
+
+=============================================================================
+
+Evaluation:
+
+s=s4;f=hla+train.fa;/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -g mafft+cons.gfa -f $f -x vg -a mafft.gaf >/dev/null; ./gaf2gfa.pl mafft.gaf $f mafft+cons.gfa > $f.nodeseq;./kmer2node $f.nodeseq $s.fa|grep Node | sort -k2 -b | perl -lane 'BEGIN{open(M,"mafft.gaf"); while (<M>) {chomp($_);@F=split(/\s+/,$_);if (/'$s'/) {foreach (split(">",$F[5])) {$h{$_}++}}}} if ($F[-1] > 0) {print "$_\t$h{$F[1]}"}'  
+
+1. Align training data with GraphAligner
+2. Run gaf2gfa on aligner output + fasta + GFA to produce "nodeseq" file
+3. Run kmer2node on query to map to nodeseq.
+4. Run GraphAligner on query data
+4. Report node hit rates from kmer2node and from GraphAligner file too
+
+
+Seq  Node      Got   Want
+h1   ah-a1i1   0.64  1
+h1   fd-c6a2   0.40  1
+h1   sa-c21    0.17  1   <--- short.  Need a way of handling end nodes
+h3   fd-c6a2   0.40  1
+h4   db-rCT   13.47  18
+h7   (non)
+h8   aa-c1     0.63  1
+h8   fd-c6a2   0.30  1 <<<
+h9   ab-a0e1   0.75  1
+h9   cb-i3     0.10  0 (54 hits too)
+h9   eb-i5     0.27  1
+h10  ae-a1c0   0.39  1
+h10  ag-a1c1   0.63  1
+h10  ai-a1c2   0.40  1 <<<
+h10  bb-i2     0.15  1 <<< BAD
+h10  fd-c6a2   0.30  1 <<<
+h10  sa-c21    0.22  1  (short)
+h11  fd-c6a2   0.30  1
+h12  ah-a1i1   0.64  1 <
+h12  fd-c6a2   0.30  1 <<<
+h13  fd-c6a2   0.30  1
+h14  ah-a1i1   0.21  0 (4 hits of 19)
+h14  fd-c6a2   0.30  1 <<<
+h15  (none)
+h16  pc-cnvstr 14.87 9   too many
+
+
+TO FIX (mostly h9 and h10):
+
+a1c0
+a1c1
+a1c2
+c6a2
+i2
+i3
+i5
+
+TODO: fix s3/4 vs s6/10 and reordering of a node
+
+The junction looks to be i3.
+
+c3  	     	            i3@5060 in g5
+AATGTCATAATAAAGGTCATCAAAGGG GAAAGTGACGTAAT,,,
+
+                i3@6260 c4
+...GTAAGAAAAAAAAAAACAAA GAAAGTGAGGTAAGTTGTGTCA
+
+So 1.2kb ins.
+
+g5 13500 is initial del.  ~1Kb of del followed by 1.2kb of
+translocated i3.  i18/c19?
+
+
+look for seq
+
+(+gaaagtgacgtaatttg in i3 start)
+CTTATACAAAAATTAATTCAAGATGGATTAAAGACTTAAATGT...
+CATGGCACATGTATACATATGTAACxAACCTGCACxTTGTGCACATGTACCCTAAA
+
+TTGTGCACATGTACCCTAAA ends i3 and i18
+
+CTTATACAAAAATTAATT very near start of i3, and 1109 into i18.
+(At 14940 and 5080)
+
+So we have
+
+            c3  i3 tied to t3     t3                 c4(i3, but 100%)  c4
+s10 CATCAATGGG (GAAAGTGACGTAATTTG=CTTATACA...ATAAAA) GAAAGTGAGGTAATTTG:TGTCAC
+
+Rep of GAAAGTGACGTAATTTG seq
+
+In i18
+(i18) GCTGAAACTGGATCCCTTCCTTACAC CTTATACAAAAATTAATT
+          (i3) GAAAGTGACGTAATTTG CTTATACAAAAATTAATT
+
+So no common seq there.
+
+Just drop GAAAGTGACGTAATTTG (17bp) as it is a repeated kmer anyway (c4 start)?
+
+
+=============================================================================
+
+Interesting combos:
+
+s4:   i18 and t1 adjacent to CNV loops
+s6:   t1 early between c3 and c4
+s7:   no t1
+
+s6, ordered by GraphAligner:
+		 len	   exp	 hit    ratio	GA cnt
+Node      aa-c1	 603	 603.0	 594	0.99	1
+Node    ab-a0c0	  14	  14.0	  14	1.00	1
+Node    ab-a0d1	   4	   3.9	  28	7.17	7
+Node    ab-a0e1	 288	 245.2	 249	1.02	1
+Node      ba-c2	1967	1938.6	1925	0.99	1
+Node      bb-i2	  20	  20.0	  20	1.00	1
+Node      ca-c3	1126	1102.0	1127	1.02	1
+Node      pf-t1	1240	1225.5	1180	0.96	1
+Node      da-c4	 650	 646.7	 641	0.99	1
+Node     db-rCT	   2	   1.8	  24	13.47	18
+Node     dc-rCA	   2	   2.0	  48	24.45	25
+Node      ea-c5	 287	 286.6	 287	1.00	1
+Node     ea-d5f	  25	  18.8	  17	0.91	1
+Node      ea-e5	  59	  59.0	  59	1.00	1
+Node      fa-c6	 258	 258.0	 258	1.00	1
+Node    fd-c6a2	  10	  10.0	  10	1.00	1
+Node      ga-c7	 240	 238.0	 237	1.00	1
+Node      ha-c8	 450	 444.5	 439	0.99	1
+Node    hb-c8i1	  14	  14.0	  14	1.00	1
+Node      ia-c9	 574	 572.2	 577	1.01	1
+Node    ib-c9i0	 307	 205.9	 199	0.97	1
+Node     ja-c10	 760	 759.3	 746	0.98	1
+Node     jb-r10	  12	  12.0	  24	2.00	2
+Node     ka-c11	 228	 228.0	 238	1.04	1
+Node     la-c12	 109	 108.5	 109	1.00	1
+Node     ma-c13	  81	  81.0	  75	0.93	1
+Node     mb-i13	 307	 254.0	 253	1.00	1
+Node     oa-c15	 882	 881.1	 880	1.00	1
+Node     ob-r16	  16	  15.9	  32	2.01	2
+Node     pa-c17	1008	1006.1	1009	1.00	1
+Node     pb-cnv	 282	 213.2	 398	1.87	2  (1 1)
+Node  pc-cnvstr	   4	   2.5	  34	13.30	11 (5 6)
+Node pd-cnvlink	  53	  53.0	  53	1.00	1  (1 0)
+Node     qa-c19	1533	1490.7	1494	1.00	1
+Node     qb-i19	  44	  44.0	  44	1.00	1
+Node     ra-c20	 886	 883.0	 885	1.00	1
+
+Ie 1 cnv -> 5 cnvstr -> 1 cnvlink ->
+   1 cnv -> 6 cnvstr   (0 cnvlink)
+
+s2,5,7,8 - no t1 insertion anywhere (plus h10,11,13,14 etc)
+		 len	   exp	 hit    ratio	GA cnt
+Node      aa-c1	 603	 603.0	 591	0.98	1
+Node    ae-a1c0	  49	  49.0	  49	1.00	1
+Node    af-a1i0	  10	   8.2	   8	0.97	1
+Node    ag-a1c1	 211	 201.0	 200	1.00	1
+Node    ai-a1c2	 143	 131.0	 138	1.05	1
+Node   aj-a1i2a	  11	   9.9	  11	1.11	1
+Node    ak-a1c3	  65	  64.8	  62	0.96	1
+Node      ba-c2	1967	1938.6	1938	1.00	1
+Node      ca-c3	1126	1102.0	1101	1.00	1
+Node      da-c4	 650	 646.7	 646	1.00	1
+Node     db-rCT	   2	   1.8	  29	16.28	16
+Node     dc-rCA	   2	   2.0	  34	17.32	18
+Node      ea-c5	 287	 286.6	 286	1.00	1
+Node     ea-d5c	  25	  14.2	  14	0.99	1
+Node      ea-e5	  59	  59.0	  59	1.00	1
+Node      eb-i5	  56	  56.0	  56	1.00	1
+Node      fa-c6	 258	 258.0	 259	1.00	1
+Node    fd-c6a2	  10	  10.0	   4	0.40	1
+Node      ga-c7	 240	 238.0	 233	0.98	1
+Node      ha-c8	 450	 444.5	 445	1.00	1
+Node      ia-c9	 574	 572.2	 558	0.98	1
+Node     ja-c10	 760	 759.3	 762	1.00	1
+Node     jb-r10	  12	  12.0	  12	1.00	1
+Node     ka-c11	 228	 228.0	 228	1.00	1
+Node     la-c12	 109	 108.5	 109	1.00	1
+Node     ma-c13	  81	  81.0	  81	1.00	1
+Node     oa-c15	 882	 881.1	 874	0.99	1
+Node     ob-r16	  16	  15.9	  48	3.02	3
+Node     pa-c17	1008	1006.1	1006	1.00	1
+Node     pb-cnv	 282	 213.2	 672	3.15	3   (1  1  1)
+Node  pc-cnvstr	   4	   2.5	  68	26.60	27  (8  4  15)
+Node pd-cnvlink	  53	  53.0	  53	1.00	1   (1  0  0)
+Node     qa-c19	1533	1490.7	1478	0.99	1
+Node     ra-c20	 886	 883.0	 885	1.00	1
+
+s3,s4,h4,h9 - i18 and t1 present in CNV area
+Node      aa-c1	 603	 603.0	 594	0.99	1
+Node    ab-a0c0	  14	  14.0	  14	1.00	1
+Node    ab-a0d1	   4	   3.9	 117	29.96	30
+Node    ab-a0e1	 288	 245.2	 236	0.96	1
+Node      ba-c2	1967	1938.6	1914	0.99	1
+Node      bb-i2	  20	  20.0	  20	1.00	1
+Node      ca-c3	1126	1102.0	1089	0.99	1
+Node      da-c4	 650	 646.7	 647	1.00	1
+Node     db-rCT	   2	   1.8	  20	11.23	11
+Node     dc-rCA	   2	   2.0	  22	11.21	11
+Node      ea-c5	 287	 286.6	 286	1.00	1
+Node     ea-d5e	  25	  20.3	  19	0.94	1
+Node      ea-e5	  59	  59.0	  59	1.00	1
+Node      eb-i5	  56	  56.0	  56	1.00	1
+Node      fa-c6	 258	 258.0	 259	1.00	1
+Node    fd-c6a2	  10	  10.0	  10	1.00	1
+Node      ga-c7	 240	 238.0	 239	1.00	1
+Node      ha-c8	 450	 444.5	 447	1.01	1
+Node    hb-c8i1	  14	  14.0	  14	1.00	1
+Node      ia-c9	 574	 572.2	 573	1.00	1
+Node    ib-c9i0	 307	 205.9	 213	1.03	1
+Node     ja-c10	 760	 759.3	 759	1.00	1
+Node     jb-r10	  12	  12.0	  12	1.00	1
+Node     ka-c11	 228	 228.0	 238	1.04	1
+Node     la-c12	 109	 108.5	 109	1.00	1
+Node     lb-i12	  10	  10.0	  10	1.00	1
+Node     ma-c13	  81	  81.0	  81	1.00	1
+Node     oa-c15	 882	 881.1	 864	0.98	1
+Node     ob-r16	  16	  15.9	  16	1.01	1
+Node     pa-c17	1008	1006.1	 998	0.99	1  
+Node     pb-cnv	 282	 213.2	 406	1.90	2  (1  1)
+Node  pc-cnvstr	   4	   2.5	  27	10.57	9  (5  4)
+Node pd-cnvlink	  53	  53.0	  53	1.00	1  (1  0)
+Node     pe-i18	1109	1108.3	1108	1.00	1
+Node      pf-t1	1240	1225.5	1219	0.99	1
+Node     qa-c19	1533	1490.7	1492	1.00	1
+Node     ra-c20	 886	 883.0	 866	0.98	1
+
+s1,9,11 h1,12,15,16 - fewer CNV copies
+Node      aa-c1	 603	 603.0	 588	0.98	1
+Node    ae-a1c0	  49	  49.0	  49	1.00	1
+Node    ag-a1c1	 211	 201.0	 204	1.02	1
+Node    ah-a1i1	  47	  18.8	  20	1.06	1
+Node    ai-a1c2	 143	 131.0	 115	0.88	1
+Node   aj-a1i2b	 330	 139.9	 140	1.00	1
+Node    ak-a1c3	  65	  64.8	  61	0.94	1
+Node      ba-c2	1967	1938.6	1940	1.00	1
+Node      bb-i2	  20	  20.0	  20	1.00	1
+Node      ca-c3	1126	1102.0	1114	1.01	1
+Node      da-c4	 650	 646.7	 644	1.00	1
+Node     db-rCT	   2	   1.8	  41	23.01	21
+Node     dc-rCA	   2	   2.0	  40	20.37	21
+Node      ea-c5	 287	 286.6	 287	1.00	1
+Node     ea-d5d	  25	  18.6	  18	0.97	1
+Node      ea-e5	  59	  59.0	  58	0.98	1
+Node      eb-i5	  56	  56.0	  55	0.98	1
+Node      fa-c6	 258	 258.0	 251	0.97	1
+Node    fd-c6a2	  10	  10.0	   3	0.30	1
+Node      ga-c7	 240	 238.0	 235	0.99	1
+Node     la-c12	 109	 108.5	 106	0.98	1
+Node     ma-c13	  81	  81.0	  80	0.99	1
+Node     oa-c15	 882	 881.1	 880	1.00	1
+Node     ob-r16	  16	  15.9	  47	2.95	3
+Node     pa-c17	1008	1006.1	1006	1.00	1
+Node     pb-cnv	 282	 213.2	 181	0.85	1  (1)
+Node  pc-cnvstr	   4	   2.5	  41	16.04	10 (10)
+Node     qa-c19	1533	1490.7	1488	1.00	1
+Node     ra-c20	 886	 883.0	 882	1.00	1
+
+JAGYVH010000080.1 - similar to above?
+Node      aa-c1	 603	 603.0	 589	0.98	1
+Node    ae-a1c0	  49	  49.0	  49	1.00	1
+Node    ag-a1c1	 211	 201.0	 202	1.01	1
+Node    ah-a1i1	  47	  18.8	  12	0.64	1
+Node    ai-a1c2	 143	 138.3	 123	0.89	1
+Node    ak-a1c3	  65	  64.8	  61	0.94	1
+Node      ba-c2	1967	1938.6	1932	1.00	1
+Node      bb-i2	  20	  20.0	  20	1.00	1
+Node      ca-c3	1126	1102.0	1100	1.00	1
+Node      da-c4	 650	 646.7	 643	0.99	1
+Node     db-rCT	   2	   1.8	  16	8.98	8
+Node     dc-rCA	   2	   2.0	  39	19.87	20
+Node      ea-c5	 287	 286.6	 287	1.00	1
+Node     ea-d5b	  25	  21.9	  21	0.96	1
+Node      ea-e5	  59	  59.0	  59	1.00	1
+Node      eb-i5	  56	  56.0	  56	1.00	1
+Node      fa-c6	 258	 258.0	 260	1.01	1
+Node    fd-c6a2	  10	  10.0	   4	0.40	1
+Node      ga-c7	 240	 238.0	 235	0.99	1
+Node     la-c12	 109	 108.5	 108	1.00	1
+Node     ma-c13	  81	  81.0	  81	1.00	1
+Node     oa-c15	 882	 881.1	 873	0.99	1
+Node     ob-r16	  16	  15.9	  47	2.95	3
+Node     pa-c17	1008	1006.1	 998	0.99	1
+Node     pb-cnv	 282	 213.2	 191	0.90	1  (1)
+Node  pc-cnvstr	   4	   2.5	  51	19.95	12 (12)
+Node     qa-c19	1533	1490.7	1487	1.00	1
+Node     ra-c20	 886	 883.0	 883	1.00	1
+Node     sa-c21	 513	 509.5	  12	0.02	1
+
+
+No hits on a1i2a.  Why?  Doesn't seem to match it (and dup)
+S       aj-a1i2a        CCTAAGACAGG
+
+  9 024fc805 GCATTTAGAAACC ai-a1c2 1047
+  9 013f2017 CATTTAGAAACCT ai-a1c2 1048
+  9 00fc805d ATTTAGAAACCTC ai-a1c2 1049
+  9 03f20177 TTTAGAAACCTCT ai-a1c2 1050
+ -1 03c805df TTAGAAACCTCTT ? 1051
+ -1 0320177e TAGAAACCTCTTG ? 1052
+ -1 00805dfb AGAAACCTCTTGT ? 1053
+ -1 020177ec GAAACCTCTTGTA ? 1054
+ -1 0005dfb0 AAACCTCTTGTAA ? 1055
+ -1 00177ec2 AACCTCTTGTAAG ? 1056
+ -1 005dfb08 ACCTCTTGTAAGA ? 1057
+ -1 0177ec20 CCTCTTGTAAGAA ? 1058
+ 12 01dfb080 CTCTTGTAAGAAA ak-a1c3 1059
+ 12 037ec200 TCTTGTAAGAAAA ak-a1c3 1060
+ 12 01fb0802 CTTGTAAGAAAAG ak-a1c3 1061
+ 12 03ec200b TTGTAAGAAAAGT ak-a1c3 1062
+
+CCTCTTGTAAGAA hits a1i2a and a1c3, but only because it's in nodeseq
+with a bad alignment.
+
+s1 could have same issue, but a1i2b has diff prefix.
+a1i2a is pointless I think.  Could merge in some bases to a1c2/a1c3
+
+
+
+
+
+Summary:
+perl -lane '$F[5]=join(">",reverse split("<",$F[5])) if ($F[5]=~/</); $F[5]=~s#(>[^>]*)(\1*)#(length($1)+length($2))/length($1)."\t".$1."\n"#ge;$F[5]=~s/>//g;print $F[5]' query.gaf
+1	aa-c1
+1	ab-a0c0
+30	ab-a0d1
+1	ab-a0e1
+...
+66 unique alignments of 87
+
+
+Squash numbers:
+perl -lane '$F[5]=join(">",reverse split("<",$F[5])) if ($F[5]=~/</); $F[5]=~s#([<>][^<>]*)(\1*)#$1." "#ge;$F[5]=~s/[<>]//g;print $F[5]' query.gaf
+aa-c1
+ab-a0c0
+ab-a0d1
+ab-a0e1
+
+That gives 18 unique alignments of 87
+Frequencies are 23,17,10,5,4,4,4,3,3,3,2,2,2,1,.....
+
+So lots of loop count differences (STRs), but not too many canonical
+alignments needed to train on.

@@ -194,8 +194,8 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str) {
 	    n->kmer_unique++;
 	    unique = 1;
 	}
-//	printf("Index %08x %s %s %s\n", kmer, kmer2str(kmer), n->name,
-//	       unique?"":"dup");
+	printf("Index %08x %s %s %s\n", kmer, kmer2str(kmer), n->name,
+	       unique?"":"dup");
     }
 }
 
