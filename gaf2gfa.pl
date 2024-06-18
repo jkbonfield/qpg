@@ -19,7 +19,7 @@ open(my $gaf,   "<", shift(@ARGV)) || die;
 open(my $fasta, "<", shift(@ARGV)) || die;
 open(my $gfa,   "<", shift(@ARGV)) || die;
 my $kmer = shift(@ARGV);
-$kmer = 13 unless defined($kmer);
+$kmer = 14 unless defined($kmer);
 
 # Data structures, indexed by name
 # seq{}{seq}    sequence

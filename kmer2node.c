@@ -28,7 +28,7 @@
 // normalised for the number we'd expect given the node length.
 
 #ifndef KMER
-#define KMER 13
+#define KMER 14
 #endif
 
 #define KSIZE (1<<(2*KMER))
@@ -38,10 +38,16 @@
 //#define KGAP  (KMASK & ~(3<<(2*(KMER/2))))
 
 // AND off two bases within the KMER so we have BBB-BBB-BBB
-#define KGAP  (KMASK & ~((3<<(2*(KMER/3))) | (3<<(2*(2*KMER/3)))))
+//#define KGAP  (KMASK & ~((3<<(2*(KMER/3))) | (3<<(2*(2*KMER/3)))))
+
+// AND off two bases within the KMER so we have BBBB(AC)BBBB
+#define KGAP  ((KMASK & ~(15<<(2*(KMER/2)))) | (1<<(2*(KMER/2))))
 
 // AND off 3 bases
 //#define KGAP  (KMASK & ~((3<<(2*(KMER/4)))|(3<<(2*(2*KMER/4)))|(3<<(2*(3*KMER/4)))))
+
+// AND off 3 bases within the KMER so we have BBB--B-BBBB
+//#define KGAP  (KMASK & ~(243<<(2*(KMER/2)-1)))
 
 // Use the KMER as-is without gaps
 //#define KGAP KMASK

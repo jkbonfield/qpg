@@ -2742,7 +2742,7 @@ Node   aj-a1i2b len    330      exp  111.9      hit      2+0    ratio 0.01      
 
 Missed nodes:
 sa-c21 52  (present in GRCh38 only)
-ea-d5f 1   (from HLA-DRB1*10:01:01)
+ea-d5f 1   (from HLA-DRB1*10:01:01)  FIXED
 
 d5f is misattributed to d5b:
 
@@ -2754,8 +2754,8 @@ Node      ea-e5 59      exp   58.0      hit     58+0    ratio 0.98      1
 
 Problematic
 - very short nodes (rCT/CA, ab-a0d1, pc-cnvstr)
-- aa-c1 (HLA-DRB1*12:01:01)
-- fd-c6a2 (10bp, eg s1, s9, HLA-DRB1*08:03:02)
+- aa-c1 (HLA-DRB1*12:01:01) FIXED
+- fd-c6a2 (10bp, eg s1, s9, HLA-DRB1*08:03:02)  FIXED (missing c6>c7)
 (Below fixed with bigger training set on same graph)
 - ea-d5d (HLA-DRB1*09:21)
 - ea-d5f (HLA-DRB1*10:01:01)
