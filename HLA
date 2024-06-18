@@ -2689,3 +2689,31 @@ This is a bug in gaf2gfa.pl (now fixed) where split alignments only
 got the last one recorded rather than the first (or ideally all).
 
 The hit rate is simply too low due to base calling differences.
+
+-----------------------------------------------------------------------------
+
+DONE: s7 splits  Why?
+
+Also looks like aj-a1i2b is missing.  Used in GraphAligner, but not
+our kmer2node.
+
+Similarly sa-c21.  Is it really in GraphAligner?  How many bp?
+
+Two paths:
+>aa-c1>ae-a1c0>af-a1i0>ag-a1c1>ai-a1c2  (0 1022)
+>aj-a1i2b>ak-a1c3...>ra-c20>sa-c21      (1006 13340)
+
+NB bases 1006-1022 are therefore reported twice.
+Hence maybe a1i2b is wrong?
+
+
+a1c2 and a1i2b are adjacent:
+
+L	ag-a1c1	+	ai-a1c2	+	0M
+L	ai-a1c2	+	aj-a1i2b	+	0M
+L	aj-a1i2b	+	ak-a1c3	+	0M
+
+We missed an a1c2 to a1c3 link.
+
+
+-----------------------------------------------------------------------------

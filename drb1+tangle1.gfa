@@ -26,6 +26,7 @@ S	ai-a1c2	gcattgattggtccattttacagagtgtggattgctccattttacagagtgctgattagtccattttaca
 L	ai-a1c2	+	aj-a1i2b	+	0M
 S	aj-a1i2b	TGTAGGCCgggcgcggtggctcacgcctgtaatcccagcactttgggaggccgaggcgggcggatcacgaggtcaggagatcgagaccatcctggctaaaacggtgaaaccccgtctctactaaaaatacaaaaaattagccgggcgtagtggcgggcgcctgtagtcccagctacttgggaggctgaggcaggagaatggcgtgaacccgggaggcggagcttgcagtgagccgagatcccgccactgcactccagcctgggcgacagagcgagactccgtctcaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaacctcttgtaAGA
 L	aj-a1i2b	+	ak-a1c3	+	0M
+L	ai-a1c2	+	ak-a1c3	+	0M
 S	ak-a1c3	aggaaagttctgcaagtccctacccgacccagaagtccagctggcttcacctctcactagggaaa
 L	ak-a1c3	+	ba-c2	+	0M
 
