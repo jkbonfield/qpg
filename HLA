@@ -2790,3 +2790,20 @@ of first vs last entry in nodeseq file?
 
 DONE
 
+--------------------
+
+s1 on fd-c6a2.
+fd-c6a2	len     10	exp   10.0	hit      3+0	ratio 0.30	1
+
+                 c6    c6a2    c7
+    ...TTCTCTCATCCC TTTACCATTT ACACGCTTTACCGG...
+s1  TGCTCCTCTCATCCC ********** ACACGCTTTACCGG...
+         x
+
+Looks like no c6a2 needed, but:
+
+GraphAligner -g drb1+tangle1.gfa -f s1.fa -x vg -a mafft.gaf
+=>  ...>fa-c6>fd-c6a2>ga-c7...
+
+Why?  Because again we managed to miss the c6->c7 graph edge.
+

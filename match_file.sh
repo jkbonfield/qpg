@@ -10,11 +10,11 @@ ga=/nfs/sam_scratch/jkb/conda22/bin/GraphAligner
 
 # Produce the training gaf
 $ga -g $gfa -f $train -x vg -a train.gaf >/dev/null
-./gaf2gfa.pl train.gaf $train $gfa > $f.nodeseq
+./gaf2gfa.pl train.gaf $train $gfa > $gfa.nodeseq
 
 # Compare each query against the nodeseq
 samtools faidx $query
-#for i in HLA-DRB1*15:01:01:01
+#for i in s1
 for i in `cut -f 1 $query.fai`
 do
     # Align
@@ -30,7 +30,7 @@ do
     fi
 
     # Produce kmer counts
-    ./kmer2node $f.nodeseq _.fa | grep Node | sort -k2 -b | \
+    ./kmer2node $gfa.nodeseq _.fa | grep Node | sort -k2 -b | \
 
     # Report kmer2node counts along side GraphAligner counts
     perl -lane '
