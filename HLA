@@ -2717,3 +2717,47 @@ We missed an a1c2 to a1c3 link.
 
 
 -----------------------------------------------------------------------------
+
+=============================================================================
+
+A scan of everything.
+
+for i in `cut -f 1 all.fa`;do echo === $i ===; samtools faidx hla+train.fa $i > _.fa;s=_;f=hla+train.fa;/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -g drb1+tangle1.gfa -f $s.fa -x vg -a query.gaf > /dev/null;/nfs/sam_scratch/jkb/conda22/bin/GraphAligner -g drb1+tangle1.gfa -f $f -x vg -a mafft.gaf >/dev/null; ./gaf2gfa.pl mafft.gaf $f drb1+tangle1.gfa > $f.nodeseq;./kmer2node $f.nodeseq $s.fa|grep Node | sort -k2 -b | perl -lane 'BEGIN{open(M,"query.gaf"); while (<M>) {chomp($_);@F=split(/\s+/,$_);$F[5]=join(">",reverse split("<",$F[5]));if (/'$i'/) {foreach (split(">",$F[5])) {$h{$_}++}}}} if ($F[-1] > 0 || $h{$F[1]}) {print "$_\t$h{$F[1]}"}';done | tee all.out
+
+
+Common erroneously called nodes
+
+awk '/===/ {print} NF==10 && $10>=0.1' _.out
+
+Frequency
+      1 mb-i13		0.03
+      8 aj-a1i2b	all <= 0.04
+      2 ah-a1i1		0.17 0.17	len 47 (14:05:01 and 14:54:01)
+      1 ea-d5b		0.24		len 25 (see below)
+
+e.g.
+=== JAHEPA010000084.1 ===
+Node   aj-a1i2b len    330      exp  111.9      hit      2+0    ratio 0.01      0
+
+
+Missed nodes:
+sa-c21 52  (present in GRCh38 only)
+ea-d5f 1   (from HLA-DRB1*10:01:01)
+
+d5f is misattributed to d5b:
+
+Node      ea-c5 87      exp  283.9      hit    282+36   ratio 0.99      1
+Node     ea-d5b 25      exp   20.7      hit      5+8    ratio 0.24      0 <
+Node     ea-d5f 25      exp   16.4      hit      0+0    ratio 0.00      1 <
+Node      ea-e5 59      exp   58.0      hit     58+0    ratio 0.98      1
+
+
+Problematic
+- very short nodes (rCT/CA, ab-a0d1, pc-cnvstr)
+- aa-c1 (HLA-DRB1*12:01:01)
+- fd-c6a2 (10bp, eg s1, s9, HLA-DRB1*08:03:02)
+(Below fixed with bigger training set on same graph)
+- ea-d5d (HLA-DRB1*09:21)
+- ea-d5f (HLA-DRB1*10:01:01)
+- aj-a1i2b (HLA-DRB1*15:02:01)
+
