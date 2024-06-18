@@ -269,9 +269,17 @@ void nodeset_report(nodeset *ns) {
 	double ratio2 = (n->hit_count+n->hit_possible+0.01)/(n->length+0.01);
 	//double ratio = (n->hit_count-expected+0.01)/(n->length+0.01);
 	//double ratio = (n->hit_count+0.01)/(n->length-expected+0.01);
+	if (ratio >= ratio2) // min
+	    ratio = ratio2;
+	// account for truncated nodes, eg at start and end of graph
+	if (i==1 || i==ns->nnodes) {
+	    ratio2 = (n->hit_count)/(n->hit_count+n->hit_possible+1.);
+	    if (ratio < ratio2) // max
+		ratio = ratio2;
+	}
 	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d+%d\tratio %.2f\n",
 	       n->name, n->length, expected2, n->hit_count,n->hit_possible,
-	       ratio < ratio2 ? ratio : ratio2);
+	       ratio);
     }
 }
 

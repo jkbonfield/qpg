@@ -2761,3 +2761,32 @@ Problematic
 - ea-d5f (HLA-DRB1*10:01:01)
 - aj-a1i2b (HLA-DRB1*15:02:01)
 
+
+HLA-DRB1*12:01:01
+Aligns from 14 to 13404 (end)
+
+Seq is simply truncated.  This is the same problem as sa-c21 but at
+the start instead.
+
+Maybe add in MAX(ratio, hits/(hits+possible)) too?
+So if we have 90% of the possible kmers hitting, event though it's
+only 20% of the expected, then this is just because we're short
+coverage.  Does that change things elsewhere though?
+
+Yes, but minimally.
+Minor changes to the (already poor) c6a2: 0.21 to 0.25 (want 1)
+Minor change to c13: 0.93 to 0.99 (want 1)
+
+Big change to c6a2 (0.2 to 1.0, want 1) on HLA-DRB1*15:01:01:01
+BIG BAD change to c9i0 (0.01 to 1.0, want 0) on JAGYVX010000013.1
+BIG BAD change to t1 (0 to 1.0, want 0) on JAHEPA010000084.1
+
+Maybe add a big offset so we need substantial chunks.
+Eg h/(h+p+10) so 1 hit doesn't turn into 1/(1.01) but 1/11
+
+Better would be to know the head and tail nodes.  Maybe by edge count
+in and out being zero? But we don't have that.  Or implicit knowledge
+of first vs last entry in nodeseq file?
+
+DONE
+

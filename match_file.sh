@@ -14,7 +14,7 @@ $ga -g $gfa -f $train -x vg -a train.gaf >/dev/null
 
 # Compare each query against the nodeseq
 samtools faidx $query
-#for i in JAGYVM010000005.1
+#for i in HLA-DRB1*15:01:01:01
 for i in `cut -f 1 $query.fai`
 do
     # Align
