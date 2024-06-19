@@ -279,7 +279,7 @@ void nodeset_report(nodeset *ns) {
 	    ratio = ratio2;
 	// account for truncated nodes, eg at start and end of graph
 	if (i==1 || i==ns->nnodes) {
-	    ratio2 = (n->hit_count)/(n->hit_count+n->hit_possible+1.);
+	    ratio2 = (n->hit_count)/(n->hit_count+n->hit_possible+10.);
 	    if (ratio < ratio2) // max
 		ratio = ratio2;
 	}
