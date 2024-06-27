@@ -43,7 +43,9 @@
 //#define KGAP  (KMASK & ~((3<<(2*(KMER/3))) | (3<<(2*(2*KMER/3)))))
 
 // AND off two bases within the KMER so we have BBBB(AC)BBBB
-#define KGAP  ((KMASK & ~(15<<(2*(KMER/2)))) | (1<<(2*(KMER/2))))
+// If we're doing bi-directional these have to be central so we can reverse
+//#define KGAP  ((KMASK & ~(15<<(2*((KMER-1)/2)))) | (1<<(2*((KMER-1)/2))))
+#define KGAP  ((KMASK & ~(15<<(2*((KMER)/2)))) | (1<<(2*((KMER)/2))))
 
 // AND off 3 bases
 //#define KGAP  (KMASK & ~((3<<(2*(KMER/4)))|(3<<(2*(2*KMER/4)))|(3<<(2*(3*KMER/4)))))
@@ -176,11 +178,11 @@ node *nodeset_find(nodeset *ns, char *name, int create) {
     return kh_value(ns->nodes, k);
 }
 
-void nodeset_index_kmers(nodeset *ns, node *n, char *str) {
+void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
     base4_init();
 
     int num = n->num;
-    int kmer = 0, kmer2 = 0, i, len = strlen(str);
+    int kmer = 0, kmer2 = 0, i, j, len = strlen(str);
     for (i = 0; i < len && i < KMER-1; i++)
 	kmer2 = (kmer2<<2) | base4[str[i]];
 
@@ -206,15 +208,38 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str) {
 	    n->kmer_unique++;
 	    unique = 1;
 	}
-	//printf("Index %08x %s %s %s\n", kmer, kmer2str(kmer), n->name,
-	//       unique?"":"dup");
+	printf("%d Index %08x %s %s %s\n", bidir, kmer, kmer2str(kmer), n->name,
+	       unique?"":"dup");
     }
+
+    if (!bidir)
+	return;
+
+    // (Or we can do kmer^-1 to complement, but still needs reversal)
+
+    // Reverse complement str in-situ and resubmit
+    unsigned char c[256];
+    c['A'] = c['a'] = 'T';
+    c['C'] = c['c'] = 'G';
+    c['G'] = c['g'] = 'C';
+    c['T'] = c['t'] = 'A';
+    for (i = 0, j = len-1; i < j; i++, j--) {
+	char ci = c[str[i]];
+	char cj = c[str[j]];
+	str[i] = cj;
+	str[j] = ci;
+    }
+    if (i == j)
+	str[i] = c[str[i]];
+
+    // Resubmit as other strand
+    nodeset_index_kmers(ns, n, str, 0);
 }
 
 #define MAXLINE 1000000
 static char line[MAXLINE];
 
-nodeset *nodeset_load(char *fn) {
+nodeset *nodeset_load(char *fn, int bidir) {
     FILE *fp;
     nodeset *ns = NULL;
 
@@ -245,7 +270,7 @@ nodeset *nodeset_load(char *fn) {
 		n->length = l;
 	    //node_add_kmers(n, line);
 	    if (*line) {
-		nodeset_index_kmers(ns, n, line);
+		nodeset_index_kmers(ns, n, line, bidir);
 		line_no++;
 	    }
 	} else {
@@ -362,13 +387,14 @@ int main(int argc, char **argv) {
     sam_hdr_t *hdr = NULL;
     bam1_t *b = NULL;
     
-    if (argc != 3) {
-	fprintf(stderr, "Usage: kmer2node graph.nodeseq in.fasta\n");
+    if (argc != 3 && argc != 4) {
+	fprintf(stderr, "Usage: kmer2node graph.nodeseq in.fasta [0/1]\n");
 	return 1;
     }
 
     // Load the nodeseq file and mark kmer-to-node lookup table
-    nodeset *ns = nodeset_load(argv[1]);
+    int bidir = argc == 4 ? atoi(argv[3]) : 0;
+    nodeset *ns = nodeset_load(argv[1], bidir);
     if (!ns)
 	return 1;
 

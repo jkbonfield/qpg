@@ -30,7 +30,7 @@ do
     fi
 
     # Produce kmer counts
-    ./kmer2node $train.nodeseq _.fa | grep Node | sort -k2 -b | \
+    ./kmer2node $train.nodeseq _.fa 1 | grep Node | sort -k2 -b | \
 
     # Report kmer2node counts along side GraphAligner counts
     perl -lane '

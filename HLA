@@ -3024,3 +3024,39 @@ DONE: fixed in train8
 >HLA-DRB1*09:21
 >HLA-DRB1*03:01:01:01
 
+=============================================================================
+
+2024-06-27  Add bi-directional indexing for double stranded matching.
+
+We compare seq as before, but now the index has both strands so we
+will find a match either way.
+
+TODO: check for non-uniqueness across both?
+
+Important: KGAP is in the middle.
+
+
+After this ab-a0d1 is regularly finding hits where previously it found
+none.  Why?
+
+Eg on h16.fa:
+Node    ab-a0d1	len      4	exp    3.8	hit      3+18	ratio 0.79
+
+a0d1 is very low complexity with poly-A / poly-T
+
+@ab-a0d1
+TTTC
+GAAAGGAAATCTGTTTCTTTCTTTCTTTTTTTTGTTTTTTTG
+GAAAGGAAATCTCTTTCTTTTCTTTCTTTCTTTCCTTCTTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCTTTCTTCCTTCCCTCCCTCCCTCCCTTTCTTTCTTTCTTTTTTTTTTTTTG
+GAAAGGAAATCTCTCTCTTTCTTTTCTTTCTTTCTTTCCTTCTTTCCTTCCTTCCTTCCTTCCTTCCTTCCCTCCCTCCCTCCGTCCCTTTCTTTCTTTTTTTTTTTG
+
+
+We hit the AAAAAAAAAAAGAA nodes (TTCTTTTTTTTTTT) between a1i2b and
+a1c2 nodes in our graph, although there's no edge to take us that way.
+
+This inverse repeat was previously not visible in the graph matching.
+
+
+It's a really suspect node in the first place, so sporadic hits is
+just a nice challenge for the matching algorithms, to see if they can
+cope with hits in impossible to reach places.
