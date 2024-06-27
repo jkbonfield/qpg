@@ -88,3 +88,10 @@ the sequence from which the CIGAR string is applied.  It can be
 compared to the fasta sequence (eg with dotter) to inspect how good
 the alignment looks and whether there are nodes missing in the graph.
 
+
+train8.fa
+---------
+
+A set of 8 sequences that jointly cover all nodes in the
+drb1+tangle1.gfa graph.  These can be considered to be a minimum
+training set for producing the nodeseq file.
