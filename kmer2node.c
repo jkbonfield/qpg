@@ -19,13 +19,15 @@
 
 // kmer2node graph.nodeseq in.fasta
 
-// nodeseq is a file consisting of "@name" and then one line per sequence that has been mapped to that
-// node during a training run.  The first sequence line is important as it is the graph node seq itself.
-// We has this with the others, but the length matters as it determines the expected number of times
-// the node occurs.
+// nodeseq is a file consisting of "@name" and then one line per
+// sequence that has been mapped to that node during a training run.
+// The first sequence line is important as it is the graph node seq
+// itself. We has this with the others, but the length matters as it
+// determines the expected number of times the node occurs.
 
-// Output is a list of node names and a weighting reflecting the number of relative kmers observed,
-// normalised for the number we'd expect given the node length.
+// Output is a list of node names and a weighting reflecting the
+// number of relative kmers observed, normalised for the number we'd
+// expect given the node length.
 
 #ifndef KMER
 #define KMER 14
@@ -310,14 +312,16 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	kmer = kmer2 & KGAP;
 	int num = ns->kmer[kmer];
 	printf(" %2d %08x %s %s %d   %d %d %d\n", num, kmer, kmer2str(kmer),
-	       num > 0 ? ns->num2node[num]->name : "?", i, nposs_run, last_node, last_node_poss);
+	       num > 0 ? ns->num2node[num]->name : "?",
+	       i, nposs_run, last_node, last_node_poss);
 	if (num > 0) {
 	    ns->num2node[num]->hit_count++;
 	    if (i > last_node_base+1 && last_node == num) {
 		// Correct for missing kmers from SNPs
 		int j;
 		for (j = i-1; j > last_node_base && j > i-KMER; j--) {
-		    printf("Fix-up %d:%d  last_node_base %d\n", i, j, last_node_base);
+		    printf("Fix-up %d:%d  last_node_base %d\n",
+			   i, j, last_node_base);
 		    ns->num2node[num]->hit_count++;
 		}
 		if (j > last_node_base)
