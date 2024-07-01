@@ -3060,3 +3060,28 @@ This inverse repeat was previously not visible in the graph matching.
 It's a really suspect node in the first place, so sporadic hits is
 just a nice challenge for the matching algorithms, to see if they can
 cope with hits in impossible to reach places.
+
+
+=============================================================================
+
+1/7/2024:  shred.pl
+
+This takes a fasta sequence and produces a new fasta file with many
+randomly shredded fragments (perhaps short if it's the very start
+and/or end) such that the kmer indexer should still have good
+coverage.
+
+This will give similar stats to analysing one long sequence, but
+multiplied up by the depth and with a broader depth distribution
+coming from the random sampling (see Lander-Waterman statistics
+https://doi.org/10.1016/0888-7543(88)90007-9).
+
+    ./shred.pl -e 0.001 -l 150 -s 0 -d 100 < s1.fa \
+    | ./kmer2node train8.fa.nodeseq - 1 \
+    | awk '/Node/ && $NF > 1'
+
+
+We can validate it in gap5 via e.g.:
+
+./shred.pl -e 0.01 -l 150 -s 0 -d 100 < s1.fa  > _.fa;/software/grit/tools/SDA/envs/sda-python-3/bin/minimap2 -x sr -a s1.fa _.fa | samtools view -h -F 0xf00 | samtools sort - > _.sam;samtools index _.sam;\tg_index _.sam
+

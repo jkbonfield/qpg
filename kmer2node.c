@@ -310,7 +310,7 @@ void nodeset_report(nodeset *ns) {
 	    if (ratio < ratio2) // max
 		ratio = ratio2;
 	}
-	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d+%d\tratio %.2f\n",
+	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d+%-6d\tratio %.2f\n",
 	       n->name, n->length, expected2, n->hit_count,n->hit_possible,
 	       ratio);
     }
