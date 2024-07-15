@@ -79,7 +79,14 @@ sub shred {
 	next if $len2 <= 0;
 
 	# Produce a subsequence and r/c at random
-	my $sub = substr(rand()>=0.5 ? $seq : $rseq, $pos, $len2);
+	my $sub;
+	if (rand()>=0.5) {
+	    $sub = substr($seq, $pos, $len2);
+	    $pos++;
+	} else {
+	    $sub = substr($rseq, $pos, $len2);
+	    $pos = $slen - ($pos+$len2-1);
+	}
 
 	my $nerr = $err * $len2;
 	my $ierr = int($nerr);
@@ -94,7 +101,7 @@ sub shred {
 	    }
 	    substr($sub, $p, 1) = $base;
 	}
-	print ">$name#$i\n$sub\n";
+	print ">$name#$pos#$i\n$sub\n";
     }
 }
 

@@ -3085,3 +3085,14 @@ We can validate it in gap5 via e.g.:
 
 ./shred.pl -e 0.01 -l 150 -s 0 -d 100 < s1.fa  > _.fa;/software/grit/tools/SDA/envs/sda-python-3/bin/minimap2 -x sr -a s1.fa _.fa | samtools view -h -F 0xf00 | samtools sort - > _.sam;samtools index _.sam;\tg_index _.sam
 
+
+
+New examples.
+
+s1:   fewer CNV copies
+s4:   i18 and t1 adjacent to CNV loops
+s6:   t1 early between c3 and c4
+s7:   no t1
+
+See s*.fa.100x.gfa for annotated GFAs.
+
