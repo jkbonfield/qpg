@@ -2,17 +2,18 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 static int length = 100000;
-static double STR_rate = 0.005;
+static double STR_rate = 0.001;
 static double STR_snp_rate = 0.02;
-static double CNV_rate = 0.0002;
+static double CNV_rate = 0.0005;
 #define SINE_len 300
 #define LINE_len 2000
-static double SINE_rate = 0.0005;
-static double LINE_rate = 0.0002;
-static double rep_snp_rate = 0.05;
-static double trans_rate = 0.001;
+static double SINE_rate = 0.00005;
+static double LINE_rate = 0.00002;
+static double rep_snp_rate = 0.001;
+static double trans_rate = 0.0002;
 
 // Add repeat elements, such as SINE and LINEs.
 // For a given rep_len we use the same repeat sequence, but mutate it
@@ -54,7 +55,6 @@ void add_rep(char *seq, int length, int count, int rep_len) {
 		copy[j] = "ACGT"[random()&3];
 
 	// Copy it
-	if (rep_len > 1000)
 	memcpy(seq+pos, copy, rep_len);
     }
 }
@@ -63,8 +63,12 @@ void add_rep(char *seq, int length, int count, int rep_len) {
 // distribution of the repeat element length (eg 1 or 2 for
 // homopolymer and dinucleotide STRs) and dist_n is the distribution
 // of number of copies.
-void add_STRs(char *seq, int length, int count, int dist_l, int dist_n) {
+// "Clustered" is the likelihood that the next position will be
+// correlated to the current one.
+void add_STRs(char *seq, int length, int count, int dist_l, int dist_n,
+	      double clustered, double STR_trans_rate) {
     //printf("Count=%d\n", count);
+    int pos = -1, sz=1;
     for (int i = 0; i < count; i++) {
 	// repeat length and copy number distributions
 	int rlen, copies, k;
@@ -72,18 +76,29 @@ void add_STRs(char *seq, int length, int count, int dist_l, int dist_n) {
 	rlen = k;
 
 	for (k = 1; k < 20000 && (random()&65535) < dist_n; k++);
-	    ;
+
 	copies = k;
+	copies = 1 + 3*k / log(rlen+1);
 	    
 	//char str[20000];
 	//for (int k = 0; k < rlen; k++)
 	//    str[k] = "ACGT"[random()&3];
-	int pos = random()%(length-rlen);
+	int local = 0;
+	sz = rlen*copies;
+	if ((random()&65535) < clustered*65535 && pos >= 0) {
+	    int opos = pos;
+	    do {
+		pos = opos + (random()%(sz*4)) - (sz*2);
+	    } while (pos + rlen >= length || pos < 0);
+	    local = 1;
+	} else {
+	    pos = random()%(length-rlen);
+	}
 	char *str = seq + pos;
 	//memcpy(str,  seq + pos, rlen);
 
-	fprintf(stderr, "%d\t%d %d\t%.*s\n", pos, rlen, copies,
-		rlen>30?30:rlen, str);
+	fprintf(stderr, "%d(%d)\t%d %d\t%.*s\n",
+		pos, local, rlen, copies, rlen>30?30:rlen, str);
 
 	pos += rlen;
 	for (int k = 0; k < copies; k++) {
@@ -94,7 +109,12 @@ void add_STRs(char *seq, int length, int count, int dist_l, int dist_n) {
 	    for (int l = 0; l < rlen; l++)
 		if ((random()&65535) < STR_snp_rate*65536)
 		    seq[pos+l] = "ACGT"[random()&3];
-	    pos += rlen;
+
+	    // random translocations induced at STRs/CNVs
+	    pos = (random()&65535) < STR_trans_rate*65536
+		? random()%(length-rlen)
+		: pos + rlen;
+	    //pos += rlen;
 	}
     }
 }
@@ -147,11 +167,12 @@ void genome_create(void) {
     fprintf(stderr, "SINEs: %d\n", (int)(length * SINE_rate));
     add_rep(bases, length, length * SINE_rate, SINE_len);
 
-    fprintf(stderr, "CNVs\n");
-    add_STRs(bases, length, length * CNV_rate, 65400, 40000);
-
     fprintf(stderr, "STRs\n");
-    add_STRs(bases, length, length * STR_rate, 30000, 55000);
+    //add_STRs(bases, length, length * STR_rate, 30000, 55000);
+    add_STRs(bases, length, length * STR_rate, 30000, 60000, 0.95, 0.02);
+
+    fprintf(stderr, "CNVs\n");
+    add_STRs(bases, length, length * CNV_rate, 65400, 40000, 0.6, 0.1);
 
     fprintf(stderr, "Translocations\n");
     add_trans(bases, length, length * trans_rate);

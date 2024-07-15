@@ -13,4 +13,4 @@ kmer2node: kmer2node.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) kmer2node.c -o kmer2node $(LIBS)
 
 genome_create: genome_create.c
-	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) $< -o $@ $(LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) $< -o $@ $(LIBS) -lm
