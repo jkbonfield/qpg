@@ -26,7 +26,8 @@ local $"="\t";
 while (<$fh>) {
     if (/^S\s/) {
 	chomp($_);
-	my @F = split(/\s+/, $_);
+	my @F_ = split(/\s+/, $_);
+	my @F = @F_[0..2];
 	push(@F, "LN:i:".length($F[2]));
 	push(@F, "KC:i:".int($coverage{$F[1]} * length($F[2])));
 	push(@F, "SC:f:".$coverage{$F[1]});
