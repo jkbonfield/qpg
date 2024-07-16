@@ -19,12 +19,14 @@ my $err = 0;  # specify as a fraction
 my $depth = 50;
 my $seed = -1;
 my $kmer = 14; # corrects depth for missing matches at fragment ends
+my $circular = 0;
 GetOptions ("length=i" => \$length,
 	    "err=f"    => \$err,
 	    "depth=i"  => \$depth,
             "seed=i"   => \$seed,
-            "kmer=i"   => \$kmer)
-or die("Usage: shred [-s seed] [-l length] [-e error_fraction] [-d depth] in.fa > out.fa\n");
+            "kmer=i"   => \$kmer,
+            "circular" => \$circular)
+or die("Usage: shred [-c] [-s seed] [-l length] [-e error_fraction] [-d depth] in.fa > out.fa\n");
 
 srand($seed) if $seed>=0;
 
@@ -52,20 +54,23 @@ shred($name, uc($seq));
 sub shred {
     my ($name, $seq) = @_;
 
+    my $slen = length($seq);
+    $seq .= $seq; # permits circularisation
+    die if $slen < $length;
+
     my $rseq = reverse $seq;
     $rseq =~ tr/ACGT/TGCA/;
 
-    my $slen = length($seq);
-    die if $slen < $length;
-
     # permit overlapping start/end with short reads
-    my $nreads = int(($slen+$length) / ($length-$kmer+1) * $depth);
+    my $mod_slen = $circular ? $slen : $slen+$length;
+    my $nreads = int($mod_slen / ($length-$kmer+1) * $depth);
 
-    print STDERR "shred $name, length ",length($seq)," => $nreads reads\n";
+    print STDERR "shred $name, length $slen => $nreads reads\n";
 
     for (my $i = 0; $i < $nreads; $i++) {
-	my $pos = int(rand($slen+$length));
-	$pos -= $length;
+	my $pos = $circular
+	    ? int(rand($slen))
+	    : int(rand($slen+$length)) - $length;
 
 	# Truncate pos and/or seq for end overlaps
 	my $len2 = $length;
@@ -73,7 +78,7 @@ sub shred {
 	    $len2 += $pos;
 	    $pos = 0;
 	}
-	if ($pos+$length >= $slen) {
+	if (!$circular && $pos+$length >= $slen) {
 	    $len2 -= $pos+$length-$slen;
 	}
 	next if $len2 <= 0;
@@ -85,7 +90,9 @@ sub shred {
 	    $pos++;
 	} else {
 	    $sub = substr($rseq, $pos, $len2);
-	    $pos = $slen - ($pos+$len2-1);
+	    if (!$circular) {
+		$pos = $slen - ($pos+$len2-1);
+	    }
 	}
 
 	my $nerr = $err * $len2;
