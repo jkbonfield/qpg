@@ -183,7 +183,7 @@ void genome_create(void) {
 int main(int argc, char **argv) {
     int seed = 0;
     int opt;
-    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:")) != -1) {
+    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:")) != -1) {
 	switch (opt) {
 	case 'l':
 	    length = atoi(optarg);
