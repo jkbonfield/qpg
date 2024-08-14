@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <ctype.h>
 
 static int length = 100000;
 static double STR_rate = 0.001;
@@ -14,11 +15,14 @@ static double SINE_rate = 0.00005;
 static double LINE_rate = 0.00002;
 static double rep_snp_rate = 0.001;
 static double trans_rate = 0.0002;
+static FILE *seq_out = NULL;
+static FILE *meta_out = NULL;
 
 // Add repeat elements, such as SINE and LINEs.
 // For a given rep_len we use the same repeat sequence, but mutate it
 // a little each time so the repeat elements are not identical.
-void add_rep(char *seq, int length, int count, int rep_len) {
+void add_rep(char *seq, char *meta, int length, int count, int rep_len,
+	     int code) {
     static int rep_len_cache = 0;
     static char *rep = NULL, *repr = NULL;
 
@@ -56,6 +60,8 @@ void add_rep(char *seq, int length, int count, int rep_len) {
 
 	// Copy it
 	memcpy(seq+pos, copy, rep_len);
+	memset(meta+pos, code, rep_len);
+	meta[pos] = toupper(code);
     }
 }
 
@@ -65,8 +71,8 @@ void add_rep(char *seq, int length, int count, int rep_len) {
 // of number of copies.
 // "Clustered" is the likelihood that the next position will be
 // correlated to the current one.
-void add_STRs(char *seq, int length, int count, int dist_l, int dist_n,
-	      double clustered, double STR_trans_rate) {
+void add_STRs(char *seq, char *meta, int length, int count, int dist_l,
+	      int dist_n, double clustered, double STR_trans_rate, char code) {
     //printf("Count=%d\n", count);
     int pos = -1, sz=1;
     for (int i = 0; i < count; i++) {
@@ -105,6 +111,8 @@ void add_STRs(char *seq, int length, int count, int dist_l, int dist_n,
 	    if (pos + rlen >= length)
 		break;
 	    memcpy(seq+pos, str, rlen);
+	    memset(meta+pos, code, rlen);
+	    meta[pos] = toupper(code);
 	    // Mutate at random
 	    for (int l = 0; l < rlen; l++)
 		if ((random()&65535) < STR_snp_rate*65536)
@@ -120,7 +128,7 @@ void add_STRs(char *seq, int length, int count, int dist_l, int dist_n,
 }
 
 // Translocations
-void add_trans(char *seq, int length, int count) {
+void add_trans(char *seq, char *meta, int length, int count, char code) {
     char comp[256];
     comp['A']='T';
     comp['T']='A';
@@ -149,41 +157,52 @@ void add_trans(char *seq, int length, int count) {
 	} else {
 	    memmove(seq+pos2, seq+pos1, tv_len);
 	}
+	memset(meta+pos2, code, tv_len);
+	meta[pos2] = toupper(code);
     }
 }
 
 void genome_create(void) {
     char *bases = malloc(length+1);
-    if (!bases) abort();
+    char *meta = malloc(length+1);
+    if (!bases || !meta) abort();
 
     // Initial pass
     int i;
     for (i = 0; i < length; i++)
 	bases[i] = "ACGT"[random()&3];
+    memset(meta, '.', length);
     bases[length] = 0;
+    meta[length] = 0;
 
     fprintf(stderr, "LINEs: %d\n", (int)(length * LINE_rate));
-    add_rep(bases, length, length * LINE_rate, LINE_len);
+    add_rep(bases, meta, length, length * LINE_rate, LINE_len, 'l');
     fprintf(stderr, "SINEs: %d\n", (int)(length * SINE_rate));
-    add_rep(bases, length, length * SINE_rate, SINE_len);
+    add_rep(bases, meta, length, length * SINE_rate, SINE_len, 's');
 
     fprintf(stderr, "STRs\n");
     //add_STRs(bases, length, length * STR_rate, 30000, 55000);
-    add_STRs(bases, length, length * STR_rate, 30000, 60000, 0.95, 0.02);
+    add_STRs(bases, meta, length, length * STR_rate, 30000, 60000,
+	     0.95, 0.02, 'r');
 
     fprintf(stderr, "CNVs\n");
-    add_STRs(bases, length, length * CNV_rate, 65400, 40000, 0.6, 0.1);
+    add_STRs(bases, meta, length, length * CNV_rate, 65400, 40000,
+	     0.6, 0.1, 'c');
 
     fprintf(stderr, "Translocations\n");
-    add_trans(bases, length, length * trans_rate);
+    add_trans(bases, meta, length, length * trans_rate, 't');
 
-    printf(">seq\n%s\n", bases);
+    fprintf(seq_out, ">seq\n%s\n", bases);
+    if (meta_out)
+	fprintf(meta_out, ">meta\n%s\n", meta);
 }
 
 int main(int argc, char **argv) {
     int seed = 0;
     int opt;
-    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:")) != -1) {
+    seq_out = stdout;
+
+    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:o:O:")) != -1) {
 	switch (opt) {
 	case 'l':
 	    length = atoi(optarg);
@@ -219,6 +238,22 @@ int main(int argc, char **argv) {
 	    LINE_rate = atof(optarg);
 	    break;
 
+	// output locations
+	case 'o':
+	    seq_out = fopen(optarg, "w");
+	    if (!seq_out) {
+		perror(optarg);
+		exit(1);
+	    }
+	    break;
+	case 'O':
+	    meta_out = fopen(optarg, "w");
+	    if (!meta_out) {
+		perror(optarg);
+		exit(1);
+	    }
+	    break;
+
 	default:
 	    fprintf(stderr, "Usage: genome_create [options]\n\n"
 		    "Options:\n"
@@ -230,7 +265,9 @@ int main(int argc, char **argv) {
 		    "    -n fraction    SNP rate inside repeats [%f]\n"
 		    "    -A fraction    Rate of 500bp repeat element [%f]\n"
 		    "    -L fraction    Rate of 2000bp repeat element [%f]\n"
-		    "    -T fraction    Rate of translocations [%f]\n",
+		    "    -T fraction    Rate of translocations [%f]\n"
+		    "    -o FILE        Filename for fasta sequence [stdout]\n"
+		    "    -O FILE        Filename for fasta meta-data [/dev/null]\n",
 		    length, seed, STR_rate, CNV_rate, STR_snp_rate,
 		    rep_snp_rate, SINE_rate, LINE_rate, trans_rate
 		    );
@@ -241,5 +278,10 @@ int main(int argc, char **argv) {
     srandom(seed);
 
     genome_create();
-    return 0;
+
+    int err = 0;
+    if (seq_out)  err |= fclose(seq_out) < 0;
+    if (meta_out) err |= fclose(meta_out) < 0;
+
+    return err;
 }
