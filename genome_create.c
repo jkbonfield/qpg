@@ -18,6 +18,16 @@ static double trans_rate = 0.0002;
 static FILE *seq_out = NULL;
 static FILE *meta_out = NULL;
 
+// Rate of new items vs edit existing items
+static double STR_new_rate = 1;
+static double STR_edit_rate = 0;
+static double CNV_new_rate = 1;
+static double CNV_edit_rate = 0;
+static double SNP_edit_rate = 0.002;
+//static double SNP_edit_rate = 0.05; // extreme!
+static double INS_edit_rate = 0.0005;
+static double DEL_edit_rate = 0.0005;
+
 // Add repeat elements, such as SINE and LINEs.
 // For a given rep_len we use the same repeat sequence, but mutate it
 // a little each time so the repeat elements are not identical.
@@ -27,6 +37,8 @@ void add_rep(char *seq, char *meta, int length, int count, int rep_len,
     static char *rep = NULL, *repr = NULL;
 
     // Create the repeat
+    // One repeat in many places, which is different to the translocations
+    // which is many items copies, but not many copies per item.
     if (rep_len_cache != rep_len) {
 	char comp[256];
 	comp['A']='T';
@@ -71,10 +83,11 @@ void add_rep(char *seq, char *meta, int length, int count, int rep_len,
 // of number of copies.
 // "Clustered" is the likelihood that the next position will be
 // correlated to the current one.
-void add_STRs(char *seq, char *meta, int length, int count, int dist_l,
+void add_STRs(char *seq, char *meta, int length, double count_f, int dist_l,
 	      int dist_n, double clustered, double STR_trans_rate, char code) {
     //printf("Count=%d\n", count);
     int pos = -1, sz=1;
+    int count = count_f + (drand48() < (count_f - (int)count_f));
     for (int i = 0; i < count; i++) {
 	// repeat length and copy number distributions
 	int rlen, copies, k;
@@ -127,14 +140,77 @@ void add_STRs(char *seq, char *meta, int length, int count, int dist_l,
     }
 }
 
+// Like add_STRs, but we're editing existing STRs, extending or shrinking
+void edit_STRs(char *seq, char *meta, int length, double count_f, int dist_l,
+	       int dist_n, double clustered, double STR_trans_rate, char
+	       code) {
+    int pos = -1, sz=1;
+    int count = count_f + (drand48() < (count_f - (int)count_f));
+    if (!count)
+	return;
+
+    // Identify known repeat starting points
+    int *rep_start = malloc(length * sizeof(*rep_start));
+    int *rep_len = malloc(length * sizeof(*rep_len));
+    int nreps = 0;
+    for (int i = 0; i < length; i++) {
+	if (meta[i] == toupper(code)) {
+	    rep_start[nreps] = i;
+	    while (++i < length && meta[i] == code)
+		;
+	    rep_len[nreps] = i-- - rep_start[nreps];
+	    //fprintf(stderr, "rep %d len %d\n", rep_start[nreps], rep_len[nreps]);
+	    nreps++;
+	}
+    }
+
+    if (nreps == 0)
+	return;
+
+    for (int i = 0; i < count; i++) {
+	// Find a repeat element in meta.
+	int rnum = random()%nreps;
+
+	int rstart = rep_start[rnum];
+	int rlen = rep_len[rnum];
+
+	// FIXME: can't change length.
+	// Maybe ignore and trim all to fixed later?
+	if (random()%2) {
+	    // Incr; lose bases at end of seq
+	    fprintf(stderr, "INCR STR at %d+%d\n", rstart, rlen);
+	    memmove(seq+rstart+rlen, seq+rstart, length - (rstart+rlen));
+	    memmove(meta+rstart+rlen, meta+rstart, length - (rstart+rlen));
+	    if (rstart+rlen+rlen < length) {
+		memcpy(seq+rstart+rlen, seq+rstart, rlen);
+		memcpy(meta+rstart+rlen, seq+rstart, rlen);
+	    }
+	} else {
+	    // Decr; stutter at end of seq
+	    fprintf(stderr, "DECR STR at %d+%d\n", rstart, rlen);
+	    memmove(seq+rstart, seq+rstart+rlen, length - (rstart+rlen));
+	    memmove(meta+rstart, meta+rstart+rlen, length - (rstart+rlen));
+	}
+
+	// Mutate at random
+	for (int l = 0; l < rlen; l++)
+	    if ((random()&65535) < STR_snp_rate*65536)
+		seq[rstart+l] = "ACGT"[random()&3];
+    }
+
+    free(rep_start);
+    free(rep_len);
+}
+
 // Translocations
-void add_trans(char *seq, char *meta, int length, int count, char code) {
+void add_trans(char *seq, char *meta, int length, double count_f, char code) {
     char comp[256];
     comp['A']='T';
     comp['T']='A';
     comp['C']='G';
     comp['G']='C';
 
+    int count = count_f + (drand48() < (count_f - (int)count_f));
     for (int i = 0; i < count; i++) {
 	int tv_len = random()%256;
 	while (random()%3)
@@ -162,19 +238,8 @@ void add_trans(char *seq, char *meta, int length, int count, char code) {
     }
 }
 
-void genome_create(void) {
-    char *bases = malloc(length+1);
-    char *meta = malloc(length+1);
-    if (!bases || !meta) abort();
-
-    // Initial pass
-    int i;
-    for (i = 0; i < length; i++)
-	bases[i] = "ACGT"[random()&3];
-    memset(meta, '.', length);
-    bases[length] = 0;
-    meta[length] = 0;
-
+void genome_create(char *bases, char *meta, char *name) {
+    fprintf(stderr, "==== creating %s\n", name);
     fprintf(stderr, "LINEs: %d\n", (int)(length * LINE_rate));
     add_rep(bases, meta, length, length * LINE_rate, LINE_len, 'l');
     fprintf(stderr, "SINEs: %d\n", (int)(length * SINE_rate));
@@ -182,28 +247,93 @@ void genome_create(void) {
 
     fprintf(stderr, "STRs\n");
     //add_STRs(bases, length, length * STR_rate, 30000, 55000);
-    add_STRs(bases, meta, length, length * STR_rate, 30000, 60000,
-	     0.95, 0.02, 'r');
+    add_STRs(bases, meta, length, length * STR_rate * STR_new_rate,
+	     30000, 60000, 0.95, 0.02, 'r');
+    edit_STRs(bases, meta, length, length * STR_rate * STR_edit_rate,
+	      30000, 60000, 0.95, 0.02, 'r');
 
     fprintf(stderr, "CNVs\n");
-    add_STRs(bases, meta, length, length * CNV_rate, 65400, 40000,
-	     0.6, 0.1, 'c');
+    add_STRs(bases, meta, length, length * CNV_rate * CNV_new_rate,
+	     65400, 40000, 0.6, 0.1, 'c');
+    edit_STRs(bases, meta, length, length * CNV_rate * CNV_edit_rate,
+	      65400, 40000, 0.6, 0.1, 'c');
 
     fprintf(stderr, "Translocations\n");
     add_trans(bases, meta, length, length * trans_rate, 't');
 
-    fprintf(seq_out, ">seq\n%s\n", bases);
+    // Random SNP, INS and DEL mutations, for when we do derived sequences.
+    for (int i = 0; i < length; i++)
+	if (random()&65536 < SNP_edit_rate)
+	    bases[i] = "ACGT"[random()&3];
+
+    // TODO: indels, use a tmp copy so we can insert/del without memmoves.
+
+    fprintf(seq_out, ">%s\n%s\n", name, bases);
     if (meta_out)
-	fprintf(meta_out, ">meta\n%s\n", meta);
+	fprintf(meta_out, ">%s\n%s\n", name, meta);
+
+}
+
+void population_create(int count) {
+    // Initial pass;
+    char **bases = malloc(count * sizeof(*bases));
+    char **meta = malloc(count * sizeof(*meta));
+    if (!bases || !meta) abort();
+
+    bases[0] = malloc(length+1);
+    meta[0] = malloc(length+1);
+    if (!bases[0] || !meta[0]) abort();
+
+    for (int i = 0; i < length; i++)
+	bases[0][i] = "ACGT"[random()&3];
+    memset(meta[0], '.', length);
+    bases[0][length] = 0;
+    meta[0][length] = 0;
+
+    genome_create(bases[0], meta[0], "seq_0000#1#1");
+
+    // proportion of the standard counts for new vs editing
+    STR_new_rate = 0.01;
+    STR_edit_rate = 0.5;
+    CNV_new_rate = 0.01;
+    CNV_edit_rate = 0.3;
+    LINE_rate /= 50;
+    SINE_rate /= 50;
+    trans_rate /= 10;
+
+    char name[100];
+    for (int i = 1; i < count; i++) {
+	// FIXME: make diploid
+	int prev = random()%i;
+	bases[i] = malloc(length+1);
+	meta[i] = malloc(length+1);
+	if (!bases[i] || !meta[i]) abort();
+
+	memcpy(bases[i], bases[prev], length+1);
+	memcpy(meta[i], meta[prev], length+1);
+
+	sprintf(name, "seq_%04d#1#1", i);
+	genome_create(bases[i], meta[i], name);
+    }
+
+    for (int i = 0; i < count; i++) {
+	free(bases[i]);
+	free(meta[i]);
+    }
+    free(bases);
+    free(meta);
 }
 
 int main(int argc, char **argv) {
-    int seed = 0;
+    int seed = 0, count =1;
     int opt;
     seq_out = stdout;
 
-    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:o:O:")) != -1) {
+    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:o:O:P:")) != -1) {
 	switch (opt) {
+	case 'P':
+	    count = atoi(optarg);
+	    break;
 	case 'l':
 	    length = atoi(optarg);
 	    break;
@@ -277,7 +407,8 @@ int main(int argc, char **argv) {
 
     srandom(seed);
 
-    genome_create();
+    population_create(count);
+    //genome_create();
 
     int err = 0;
     if (seq_out)  err |= fclose(seq_out) < 0;

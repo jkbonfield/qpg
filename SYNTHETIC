@@ -129,3 +129,38 @@ Syncasm: https://github.com/c-zhou/oatk
 MBG https://github.com/maickrau/MBG
 
 Use --kmer-c-tag FC:f and --edge-c-tag ec:i to get depth data.
+
+
+=============================================================================
+
+14/8/2024
+
+# Create a population of 21 genomes, and build a pangenome of the
+  first 10.
+
+./genome_create -n 0.01 -N 0.01 -s2 -l 10000 -P20 -o _a20.fa
+head -20 _a20.fa > _a.fa
+samtools faidx _a.fa
+
+
+# Build a pangenome with pggb
+# (seq22)
+
+export LD_LIBRARY_PATH=/software/badger/opt/pangenomes/lib
+PATH=/software/badger/opt/pangenomes/bin/:$PATH
+=rm -rf _o;pggb -i _a.fa -o _o -n 10 -p 70 -s 3000 -t 16
+
+# View it (optional)
+g=_o/*.gfa;Bandage load $g --edgelen 15 --edgewidth 0.5 --iter 4 --singlearr
+
+# Then use kmer2node and align the 20th genome against the pangenome.
+
+
+TODO: save 1st seq as ref.
+Shred other seqs
+Map to ref
+Visualise in gap5
+
+Ie: is it working?
+
+TODO: GraphAligner + kmer index + kmer2nodeseq test.
