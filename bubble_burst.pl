@@ -18,13 +18,16 @@ my $min_size = 3;
 
 
 # Parse GFA; minimally
+@ARGV = ("/dev/stdin") if scalar(@ARGV) == 0;
+
 open(my $gfa,   "<", shift(@ARGV)) || die;
 while (<$gfa>) {
     chomp($_);
     my @F = split(/\s+/, $_);
-    #next unless scalar(@F) && $F[0] eq "S"; # skip other fields for now
+
     if ($F[0] eq "S") {
 	$gfa{$F[1]}{seq} = uc($F[2]);
+	$incoming_edge_count{$F[1]}=0 if !defined($incoming_edge_count{$F[1]});
     } elsif ($F[0] eq "L") {
 	# Push edges to from node
 	push(@{$gfa{$F[1]}{edge}}, [@F]);
@@ -33,21 +36,73 @@ while (<$gfa>) {
 }
 
 # Find bubbles
+new_pass:
+print STDERR "PASS\n";
+
+my $edited = 0;
+
 local $"="\t";
 foreach my $node (keys %gfa) {
-#    print "$node\n";
-    my $bubble = 1;
-    my $nedge = 0;
-    foreach my $edge (@{$gfa{$node}{edge}}) {
-#	print "\t@$edge\n";
-	$nedge++;
-	$bubble = 0 if (length($gfa{$edge->[3]}{seq}) >= $min_size ||
-	    $incoming_edge_count{$edge->[3]} != 1)
+    next unless $gfa{$node}{edge};
+
+    my $nedge = scalar @{$gfa{$node}{edge}};
+    my $indel_bubble = 0;
+    my $snp_bubble = 0;
+
+    # TODO: we could in theory have a 3-way SNP.
+    # Eg A->{B,C,D}->E where B, C and D are all 1bp long.
+    if ($nedge == 2) {
+	my $e1 = @{$gfa{$node}{edge}->[0]}[3];
+	my $e2 = @{$gfa{$node}{edge}->[1]}[3];
+
+	# B->C->D or  B---->D  (B edge 0)
+	# B---->D     B->C->D  (B edge 1)
+	if ($incoming_edge_count{$e1} == 1 &&
+	    $incoming_edge_count{$e2} == 1 &&
+	    defined $gfa{$e1}{edge} &&
+	    defined $gfa{$e2}{edge} &&
+	    scalar @{$gfa{$e1}{edge}} == 1 &&
+	    scalar @{$gfa{$e2}{edge}} == 1 &&
+	    length($gfa{$e1}{seq}) < $min_size &&
+	    length($gfa{$e2}{seq}) < $min_size) {
+	    # A->B->D   (A edge 0)
+	    # A->C->D   (A edge 1)
+	    my $dest = @{$gfa{$e1}{edge}->[0]}[3];
+	    print STDERR "SNP:\t$node -> {$e1,$e2} -> $dest\n";
+	    $snp_bubble = 1;
+	    $edited = 1;
+	}
+
+	if ($incoming_edge_count{$e1} == 1 &&
+	    $incoming_edge_count{$e2} == 2 &&
+	    defined $gfa{$e1}{edge} &&
+	    scalar @{$gfa{$e1}{edge}} == 1 &&
+	    @{$gfa{$e1}{edge}->[0]}[3] eq $e2 &&
+	    length($gfa{$e1}{seq}) < $min_size) {
+	    # A->B->C   (A edge 0)
+	    # A---->C   (A edge 1)
+	    print STDERR "INDEL1:\t$node -> {$e1 -> $e2, $e2}\n";
+	    $indel_bubble = 1;
+	    $edited = 1;
+	}
+
+	if ($incoming_edge_count{$e2} == 1 &&
+	    $incoming_edge_count{$e1} == 2 &&
+	    defined $gfa{$e2}{edge} &&
+	    scalar @{$gfa{$e2}{edge}} == 1 &&
+	    @{$gfa{$e2}{edge}->[0]}[3] eq $e1 &&
+	    length($gfa{$e2}{seq}) < $min_size) {
+	    # A---->C   (A edge 0)
+	    # A->B->C   (A edge 1)
+	    print STDERR "INDEL2:\t$node -> {$e2 -> $e1, $e1}\n";
+	    $indel_bubble = 2;
+	    $edited = 1;
+	}
     }
 
-    if ($bubble && $nedge > 1) {
+    if ($snp_bubble) {
 	# Burst by picking sequence from one edge and merging into prev node
-	print STDERR "Burst bubble $gfa{$node}{edge}[0]->[3] $gfa{$node}{edge}[1]->[3]\n";
+	#print STDERR "Burst bubble $gfa{$node}{edge}[0]->[3] $gfa{$node}{edge}[1]->[3]\n";
 	$gfa{$node}{seq} .= $gfa{$gfa{$node}{edge}[0]->[3]}{seq};
 
 	# Take all out edges from bubbles and copy over to this node
@@ -75,6 +130,28 @@ foreach my $node (keys %gfa) {
 	    $incoming_edge_count{$F[3]}++;
 	}
     }
+
+    if ($indel_bubble == 1) {
+	# Merge first edge into node and remove from graph
+	my $e1 = @{$gfa{$node}{edge}->[0]}[3];
+	my $e2 = @{$gfa{$node}{edge}->[1]}[3];
+
+	$gfa{$node}{seq} .= $gfa{$e1}{seq};
+	delete $gfa{$e1};
+	shift(@{$gfa{$node}{edge}});
+	$incoming_edge_count{$e2}--;
+    }
+
+    if ($indel_bubble == 2) {
+	# Merge second edge into node and remove from graph
+	my $e1 = @{$gfa{$node}{edge}->[0]}[3];
+	my $e2 = @{$gfa{$node}{edge}->[1]}[3];
+
+	$gfa{$node}{seq} .= $gfa{$e2}{seq};
+	delete $gfa{$e2};
+	pop(@{$gfa{$node}{edge}});
+	$incoming_edge_count{$e1}--;
+    }
 }
 
 # Squash A->B->C to ABC
@@ -96,6 +173,8 @@ foreach my $node (sort keys %gfa) {
 	delete $gfa{$onode};
     }
 }
+
+goto new_pass if $edited;
 
 # Print up new graph
 foreach my $node (sort keys %gfa) {
