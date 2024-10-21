@@ -9,7 +9,7 @@ LIBS = $(shell pkg-config htslib --libs) -lhts
 CFLAGS=-g
 LDFLAGS=
 
-PROGS=kmer2node genome_create
+PROGS=kmer2node genome_create genome_create2
 all: $(PROGS)
 
 clean:
@@ -19,4 +19,7 @@ kmer2node: kmer2node.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) kmer2node.c -o kmer2node $(LIBS)
 
 genome_create: genome_create.c
+	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) $< -o $@ $(LIBS) -lm
+
+genome_create2: genome_create2.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) $< -o $@ $(LIBS) -lm
