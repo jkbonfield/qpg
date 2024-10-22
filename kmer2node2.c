@@ -35,6 +35,8 @@ static int kmer_idx = 50;
 
 #define MAX_NODES (100*1024)
 
+static int ndup = 0, nuniq = 0;
+
 /* ----------------------------------------------------------------------
  * A node has a name, a length, and a bitvector of which kmers are present.
  */
@@ -199,6 +201,7 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
 	    ? hash_shift(kh, str8[i-1], str8[i+kmer-1], kmer)
 	    : hash_init(str8, kmer);
 
+	//kh = hash_seq(str8+i); // FNV1a
 	uint32_t k = kh & KMASK;
 
 	int unique = 0;
@@ -219,6 +222,9 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
 	}
 //	printf("%d Index %08x %.*s %s %s\n", bidir, k, kmer, str+i,
 //	       n->name, unique?"":"dup");
+
+	ndup  += !unique;
+	nuniq +=  unique;
     }
 
     if (!bidir)
@@ -280,7 +286,7 @@ nodeset *nodeset_load(char *fn, int bidir) {
 		n->length = l;
 	    //node_add_kmers(n, line);
 	    if (*line) {
-		int offset = kmer_idx > kmer ? kmer_idx - kmer : 0;
+		int offset = line_no && kmer_idx > kmer ? kmer_idx - kmer : 0;
 		nodeset_index_kmers(ns, n, line+offset, bidir);
 		line_no++;
 	    }
@@ -353,6 +359,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	kh = i
 	    ? hash_shift(kh, bases[i-1], bases[i+kmer-1], kmer)
 	    : hash_init(bases, kmer);
+	//kh = hash_seq(bases+i); // FNV1a
 	uint32_t k = kh & KMASK;
 	
 	int num = ns->kmer[k];
@@ -465,6 +472,8 @@ int main(int argc, char **argv) {
 
     // Report node hit rates
     nodeset_report(ns);
+    
+    printf("%d / %d dups\n", ndup, ndup+nuniq);
     
     ret = 0;
 

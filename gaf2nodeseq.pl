@@ -130,7 +130,8 @@ foreach my $name (sort keys %seq) {
 	if ($qstart >= $kmer-1) {
 	    $prefix = substr($seq,$qstart-($kmer-1),$kmer-1);
 	} else {
-	    $prefix = substr($seq, 0, $qstart);
+	    #$prefix = substr($seq, 0, $qstart);
+	    $prefix = "N" x ($kmer-1 - $qstart) . substr($seq, 0, $qstart);
 	}
 
 	while ($lenn > 0) {

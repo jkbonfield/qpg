@@ -36,6 +36,9 @@
 #define KSIZE (1<<(2*KMER))
 #define KMASK (KSIZE-1)
 
+static int silent = 1;
+static int ndup = 0, nuniq = 0;
+
 // AND off the middle base from the KMER so we have BBBB-BBBB.
 //#define KGAP  (KMASK & ~(3<<(2*(KMER/2))))
 
@@ -208,8 +211,11 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
 	    n->kmer_unique++;
 	    unique = 1;
 	}
-	printf("%d Index %08x %s %s %s\n", bidir, kmer, kmer2str(kmer), n->name,
-	       unique?"":"dup");
+	if (!silent)
+	    printf("%d Index %08x %s %s %s\n", bidir, kmer, kmer2str(kmer),
+		   n->name, unique?"":"dup");
+	ndup  += !unique;
+	nuniq +=  unique;
     }
 
     if (!bidir)
@@ -329,43 +335,49 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
     for (i = 0; i < len && i < KMER-1; i++)
 	kmer2 = (kmer2<<2) | base16to4[bam_seqi(seq, i)];
 
-    printf("Seq %s\n", bam_get_qname(b));
+    if (!silent)
+	printf("Seq %s\n", bam_get_qname(b));
     int last_node = -1, last_node_base = 0, last_node_poss = 0;
     int nposs_run = 0; // for node -1 and then changing node
     for (; i < len; i++) {
 	kmer2 = ((kmer2<<2) | base16to4[bam_seqi(seq, i)]) & KMASK;
 	kmer = kmer2 & KGAP;
 	int num = ns->kmer[kmer];
-	printf(" %2d %08x %s %s %d   %d %d %d\n", num, kmer, kmer2str(kmer),
-	       num > 0 ? ns->num2node[num]->name : "?",
-	       i, nposs_run, last_node, last_node_poss);
+	if (!silent)
+	    printf(" %2d %08x %s %s %d   %d %d %d\n",
+		   num, kmer, kmer2str(kmer),
+		   num > 0 ? ns->num2node[num]->name : "?",
+		   i, nposs_run, last_node, last_node_poss);
 	if (num > 0) {
 	    ns->num2node[num]->hit_count++;
 	    if (i > last_node_base+1 && last_node == num) {
 		// Correct for missing kmers from SNPs
 		int j;
 		for (j = i-1; j > last_node_base && j > i-KMER; j--) {
-		    printf("Fix-up %d:%d  last_node_base %d\n",
-			   i, j, last_node_base);
+		    if (!silent)
+			printf("Fix-up %d:%d  last_node_base %d\n",
+			       i, j, last_node_base);
 		    ns->num2node[num]->hit_count++;
 		}
-		if (j > last_node_base)
+		if (!silent && j > last_node_base)
 		    printf("Possible hits from %d to %d\n", last_node_base, j);
 		for (; j > last_node_base; j--)
 		    ns->num2node[num]->hit_possible++;
 	    }
 	    if (nposs_run && last_node_poss > 0) {
-		printf("Possible %d hits in new node %s\n",
-		       nposs_run, ns->num2node[num]->name);
+		if (!silent)
+		    printf("Possible %d hits in new node %s\n",
+			   nposs_run, ns->num2node[num]->name);
 		ns->num2node[num]->hit_possible+=nposs_run;
 	    }
 //	} else if (last_node_poss > 0) {
 //	    printf("Possible hit in node %d\n", last_node_poss);
 //	    ns->num2node[last_node_poss]->hit_possible++;
 	} else if (nposs_run && last_node_poss > 0) {
+	    if (!silent)
 		printf("Possible %d hits in NEW node %s\n",
 		       nposs_run, ns->num2node[last_node_poss]->name);
-		ns->num2node[last_node_poss]->hit_possible+=nposs_run;
+	    ns->num2node[last_node_poss]->hit_possible+=nposs_run;
 	}
 	if (num) {
 	    last_node_base = i; // records dup too so we only correct SNPs
@@ -416,6 +428,8 @@ int main(int argc, char **argv) {
 
     // Report node hit rates
     nodeset_report(ns);
+
+    printf("%d / %d dups\n", ndup, ndup+nuniq);
     
     ret = 0;
 
