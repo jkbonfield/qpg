@@ -34,6 +34,19 @@ loading into Bandage to plot depth can be produced with:
 
 awk '{BEGIN {print "Node name,Freq"} /Node/ {printf("%s,%s\n",$2,$NF)}'
 
+kmer2node2
+----------
+
+This has a -k INT option to specify the kmer size, which can be any
+size unlike the kmer2node which is fixed hashing using memory 4^K (so
+has a compile-time default of 14).
+
+Note: remember to also specify the option last argument to
+gaf2nodeseq.pl specifying the same kmer size so the indexing has
+enough pre-node preamble to go on, particularly if you have a graph
+with short nodes.
+
+
 match_file.sh
 -------------
 
