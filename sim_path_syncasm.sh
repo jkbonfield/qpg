@@ -31,7 +31,8 @@ echo Shredding genome
 # TODO: options for kmer size 
 echo Assembling with syncasm
 syncasm -k 301 $tmp/shred.fa -o $tmp/syncasm 2>>$tmp/stderr
-gfa=$tmp/syncasm.utg.final.gfa
+#gfa=$tmp/syncasm.utg.final.gfa
+gfa=$tmp/syncasm.utg.gfa
 
 # Find a path and generate the candidate sequence
 echo Pathfinding
@@ -41,7 +42,8 @@ $pathfinder $gfa | ./pathfinder2seq.pl $gfa > $tmp/candidate.fa
 echo Compare /tmp/true.fa /tmp/candidate.fa
 echo dotter /tmp/sim.1/true.fa /tmp/sim.1/candidate.fa
 
-# Count fragments
-minimap2  --no-long-join --secondary=no $tmp/true.fa $tmp/candidate.fa \
+# Count fragments.
+# Also consider e.g. "-r 50,20k" (default 500,20k) to spot smaller gaps
+minimap2 --no-long-join --secondary=no $tmp/true.fa $tmp/candidate.fa \
     > $tmp/minimap2_compare.paf
 wc -l $tmp/minimap2_compare.paf
