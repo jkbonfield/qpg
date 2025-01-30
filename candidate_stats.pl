@@ -13,8 +13,13 @@ my $indel_max=10;
 my $diff_max=100;
 my $diff_perc=30;
 
-# Load reference if set
-my $ref_file = pop(@ARGV) if (scalar(@ARGV) == 2);
+if (scalar @ARGV != 2) {
+    print STDERR "Usage: candidate_stats.pl candidate.fa true.fa\n";
+    exit 1;
+}
+my ($ref_file, $qry_file) = @ARGV;
+
+# Load reference
 my %rseq;
 open(my $fd, "<", $ref_file) || die $!;
 my $tmp_seq = "";
@@ -45,8 +50,15 @@ my %ndiffs;   # No. regions of >= $diff_max long deltas
 my %nindels;  # No. regions of >= $indel_max long indels
 my %nfrags;   # No. of alignments (minus 1 is no. of breaks)
 
+# Run minimap2 on the candidate, aligning against truth.
+# NB candidate.fa may be in multiple contigs.
+
+my $minimap2 = "minimap2"; # just find it in the PATH for now
+my $minimap2_opts = "-a -O 2 -E 4 -r 100 -x lr:hq --no-long-join --secondary=no";
+open(my $mm, "minimap2 $minimap2_opts @ARGV 2>/dev/null|") || die "$!";
+
 # Read header and SAM records
-while (<>) {
+while (<$mm>) {
     chomp($_);
     my @F = split("\t", $_);
 
@@ -83,19 +95,18 @@ while (<>) {
 	#print "$rpos ",$rpos+$1," $1$2\n";
 	if ($2 eq "M") {
 	    substr($cov{$rname}, $rpos, $1) = "1" x $1;
-	    if ($ref_file) {
-		#print "FILL $rpos to ",$rpos+$1,"\n";
-		for (my $i=0;$i<$1;$i++) {
-		    #print substr($rseq{$rname},$rpos+$i,1), " ",
-		    #	substr($seq,$qpos+$i,1), " ";
-		    if (substr($rseq{$rname},$rpos+$i,1) ne
-			substr($seq,$qpos+$i,1)) {
-			substr($match{$rname}, $rpos+$i, 1) = "n";
-			#print "match n ",$rpos+$i,"\n";
-		    } else {
-			substr($match{$rname}, $rpos+$i, 1) = "y";
-			#print "match y ",$rpos+$i,"\n";
-		    }
+
+	    #print "FILL $rpos to ",$rpos+$1,"\n";
+	    for (my $i=0;$i<$1;$i++) {
+		#print substr($rseq{$rname},$rpos+$i,1), " ",
+		#	substr($seq,$qpos+$i,1), " ";
+		if (substr($rseq{$rname},$rpos+$i,1) ne
+		    substr($seq,$qpos+$i,1)) {
+		    substr($match{$rname}, $rpos+$i, 1) = "n";
+		    #print "match n ",$rpos+$i,"\n";
+		} else {
+		    substr($match{$rname}, $rpos+$i, 1) = "y";
+		    #print "match y ",$rpos+$i,"\n";
 		}
 	    }
 	    $rpos += $1;
