@@ -50,12 +50,20 @@ my %ndiffs;   # No. regions of >= $diff_max long deltas
 my %nindels;  # No. regions of >= $indel_max long indels
 my %nfrags;   # No. of alignments (minus 1 is no. of breaks)
 
-# Run minimap2 on the candidate, aligning against truth.
+# Run aligner the candidate, aligning against truth.
 # NB candidate.fa may be in multiple contigs.
 
-my $minimap2 = "minimap2"; # just find it in the PATH for now
-my $minimap2_opts = "-a -O 2 -E 4 -r 100 -x lr:hq --no-long-join --secondary=no";
-open(my $mm, "minimap2 $minimap2_opts @ARGV 2>/dev/null|") || die "$!";
+# Should we remove --no-long-join?
+#my $aligner = "minimap2";
+#my $aligner_index = "/bin/true";
+#my $aligner_opts = "-a -O 2 -E 4 -r 100 -x lr:hq --no-long-join --secondary=no";
+
+my $aligner = "bwa mem";
+my $aligner_index = "bwa index";
+my $aligner_opts = "-B4 -O4 -E2";
+#my $aligner_opts = "";
+system("$aligner_index $ARGV[0] 2>/dev/null") && die "$!";
+open(my $mm, "$aligner $aligner_opts @ARGV 2>/dev/null|tee /tmp/_.sam|samtools sort -O sam|") || die "$!";
 
 # Read header and SAM records
 while (<$mm>) {
@@ -86,13 +94,15 @@ while (<$mm>) {
     my $qpos  = 0;
     my $cigar = $F[5];
     my $seq   = $F[9];
+    #print "Read $F[0] at $rpos\n";
+    my $hc = 0;
 
     $nfrags{$rname}++;
 
     # Process cigar
     foreach ($cigar =~ m/\d+./g) {
 	m/(\d+)(.)/;
-	#print "$rpos ",$rpos+$1," $1$2\n";
+	#print "$rpos ",$qpos+$hc," $1$2\n";
 	if ($2 eq "M") {
 	    substr($cov{$rname}, $rpos, $1) = "1" x $1;
 
@@ -103,7 +113,7 @@ while (<$mm>) {
 		if (substr($rseq{$rname},$rpos+$i,1) ne
 		    substr($seq,$qpos+$i,1)) {
 		    substr($match{$rname}, $rpos+$i, 1) = "n";
-		    #print "match n ",$rpos+$i,"\n";
+		    #print "MIS   n ",$rpos+$i,"\n";
 		} else {
 		    substr($match{$rname}, $rpos+$i, 1) = "y";
 		    #print "match y ",$rpos+$i,"\n";
@@ -115,21 +125,28 @@ while (<$mm>) {
 	    $nindels{$rname}++ if ($1 >= $indel_max);
 	    if ($1 < $indel_max) {
 		substr($match{$rname}, $rpos, $1) = "n" x $1;
-		#print "match N $rpos to ",$rpos+1,"\n";
+		#print "del N $rpos to ",$rpos+$1,"\n";
 	    } else {
 		substr($match{$rname}, $rpos, $1) = "d" x $1;
+		#print "del D $rpos to ",$rpos+$1,"\n";
 	    }
 	    $rpos += $1;
 	} elsif ($2 eq "I") {
 	    $nindels{$rname}++ if ($1 >= $indel_max);
-	    substr($ins{$rname}, $rpos, 1) = "1";
+	    my $ichar = chr("0" + ($1>255-48?255:ord($1+48)));
+	    substr($ins{$rname}, $rpos, 1) = $ichar;
+	    #$ins += $i;
+	    #print "ins $rpos to ",$rpos+$1,"\n";
 	    $qpos += $1;
 	} elsif ($2 eq "S") {
 	    $qpos += $1;
-	} elsif ($2 ne "H") {
+	} elsif ($2 eq "H") {
+	    $hc += $1; # used for debugging only
+	} else {
 	    print STDERR "Unexpected CIGAR op $2\n";
 	}
     }
+
     #print STDERR "Read $F[0] covers $F[3] to $rpos\n";
 }
 
@@ -166,7 +183,12 @@ foreach (sort keys %SQ_len) {
 	    if ($d eq "y" && $i eq "0") {
 		$id_yes++;
 	    } else {
-		$id_no++;
+		if ($d ne "y") {
+		    $id_no++;
+		}
+		if ($i ne "0") {
+		    $id_no += ord($i)-ord("0");
+		}
 	    }
 	}
 	#print "$pos $d $i ",int($delta_score),"/",int($max_score),"\n";
