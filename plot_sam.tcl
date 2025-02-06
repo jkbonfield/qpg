@@ -15,8 +15,8 @@ proc query_len {cigar} {
     return $qlen
 }
 
-set width  1200
-set height 1200
+set width  1000
+set height 1000
 set c [canvas .c -width $width -height $height]
 pack $c -fill both -expand 1
 

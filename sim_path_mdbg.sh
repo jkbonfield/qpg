@@ -33,20 +33,23 @@ rust-mdbg -k 15 --density 0.01 -l 10 --minabund 4 --prefix $tmp/mdbg $tmp/shred.
 gfa=$tmp/mdbg.gfa
 
 # Populate GFA so sequence isn't "*".
-echo /tmp/rust-mdbg/utils/magic_simplify $tmp/mdbg.gfa/mdbg
-/tmp/rust-mdbg/utils/magic_simplify $tmp/mdbg
+echo /software/badger/opt/pangenomes/share/rust-mdbg/utils/magic_simplify $tmp/mdbg
+/software/badger/opt/pangenomes/share/rust-mdbg/utils/magic_simplify $tmp/mdbg
 gfa=$tmp/mdbg.msimpl.gfa
 
 # Find a path and generate the candidate sequence
 echo Pathfinding
 $pathfinder $gfa | ./pathfinder2seq.pl $gfa > $tmp/candidate.fa
 
-# Compare
-echo Compare /tmp/true.fa /tmp/candidate.fa
-echo dotter /tmp/sim.1/true.fa /tmp/sim.1/candidate.fa
+# # Count fragments.
+# # Also consider e.g. "-r 50,20k" (default 500,20k) to spot smaller gaps
+# minimap2 --no-long-join --secondary=no $tmp/true.fa $tmp/candidate.fa \
+#     > $tmp/minimap2_compare.paf
+# wc -l $tmp/minimap2_compare.paf
 
-# Count fragments.
-# Also consider e.g. "-r 50,20k" (default 500,20k) to spot smaller gaps
-minimap2 --no-long-join --secondary=no $tmp/true.fa $tmp/candidate.fa \
-    > $tmp/minimap2_compare.paf
-wc -l $tmp/minimap2_compare.paf
+# Report
+echo === mdbg.msimpl
+./candidate_stats.pl $tmp/true.fa $tmp/mdbg.msimpl.fa
+
+echo "=== pathfinder (ususally poorer accuracy and low coverage)"
+./candidate_stats.pl $tmp/true.fa $tmp/candidate.fa

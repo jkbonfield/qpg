@@ -48,7 +48,8 @@ my %match;    # y=match, n=mismatch, d=big deletion, .=unknown
 my %ins;      # 1=ins, 0/no
 my %ndiffs;   # No. regions of >= $diff_max long deltas
 my %nindels;  # No. regions of >= $indel_max long indels
-my %nfrags;   # No. of alignments (minus 1 is no. of breaks)
+my %ncontigs; # No. of contigs
+my %nbreaks;  # No. of alignments minus ncontigs
 
 # Run aligner the candidate, aligning against truth.
 # NB candidate.fa may be in multiple contigs.
@@ -66,6 +67,7 @@ system("$aligner_index $ARGV[0] 2>/dev/null") && die "$!";
 open(my $mm, "$aligner $aligner_opts @ARGV 2>/dev/null|tee /tmp/_.sam|samtools sort -O sam|") || die "$!";
 
 # Read header and SAM records
+my $last_contig = "";
 while (<$mm>) {
     chomp($_);
     my @F = split("\t", $_);
@@ -80,7 +82,8 @@ while (<$mm>) {
 	$ins{$rname} = "0" x $SQ_len{$rname};
 	$ndiffs{$rname} = 0;
 	$nindels{$rname} = 0;
-	$nfrags{$rname} = 0;
+	$ncontigs{$rname} = 0;
+	$nbreaks{$rname} = 0;
     }
     next if (/^\@/);
 
@@ -97,7 +100,12 @@ while (<$mm>) {
     #print "Read $F[0] at $rpos\n";
     my $hc = 0;
 
-    $nfrags{$rname}++;
+    if ($last_contig eq "" || $last_contig ne $F[0]) {
+	$ncontigs{$rname}++;
+    } else {
+	$nbreaks{$rname}++;
+    }
+    $last_contig = $F[0];
 
     # Process cigar
     foreach ($cigar =~ m/\d+./g) {
@@ -152,13 +160,14 @@ while (<$mm>) {
 
 my $total_len = 0;
 my $total_cov = 0;
+my $total_contig = 0;
 my $total_break = 0;
 my $total_indels = 0;
 my $total_diffs = 0;
 my $total_id_yes = 0;
 my $total_id_no = 0;
 
-print "Per contig: (rname      len     covered nbreaks nindel  ndiff   %identity)\n";
+print "Per contig: (rname      len     covered ncontig nbreaks nindel  ndiff   %identity)\n";
 foreach (sort keys %SQ_len) {
     # Count coverage as number of non-zeros.
     my $n = 0;
@@ -223,20 +232,24 @@ foreach (sort keys %SQ_len) {
 
 
     my $identity = ($id_yes+.01)/($id_yes+$id_no+.01);
-    printf("%-20s\t%d\t%d\t%d\t%d\t%d\t%.2f%%\n",
-	   $_, $SQ_len{$_}, length($cov{$_}), $nfrags{$_}-1, $nindels{$_},
-	   $ndiffs{$_}, 100*$identity);
+    printf("%-20s\t%d\t%d\t%d\t%d\t%d\t%d\t%.2f%%\n",
+	   $_, $SQ_len{$_}, length($cov{$_}), $ncontigs{$_}, $nbreaks{$_},
+	   $nindels{$_}, $ndiffs{$_}, 100*$identity);
     $total_len    += $SQ_len{$_};
     $total_cov    += length($cov{$_});
-    $total_break  += $nfrags{$_}-1;
+    $total_contig += $ncontigs{$_};
+    $total_break  += $nbreaks{$_};
     $total_indels += $nindels{$_};
     $total_diffs  += $ndiffs{$_};
     $total_id_yes += $id_yes;
     $total_id_no  += $id_no;
 }
 
-my $identity = ($total_id_yes+.01)/($total_id_yes+$total_id_no+.01);
-print "\nTotals:     (rname      len     covered nbreaks nindel  ndiff   %identity)\n";
-printf("%-20s\t%d\t%d\t%d\t%d\t%d\t%.2f%%\n", "Total", $total_len, $total_cov,
-       $total_break, $total_indels, $total_diffs, 100*$identity);
+# Not needed anymore
+
+# my $identity = ($total_id_yes+.01)/($total_id_yes+$total_id_no+.01);
+# print "\nTotals:     (rname      len     covered ncontig nbreaks nindel  ndiff   %identity)\n";
+# printf("%-20s\t%d\t%d\t%d\t%d\t%d\t%d\t%.2f%%\n", "Total",
+#        $total_len, $total_cov, $total_contig, $total_break,
+#        $total_indels, $total_diffs, 100*$identity);
 
