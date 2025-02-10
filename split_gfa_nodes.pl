@@ -33,6 +33,7 @@ foreach my $n (sort keys %node) {
     my $last = undef;
 
     my @out_edges = @{$edge_out{$n}};
+    my $last_edge = int(($len-1)/$max_size)*$max_size;
     for (my $i=0;$i<$len;$i+=$max_size) {
 	# S nodes
 	my $sub_len = ($i+$max_size<$len?$i+$max_size:$len)-$i;
@@ -50,30 +51,32 @@ foreach my $n (sort keys %node) {
 	    my @new_list = ();
 	    foreach my $e (@{$edge_in{$n}}) {
 		my @E = split("\t", $edge[$e]);
-		$E[3] = $sub_node;
+		if ($E[4] eq "-") {
+		    $E[3] = "$n.sub$last_edge";
+		} else {
+		    $E[3] = $sub_node;
+		}
 		$edge[$e] = "@E";
-		#print "\t@E";
+		#print "SPLIT \t@E";
 	    }
 	} else {
 	    #print "$sub_node\n";
 	    my @E = ("L", $last, "+", $sub_node, "+", "0M\n");
 	    push(@edge, "@E");
-	    #print "\t@E";
+	    #print "SPLIT2 \t@E";
 	}
 	$last = $sub_node;
     }
 
-# FIXME: reverse nodes mean to sub-last not sub-first.
-# Eg see s341939	+	s313039	-
-#   curr s341939	+	s313039.sub0	-
-#   want s341939	+	s313039.sub70000	-
-#
-# This is a fix to out_edges?
-
     foreach (@out_edges) {
 	my @E = split("\t", $edge[$_]);
-	$E[1]=$last;
+	if ($E[2] eq "-") {
+	    $E[1]="$n.sub0";
+	} else {
+	    $E[1]=$last;
+	}
 	$edge[$_] = "@E";
+	#print "LAST @E";
     }
 
     delete $node{$n};
