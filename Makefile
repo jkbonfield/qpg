@@ -4,7 +4,7 @@ CC=gcc
 #INCLUDES=-I$(HTS)
 #LIBS=-L$(HTS) -Wl,-rpath,$(HTS) -lhts
 INCLUDES = $(shell pkg-config htslib --cflags)
-LIBS = $(shell pkg-config htslib --libs) -lhts
+LIBS = $(shell pkg-config htslib --libs) -lhts -lm
 
 CFLAGS=-g
 LDFLAGS=

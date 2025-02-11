@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <assert.h>
+#include <math.h>
 
 #include <htslib/sam.h>
 #include <htslib/khash.h>
@@ -24,6 +25,8 @@
 static int kmer = 50;
 // kmer_idx is the size of kmer used in the nodeseq file
 static int kmer_idx = 50;
+// Whether to use non-unique kmers in scoring
+static int use_non_uniq = 0;
 
 // KMER_IDX is the hash table size for storing kmer entries.
 #ifndef KMER_IDX
@@ -329,6 +332,18 @@ void nodeset_report(nodeset *ns) {
 	    if (ratio < ratio2) // max
 		ratio = ratio2;
 	}
+
+	// Compensate for possible hits where we don't know where they belong,
+	// but we had previous and next node hits and missing bits inbetween,
+	// due to duplications.
+	// We add them in a small degree so pathfinder has a better chance of
+	// using this node, but still not in full depth.
+	// TODO: count the number of places it could hit and randomly place them
+	// in proportion.
+	if (use_non_uniq)
+	    ratio += pow((double)n->hit_possible / n->length,
+			 pow(0.5, 1.0/use_non_uniq));
+
 	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d+%-6d\tratio %.2f\n",
 	       n->name, n->length, expected2, n->hit_count,n->hit_possible,
 	       ratio);
@@ -415,6 +430,7 @@ void usage(int ret) {
     printf("   -h         Help\n");
     printf("   -k INT     Set kmer indexing / matching size\n");
     printf("   -K INT     Set kmer previously used in nodeseq creation\n");
+    printf("   -U         Account for non-unique kmers in kmer ratio\n");
     exit(ret);
 }
 
@@ -425,7 +441,7 @@ int main(int argc, char **argv) {
     bam1_t *b = NULL;
     int c;
 
-    while ((c = getopt(argc, argv, "hk:K:")) != -1) {
+    while ((c = getopt(argc, argv, "hk:K:U")) != -1) {
 	switch (c) {
 	case 'k':
 	    kmer = atoi(optarg);
@@ -433,6 +449,10 @@ int main(int argc, char **argv) {
 
 	case 'K':
 	    kmer_idx = atoi(optarg);
+	    break;
+
+	case 'U':
+	    use_non_uniq++;
 	    break;
 
 	case 'h':
