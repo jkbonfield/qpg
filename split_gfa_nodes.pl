@@ -32,13 +32,13 @@ foreach my $n (sort keys %node) {
     #print "$n $len\n";
     my $last = undef;
 
-    my @out_edges = @{$edge_out{$n}};
+    my @out_edges = exists($edge_out{$n}) ? @{$edge_out{$n}} : ();
     my $last_edge = int(($len-1)/$max_size)*$max_size;
     for (my $i=0;$i<$len;$i+=$max_size) {
 	# S nodes
 	my $sub_len = ($i+$max_size<$len?$i+$max_size:$len)-$i;
 	my $sub = substr($F[2],$i,$sub_len);
-	my $sub_node = "$n.sub$i";
+	my $sub_node = "$n.sub".sprintf("%08d",$i);
 	my @sub = @F;
 	$sub[1] = $sub_node;
 	$sub[2] = $sub;
@@ -52,7 +52,7 @@ foreach my $n (sort keys %node) {
 	    foreach my $e (@{$edge_in{$n}}) {
 		my @E = split("\t", $edge[$e]);
 		if ($E[4] eq "-") {
-		    $E[3] = "$n.sub$last_edge";
+		    $E[3] = "$n.sub".sprintf("%08d",$last_edge);
 		} else {
 		    $E[3] = $sub_node;
 		}
@@ -71,7 +71,7 @@ foreach my $n (sort keys %node) {
     foreach (@out_edges) {
 	my @E = split("\t", $edge[$_]);
 	if ($E[2] eq "-") {
-	    $E[1]="$n.sub0";
+	    $E[1]="$n.sub".sprintf("%08d",0);
 	} else {
 	    $E[1]=$last;
 	}
