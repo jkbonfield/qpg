@@ -26,7 +26,7 @@ while (<$gfa>) {
         $node{$1} = $_;
 	my @N = split("\t", $_);
 	$seq{$N[1]} = $N[2];
-    } elsif (/^L\s+(\S+)\s+(.)\s+(\S+)\s+(.)\s+(.*)/) {
+    } elsif (/^L\s+(\S+)\s+(.)\s+(\S+)\s+(.)/) {
 	$edge[$edge_num] = $_;
         push(@{$edge_out{$1}}, $edge_num);
         push(@{$edge_in{$3}},  $edge_num);
@@ -51,7 +51,6 @@ sub prev_seq {
 
     # Incoming for + dir
     if (exists($edge_in{$n})) {
-	#print "Edge in = @{$edge_in{$n}}\n";
 	foreach my $e (@{$edge_in{$n}}) {
 	    my @E=split("\t", $edge[$e]);
 	    next unless $E[4] eq "+";

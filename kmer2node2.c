@@ -319,13 +319,12 @@ void nodeset_report(nodeset *ns) {
 	double expected = n->length, expected2 = expected;
 	// Account for expected unique vs dup hit rate.
 	expected2 *= (n->kmer_unique+1.0) / (n->kmer_unique + n->kmer_dup+1.0);
-	double ratio = (n->hit_count+0.01)/(expected2+0.01);
+	double ratio1 = (n->hit_count+0.01)/(expected2+0.01);
 	// maximum possible based on length of node
 	double ratio2 = (n->hit_count+n->hit_possible+0.01)/(n->length+0.01);
 	//double ratio = (n->hit_count-expected+0.01)/(n->length+0.01);
 	//double ratio = (n->hit_count+0.01)/(n->length-expected+0.01);
-	if (ratio >= ratio2) // min
-	    ratio = ratio2;
+	double ratio = ratio1 < ratio2 ? ratio1 : ratio2;
 	// account for truncated nodes, eg at start and end of graph
 	if (i==1 || i==ns->nnodes) {
 	    ratio2 = (n->hit_count)/(n->hit_count+n->hit_possible+10.);
@@ -340,9 +339,14 @@ void nodeset_report(nodeset *ns) {
 	// using this node, but still not in full depth.
 	// TODO: count the number of places it could hit and randomly place them
 	// in proportion.
-	if (use_non_uniq)
-	    ratio += pow((double)n->hit_possible / n->length,
-			 pow(0.5, 1.0/use_non_uniq));
+	if (use_non_uniq) {
+	    ratio = ratio1 + (1-(double)expected2/n->length) *
+		log((double)n->hit_possible / n->length + 1);
+
+	    // Also compensation for small nodes.
+	    double r = sqrt(n->length)/10;
+	    ratio *= r>1?1:r;
+	}
 
 	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d+%-6d\tratio %.2f\n",
 	       n->name, n->length, expected2, n->hit_count,n->hit_possible,
