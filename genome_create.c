@@ -23,7 +23,7 @@ static double STR_new_rate = 1;
 static double STR_edit_rate = 0;
 static double CNV_new_rate = 1;
 static double CNV_edit_rate = 0;
-static double SNP_edit_rate = 0.002;
+static double SNP_edit_rate = 0.005;
 //static double SNP_edit_rate = 0.05; // extreme!
 static double INS_edit_rate = 0.0005;
 static double DEL_edit_rate = 0.0005;
@@ -263,7 +263,7 @@ void genome_create(char *bases, char *meta, char *name) {
 
     // Random SNP, INS and DEL mutations, for when we do derived sequences.
     for (int i = 0; i < length; i++)
-	if (random()&65536 < SNP_edit_rate)
+	if (drand48() < SNP_edit_rate)
 	    bases[i] = "ACGT"[random()&3];
 
     // TODO: indels, use a tmp copy so we can insert/del without memmoves.
@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
     int opt;
     seq_out = stdout;
 
-    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:o:O:P:")) != -1) {
+    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:o:O:P:E:")) != -1) {
 	switch (opt) {
 	case 'P':
 	    count = atoi(optarg);
@@ -353,6 +353,9 @@ int main(int argc, char **argv) {
 	    break;
 	case 'n':
 	    rep_snp_rate = atof(optarg);
+	    break;
+	case 'E':
+	    SNP_edit_rate = atof(optarg);
 	    break;
 
 	// translocations
