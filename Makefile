@@ -6,10 +6,10 @@ CC=gcc
 INCLUDES = $(shell pkg-config htslib --cflags)
 LIBS = $(shell pkg-config htslib --libs) -lhts -lm
 
-CFLAGS=-g
+CFLAGS=-g -O2
 LDFLAGS=
 
-PROGS=kmer2node kmer2node2 genome_create genome_create2
+PROGS=kmer2node kmer2node2 kmer2node3 genome_create genome_create2
 all: $(PROGS)
 
 clean:
@@ -20,6 +20,9 @@ kmer2node: kmer2node.c buzhash.h
 
 kmer2node2: kmer2node2.c buzhash.h
 	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) kmer2node2.c -o $@ $(LIBS)
+
+kmer2node3: kmer2node3.c buzhash.h
+	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) kmer2node3.c -o $@ $(LIBS)
 
 genome_create: genome_create.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) $< -o $@ $(LIBS) -lm
