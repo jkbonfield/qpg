@@ -293,9 +293,9 @@ void population_create(int count) {
     genome_create(bases[0], meta[0], "seq_0000#1#1");
 
     // proportion of the standard counts for new vs editing
-    STR_new_rate = 0.01;
+    STR_new_rate = 0.1;
     STR_edit_rate = 0.5;
-    CNV_new_rate = 0.01;
+    CNV_new_rate = 0.1;
     CNV_edit_rate = 0.3;
     LINE_rate /= 50;
     SINE_rate /= 50;

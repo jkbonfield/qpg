@@ -22,9 +22,9 @@ echo "Node count:" `egrep -c '^S' pop.gfa`
 # Build the nodeseq index
 head -40 pop.fa > train.fa
 ssh seq4d "cd `pwd`;/nfs/sam_scratch/jkb/conda22.old/bin/GraphAligner -g pop.gfa -f train.fa -x vg -a pop.gaf --threads 32"
-$qdir/gaf2nodeseq.pl.tmp pop.gaf train.fa pop.gfa 75 > pop.gfa.ns75
-$qdir/gaf2nodeseq.pl.tmp pop.gaf train.fa pop.gfa 50 > pop.gfa.ns50
-$qdir/gaf2nodeseq.pl.tmp pop.gaf train.fa pop.gfa 25 > pop.gfa.ns25
+$qdir/gaf2nodeseq2.pl pop.gaf train.fa pop.gfa 75 > pop.gfa.ns75
+$qdir/gaf2nodeseq2.pl pop.gaf train.fa pop.gfa 50 > pop.gfa.ns50
+$qdir/gaf2nodeseq2.pl pop.gaf train.fa pop.gfa 25 > pop.gfa.ns25
 
 # Use the last 10 as the test set
 ls -1 seq_* | tail -10 > fofn.test

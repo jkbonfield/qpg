@@ -14,7 +14,7 @@ my $diff_max=100;
 my $diff_perc=30;
 
 if (scalar @ARGV != 2) {
-    print STDERR "Usage: candidate_stats.pl candidate.fa true.fa\n";
+    print STDERR "Usage: candidate_stats.pl true.fa candidate.fa\n";
     exit 1;
 }
 my ($ref_file, $qry_file) = @ARGV;

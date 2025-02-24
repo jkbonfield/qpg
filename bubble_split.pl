@@ -3,7 +3,7 @@
 # Processes pangene.js BB output and splits output gfa
 use strict;
 
-my $min_size=50;
+my $min_size=10;
 
 if ($#ARGV != 1) {
     print STDERR "Usage: k8 pangene.js call in.gfa | bubble_split.pl in.gfa out_prefix\n";

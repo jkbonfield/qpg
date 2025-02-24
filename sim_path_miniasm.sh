@@ -1,7 +1,7 @@
 #!/bin/sh
+. ${CONFIG:-./sim_path_config.sh}
 
 # Path reconstruction with a simulated sequence and pathfinder
-pathfinder=/lustre/scratch127/qpg/cz3/QuantumTangle/pathfinder/pathfinder
 
 PATH=/software/badger/opt/pangenomes/bin/:$PATH
 LD_LIBRARY_PATH=/software/badger/opt/pangenomes/lib
@@ -19,17 +19,17 @@ echo Using random seed $seed, output directory $tmp
 
 # Create a genome.
 # TODO: add options here to control genome size and complexity
-echo Creating gake genome
-./genome_create -s $seed > $tmp/true.fa 2>>$tmp/stderr
+echo Creating fake genome
+./genome_create -s $seed -l $genome_len > $tmp/true.fa 2>>$tmp/stderr
 
 # Shred genome
 echo Shredding genome
-./shred.pl -s 1 -l 2000 -e 1e-5 -d 30 $tmp/true.fa > $tmp/shred.fa
+./shred.pl -s 1 -l $shred_len -e $shred_err -d $shred_depth $tmp/true.fa > $tmp/shred.fa
 
 # Assemble.
 # TODO: options for kmer size 
 echo Assembling with minimap2 / miniasm
-minimap2 -k19 -Xw5 -m100 -t8 $tmp/shred.fa $tmp/shred.fa \
+eval minimap2 $minimap2_opts -t8 $tmp/shred.fa $tmp/shred.fa \
 | gzip -1 > $tmp/miniasm.paf.gz
 #1: POOR
 # cov     ncont   nbreak  ind diff   id
@@ -133,7 +133,7 @@ minimap2 -k19 -Xw5 -m100 -t8 $tmp/shred.fa $tmp/shred.fa \
 # y       y       y       y        =        ~  vs 12
 # ~       y       =       y        y        ~  vs 13
 # 73239.7 18.8182 4.63636 0.727273 0.545455 99.6636 0
-miniasm -s1500 -F0.9 -c3 -m500 -e10  -f $tmp/shred.fa $tmp/miniasm.paf.gz > $tmp/miniasm.gfa
+eval miniasm $miniasm_opts  -f $tmp/shred.fa $tmp/miniasm.paf.gz > $tmp/miniasm.gfa
 
 # Even bigger -m, plus explicit -o (doc as same as -s)
 # y       x       yy      y        x        ~
@@ -164,7 +164,7 @@ gfa=$tmp/miniasm.gfa
 
 # Find a path and generate the candidate sequence
 echo Pathfinding
-$pathfinder $gfa | ./pathfinder2seq.pl $gfa > $tmp/candidate.fa
+eval $pathfinder $pathfinder_opts $gfa | ./pathfinder2seq.pl $gfa > $tmp/candidate.fa
 
 # Report
 ./candidate_stats.pl $tmp/true.fa $tmp/candidate.fa

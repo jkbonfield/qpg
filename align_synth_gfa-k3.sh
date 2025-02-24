@@ -33,7 +33,7 @@ $qdir/merge_kmer2node.pl _ar.nodes.$k1 _ar.nodes.$k2 _ar.nodes.$k3 > _ar.nodes
 $qdir/tag_gfa.pl $gfa < _ar.nodes > _ar.gfa_tagged
 
 echo Finding path
-$pathfinder_jkb  -a _ar.gfa_tagged 2>/dev/null | tee _ar.gfa_pf | $qdir/pathfinder2seq.pl $gfa > _ar.called_seq
+$pathfinder_cz3 -a _ar.gfa_tagged 2>/dev/null | tee _ar.gfa_pf | $qdir/pathfinder2seq.pl $gfa > _ar.called_seq
 cat _ar.gfa_pf | sed -n '/PATH/,$p'|awk '{printf("%s ",$3)} END {print "\n"}'
 
 echo Evaluating result
