@@ -232,9 +232,9 @@ foreach (sort keys %SQ_len) {
 
 
     my $identity = ($id_yes+.01)/($id_yes+$id_no+.01);
-    printf("%-20s\t%d\t%d\t%d\t%d\t%d\t%d\t%.2f%%\n",
-	   $_, $SQ_len{$_}, length($cov{$_}), $ncontigs{$_}, $nbreaks{$_},
-	   $nindels{$_}, $ndiffs{$_}, 100*$identity);
+    printf("%-20s\t%d\t%.2f%%\t%d\t%d\t%d\t%d\t%.2f%%\n",
+	   $_, $SQ_len{$_}, 100*length($cov{$_}) / $SQ_len{$_}, $ncontigs{$_},
+	   $nbreaks{$_}, $nindels{$_}, $ndiffs{$_}, 100*$identity);
     $total_len    += $SQ_len{$_};
     $total_cov    += length($cov{$_});
     $total_contig += $ncontigs{$_};

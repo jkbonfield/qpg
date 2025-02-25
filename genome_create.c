@@ -98,7 +98,7 @@ void add_STRs(char *seq, char *meta, int length, double count_f, int dist_l,
 
 	copies = k;
 	copies = 1 + 3*k / log(rlen+1);
-	    
+
 	//char str[20000];
 	//for (int k = 0; k < rlen; k++)
 	//    str[k] = "ACGT"[random()&3];
@@ -116,14 +116,18 @@ void add_STRs(char *seq, char *meta, int length, double count_f, int dist_l,
 	char *str = seq + pos;
 	//memcpy(str,  seq + pos, rlen);
 
-	fprintf(stderr, "%d(%d)\t%d %d\t%.*s\n",
-		pos, local, rlen, copies, rlen>30?30:rlen, str);
+	fprintf(stderr, "%d %d(%d)\t%d %d\t%.*s\n",
+		length, pos, local, rlen, copies, rlen>30?30:rlen, str);
 
+	if (pos+rlen < length) {
+	    memset(meta+pos, code, rlen);
+	    meta[pos] = toupper(code);
+	}
 	pos += rlen;
 	for (int k = 0; k < copies; k++) {
 	    if (pos + rlen >= length)
 		break;
-	    memcpy(seq+pos, str, rlen);
+	    memmove(seq+pos, str, rlen);
 	    memset(meta+pos, code, rlen);
 	    meta[pos] = toupper(code);
 	    // Mutate at random
@@ -135,19 +139,24 @@ void add_STRs(char *seq, char *meta, int length, double count_f, int dist_l,
 	    pos = (random()&65535) < STR_trans_rate*65536
 		? random()%(length-rlen)
 		: pos + rlen;
-	    //pos += rlen;
 	}
     }
 }
 
 // Like add_STRs, but we're editing existing STRs, extending or shrinking
-void edit_STRs(char *seq, char *meta, int length, double count_f, int dist_l,
-	       int dist_n, double clustered, double STR_trans_rate, char
-	       code) {
+void edit_STRs(char **seq_p, char **meta_p, int *length_p, double count_f,
+	       int dist_l, int dist_n, double clustered, double STR_trans_rate,
+	       char code) {
+    int length = *length_p;
+    char *seq = *seq_p;
+    char *meta = *meta_p;
+
     int pos = -1, sz=1;
     int count = count_f + (drand48() < (count_f - (int)count_f));
     if (!count)
 	return;
+
+    //fprintf(stderr, "OLD %.*s\n", length, meta);
 
     // Identify known repeat starting points
     int *rep_start = malloc(length * sizeof(*rep_start));
@@ -159,13 +168,15 @@ void edit_STRs(char *seq, char *meta, int length, double count_f, int dist_l,
 	    while (++i < length && meta[i] == code)
 		;
 	    rep_len[nreps] = i-- - rep_start[nreps];
-	    //fprintf(stderr, "rep %d len %d\n", rep_start[nreps], rep_len[nreps]);
+//	    fprintf(stderr, "rep %d len %d %.*s\n",
+//		    rep_start[nreps], rep_len[nreps],
+//		    rep_len[nreps], seq + rep_start[nreps]);
 	    nreps++;
 	}
     }
 
     if (nreps == 0)
-	return;
+	goto end;
 
     for (int i = 0; i < count; i++) {
 	// Find a repeat element in meta.
@@ -177,20 +188,44 @@ void edit_STRs(char *seq, char *meta, int length, double count_f, int dist_l,
 	// FIXME: can't change length.
 	// Maybe ignore and trim all to fixed later?
 	if (random()%2) {
-	    // Incr; lose bases at end of seq
+	    // Add extra copies
+	    meta = realloc(meta, length + rlen + 1);
+	    seq  = realloc(seq,  length + rlen + 1);
+	    fprintf(stderr, "grow to %d\n", length + rlen + 1);
+	    if (!meta || !seq) {
+		fprintf(stderr, "out of memory\n");
+		exit(1);
+	    }
+	    length += rlen;
+	    *meta_p = meta;
+	    *seq_p = seq;
+	    *length_p = length;
 	    fprintf(stderr, "INCR STR at %d+%d\n", rstart, rlen);
 	    memmove(seq+rstart+rlen, seq+rstart, length - (rstart+rlen));
 	    memmove(meta+rstart+rlen, meta+rstart, length - (rstart+rlen));
 	    if (rstart+rlen+rlen < length) {
 		memcpy(seq+rstart+rlen, seq+rstart, rlen);
-		memcpy(meta+rstart+rlen, seq+rstart, rlen);
+		memcpy(meta+rstart+rlen, meta+rstart, rlen);
 	    }
+	    for (int j = 0; j < nreps; j++)
+		if (rep_start[j] > rstart+rlen)
+		    rep_start[j] += rlen;
 	} else {
-	    // Decr; stutter at end of seq
+	    // Remove copies
 	    fprintf(stderr, "DECR STR at %d+%d\n", rstart, rlen);
-	    memmove(seq+rstart, seq+rstart+rlen, length - (rstart+rlen));
-	    memmove(meta+rstart, meta+rstart+rlen, length - (rstart+rlen));
+	    if (length > rstart+rlen) {
+		memmove(seq+rstart, seq+rstart+rlen, length - (rstart+rlen));
+		memmove(meta+rstart, meta+rstart+rlen, length - (rstart+rlen));
+		*length_p = (length -= rlen);
+	    } else {
+		*length_p = length = rstart;
+	    }
+
+	    for (int j = 0; j < nreps; j++)
+		if (rep_start[j] > rstart)
+		    rep_start[j] -= rlen;
 	}
+	seq[length] = meta[length] = 0;
 
 	// Mutate at random
 	for (int l = 0; l < rlen; l++)
@@ -198,6 +233,9 @@ void edit_STRs(char *seq, char *meta, int length, double count_f, int dist_l,
 		seq[rstart+l] = "ACGT"[random()&3];
     }
 
+    //fprintf(stderr, "NEW %.*s\n", length, meta);
+
+ end:
     free(rep_start);
     free(rep_len);
 }
@@ -238,39 +276,39 @@ void add_trans(char *seq, char *meta, int length, double count_f, char code) {
     }
 }
 
-void genome_create(char *bases, char *meta, char *name) {
+void genome_create(char **bases, char **meta, int *length, char *name) {
     fprintf(stderr, "==== creating %s\n", name);
-    fprintf(stderr, "LINEs: %d\n", (int)(length * LINE_rate));
-    add_rep(bases, meta, length, length * LINE_rate, LINE_len, 'l');
-    fprintf(stderr, "SINEs: %d\n", (int)(length * SINE_rate));
-    add_rep(bases, meta, length, length * SINE_rate, SINE_len, 's');
+    fprintf(stderr, "LINEs: %d\n", (int)(*length * LINE_rate));
+    add_rep(*bases, *meta, *length, *length * LINE_rate, LINE_len, 'l');
+    fprintf(stderr, "SINEs: %d\n", (int)(*length * SINE_rate));
+    add_rep(*bases, *meta, *length, *length * SINE_rate, SINE_len, 's');
 
     fprintf(stderr, "STRs\n");
     //add_STRs(bases, length, length * STR_rate, 30000, 55000);
-    add_STRs(bases, meta, length, length * STR_rate * STR_new_rate,
-	     30000, 60000, 0.95, 0.02, 'r');
-    edit_STRs(bases, meta, length, length * STR_rate * STR_edit_rate,
+    add_STRs(*bases, *meta, *length, *length * STR_rate * STR_new_rate,
+	     30000, 50000, 0.95, 0.02, 'r');
+    edit_STRs(bases, meta, length, *length * STR_rate * STR_edit_rate,
 	      30000, 60000, 0.95, 0.02, 'r');
 
     fprintf(stderr, "CNVs\n");
-    add_STRs(bases, meta, length, length * CNV_rate * CNV_new_rate,
+    add_STRs(*bases, *meta, *length, *length * CNV_rate * CNV_new_rate,
 	     65400, 40000, 0.6, 0.1, 'c');
-    edit_STRs(bases, meta, length, length * CNV_rate * CNV_edit_rate,
+    edit_STRs(bases, meta, length, *length * CNV_rate * CNV_edit_rate,
 	      65400, 40000, 0.6, 0.1, 'c');
 
     fprintf(stderr, "Translocations\n");
-    add_trans(bases, meta, length, length * trans_rate, 't');
+    add_trans(*bases, *meta, *length, *length * trans_rate, 't');
 
     // Random SNP, INS and DEL mutations, for when we do derived sequences.
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < *length; i++)
 	if (drand48() < SNP_edit_rate)
-	    bases[i] = "ACGT"[random()&3];
+	    (*bases)[i] = "ACGT"[random()&3];
 
     // TODO: indels, use a tmp copy so we can insert/del without memmoves.
 
-    fprintf(seq_out, ">%s\n%s\n", name, bases);
+    fprintf(seq_out, ">%s\n%s\n", name, *bases);
     if (meta_out)
-	fprintf(meta_out, ">%s\n%s\n", name, meta);
+	fprintf(meta_out, ">%s\n%s\n", name, *meta);
 
 }
 
@@ -278,25 +316,40 @@ void population_create(int count) {
     // Initial pass;
     char **bases = malloc(count * sizeof(*bases));
     char **meta = malloc(count * sizeof(*meta));
-    if (!bases || !meta) abort();
+    int global_length = length;
+    int *length = malloc(count * sizeof(*length));
+    if (!bases || !meta || !length) abort();
 
-    bases[0] = malloc(length+1);
-    meta[0] = malloc(length+1);
+    length[0] = global_length;
+    bases[0] = malloc(length[0]+1);
+    meta[0] = malloc(length[0]+1);
     if (!bases[0] || !meta[0]) abort();
 
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < length[0]; i++)
 	bases[0][i] = "ACGT"[random()&3];
-    memset(meta[0], '.', length);
-    bases[0][length] = 0;
-    meta[0][length] = 0;
+    memset(meta[0], '.', length[0]);
+    bases[0][length[0]] = 0;
+    meta[0][length[0]] = 0;
 
-    genome_create(bases[0], meta[0], "seq_0000#1#1");
+    genome_create(&bases[0], &meta[0], &length[0], "seq_0000#1#1");
 
     // proportion of the standard counts for new vs editing
-    STR_new_rate = 0.1;
-    STR_edit_rate = 0.5;
+    STR_new_rate = 0.05;
+    STR_edit_rate = 1;
     CNV_new_rate = 0.1;
-    CNV_edit_rate = 0.3;
+    CNV_edit_rate = 0.2;
+    trans_rate *= 0.1;
+    LINE_rate *= 0.1;
+    SINE_rate *= 0.1;
+
+    // DEBUG
+//    STR_edit_rate *= 2;
+//    CNV_edit_rate *= 2;
+
+//    // DEBUG
+//    STR_new_rate = 0;
+//    CNV_new_rate = 0;
+
     LINE_rate /= 50;
     SINE_rate /= 50;
     trans_rate /= 10;
@@ -305,15 +358,16 @@ void population_create(int count) {
     for (int i = 1; i < count; i++) {
 	// FIXME: make diploid
 	int prev = random()%i;
-	bases[i] = malloc(length+1);
-	meta[i] = malloc(length+1);
+	length[i] = length[prev];
+	bases[i] = malloc(length[i]+1);
+	meta[i] = malloc(length[i]+1);
 	if (!bases[i] || !meta[i]) abort();
 
-	memcpy(bases[i], bases[prev], length+1);
-	memcpy(meta[i], meta[prev], length+1);
+	memcpy(bases[i], bases[prev], length[i]+1);
+	memcpy(meta[i], meta[prev], length[i]+1);
 
 	sprintf(name, "seq_%04d#1#1", i);
-	genome_create(bases[i], meta[i], name);
+	genome_create(&bases[i], &meta[i], &length[i], name);
     }
 
     for (int i = 0; i < count; i++) {
@@ -322,6 +376,7 @@ void population_create(int count) {
     }
     free(bases);
     free(meta);
+    free(length);
 }
 
 int main(int argc, char **argv) {
