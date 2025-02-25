@@ -14,7 +14,8 @@ static double CNV_rate = 0.0005;
 static double SINE_rate = 0.00005;
 static double LINE_rate = 0.00002;
 static double rep_snp_rate = 0.001;
-static double trans_rate = 0.0002;
+static double trans_rate = 0.0001;
+static double inversion_rate = 0.0003;
 static FILE *seq_out = NULL;
 static FILE *meta_out = NULL;
 
@@ -253,7 +254,7 @@ void add_trans(char *seq, char *meta, int length, double count_f, char code) {
 	int tv_len = random()%256;
 	while (random()%3)
 	    tv_len*=2;
-	while (tv_len > length/8)
+	while (tv_len > length/10)
 	    tv_len/=3;
 
 	int pos1 = random()%(length-tv_len);
@@ -273,6 +274,36 @@ void add_trans(char *seq, char *meta, int length, double count_f, char code) {
 	}
 	memset(meta+pos2, code, tv_len);
 	meta[pos2] = toupper(code);
+    }
+}
+
+// Inversions
+void add_inversions(char *seq, char *meta, int length, double count_f, char code) {
+    char comp[256];
+    comp['A']='T';
+    comp['T']='A';
+    comp['C']='G';
+    comp['G']='C';
+
+    int count = count_f + (drand48() < (count_f - (int)count_f));
+    for (int i = 0; i < count; i++) {
+	int iv_len = random()%256;
+	while (random()%3)
+	    iv_len*=2;
+	while (iv_len > length/10)
+	    iv_len/=3;
+
+	int pos = random()%(length-iv_len);
+	fprintf(stderr, "Inversion len %d at %d\n", iv_len, pos);
+
+	char *copy = malloc(iv_len);
+	for (int j = 0; j < iv_len; j++)
+	    copy[iv_len-1-j] = comp[(unsigned)seq[pos+j]];
+	memcpy(seq+pos, copy, iv_len);
+	free(copy);
+
+	memset(meta+pos, code, iv_len);
+	meta[pos] = toupper(code);
     }
 }
 
@@ -298,6 +329,9 @@ void genome_create(char **bases, char **meta, int *length, char *name) {
 
     fprintf(stderr, "Translocations\n");
     add_trans(*bases, *meta, *length, *length * trans_rate, 't');
+
+    fprintf(stderr, "Inversions\n");
+    add_inversions(*bases, *meta, *length, *length * inversion_rate, 'i');
 
     // Random SNP, INS and DEL mutations, for when we do derived sequences.
     for (int i = 0; i < *length; i++)
@@ -384,7 +418,7 @@ int main(int argc, char **argv) {
     int opt;
     seq_out = stdout;
 
-    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:o:O:P:E:")) != -1) {
+    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:o:O:P:E:I:")) != -1) {
 	switch (opt) {
 	case 'P':
 	    count = atoi(optarg);
@@ -416,6 +450,11 @@ int main(int argc, char **argv) {
 	// translocations
 	case 'T':
 	    trans_rate = atof(optarg);
+	    break;
+
+	// inversions
+	case 'I':
+	    inversion_rate = atof(optarg);
 	    break;
 
 	// repeats
@@ -454,10 +493,11 @@ int main(int argc, char **argv) {
 		    "    -A fraction    Rate of 500bp repeat element [%f]\n"
 		    "    -L fraction    Rate of 2000bp repeat element [%f]\n"
 		    "    -T fraction    Rate of translocations [%f]\n"
+		    "    -I fraction    Rate of inversions [%f]\n"
 		    "    -o FILE        Filename for fasta sequence [stdout]\n"
 		    "    -O FILE        Filename for fasta meta-data [/dev/null]\n",
 		    length, seed, STR_rate, CNV_rate, STR_snp_rate,
-		    rep_snp_rate, SINE_rate, LINE_rate, trans_rate
+		    rep_snp_rate, SINE_rate, LINE_rate, trans_rate, inversion_rate
 		    );
 	    return 1;
 	}

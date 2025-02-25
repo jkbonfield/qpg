@@ -8,19 +8,19 @@ test=$2
 # Produce sequences
 
 # Challenging: ~400 nodes
-#$qdir/genome_create3 -P 50 -l 20000  -S 0.01 -C 0.001 -N 0.002 -n 0.002 \
+#$qdir/genome_create -P 50 -l 20000  -S 0.01 -C 0.001 -N 0.002 -n 0.002 \
 #     -A 0.001 -L 0.0002 -T 0.0004 -s $seed > pop.fa
 
 # Complex: 100-200 nodes
-#$qdir/genome_create3 -P 50 -l 10000  -S 0.01 -C 0.0005 -N 0.005 -n 0.005 \
+#$qdir/genome_create -P 50 -l 10000  -S 0.01 -C 0.0005 -N 0.005 -n 0.005 \
 #     -A 0.0005 -L 0.0001 -T 0.0002 -s $seed > pop.fa
 
 # Medium: 40-80 nodes
-$qdir/genome_create3 -P 50 -l 5000  -S 0.001 -C 0.001 -N 0.01 -n 0.01 \
+$qdir/genome_create -P 50 -l 5000  -S 0.001 -C 0.001 -N 0.01 -n 0.01 \
      -A 0.0005 -L 0.0001 -T 0.0002 -s $seed > pop.fa
 
 # Simpler: 10-50 nodes
-#$qdir/genome_create3 -P 50 -l 5000 -S 0.001 -C 0.0005 -N 0.01 -n 0.01 \
+#$qdir/genome_create -P 50 -l 5000 -S 0.001 -C 0.0005 -N 0.01 -n 0.01 \
 #     -A 0.00005 -L 0.00002 -T 0.0002 -s $seed > pop.fa
 
 # Use the first 30 to build a pangenome
