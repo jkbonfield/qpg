@@ -1,6 +1,5 @@
 #!/bin/sh
-
-qdir=$HOME/work/quantum
+qdir=${QDIR:-.}
 
 query=$1
 gfa=$2
