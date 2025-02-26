@@ -116,13 +116,16 @@ foreach my $name (sort keys %seq) {
 
     my $last_node = "";
 
-    while ($seq{$name}{path} =~ m/>([^>]*)/g) {
+    while ($seq{$name}{path} =~ m/([<>])([^<>]*)/g) {
 	my $seq_start = $qstart;
-	my $node = $1;
+	my $node = $2;
+	my $dir = $1;
+#	print STDERR ":: dir=$dir node=$node pstart=$seq{$name}{pstart}::\n";
 #	my $seqn = $gfa{$1}{seq};
 #	my $lenn = length($seqn)-$pstart;
 
-	my $seqn = substr($gfa{$1}{seq}, $pstart);
+#	print STDERR "$node $pstart $gfa{$node}{seq}\n";
+	my $seqn = substr($gfa{$node}{seq}, $pstart);
 	my $lenn = length($seqn);
 	if ($ppos + $lenn > $seq{$name}{pend}) {
 	    # Truncated as sequence runs out before graph ends
@@ -130,9 +133,9 @@ foreach my $name (sort keys %seq) {
 	}
 	$pstart = 0;
 
-	my $subn = substr($seqn,$pstart,10);
-	my $subq = substr($seq,$qstart,$lenn<10?$lenn:10);
-	#print "\t$1\t",length($seq),"\t$subn\t$subq\t$lenn,$pstart,$qstart\t",length($seqn),"\n";
+	#my $subn = substr($seqn,$pstart,10);
+	#my $subq = substr($seq,$qstart,$lenn<10?$lenn:10);
+	#print "\t$node\t",length($seq),"\t$subn\t$subq\t$lenn,$pstart,$qstart\t",length($seqn),"\n";
 
 	my $query = "";
 	my $prefix;
@@ -150,8 +153,8 @@ foreach my $name (sort keys %seq) {
 		$oplen = $1;
 		$cig = $3;
 	    }
-	    my $x = substr($seq, $qstart,5);
-	    my $y = substr($seqn,$pstart,5);
+	    #my $x = substr($seq, $qstart,5);
+	    #my $y = substr($seqn,$pstart,5);
 	    #print "> $op $oplen rem $lenn\t$x $y\t$ppos\n";
 
 	    if ($op eq "=" || $op eq "X") {
