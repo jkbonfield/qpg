@@ -36,7 +36,8 @@ $qdir/tag_gfa.pl $gfa < _ar.nodes > _ar.gfa_tagged
 
 echo Finding path
 # -a seems routinely to produce shorter paths
-$pathfinder_cz3 _ar.gfa_tagged 2>/dev/null | tee _ar.gfa_pf | $qdir/pathfinder2seq.pl $gfa > _ar.called_seq
+#$pathfinder_cz3 _ar.gfa_tagged 2>/dev/null | tee _ar.gfa_pf | $qdir/pathfinder2seq.pl $gfa > _ar.called_seq
+$pathfinder_jkb -C40  _ar.gfa_tagged 2>/dev/null | tee _ar.gfa_pf | $qdir/pathfinder2seq.pl $gfa > _ar.called_seq
 cat _ar.gfa_pf | sed -n '/PATH/,$p'|awk '{printf("%s ",$3)} END {print "\n"}'
 
 echo Evaluating result
