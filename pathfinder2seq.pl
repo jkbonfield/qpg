@@ -16,6 +16,7 @@ while (<$gfa>) {
 
 
 # Parse the path
+my @path = ();
 my $in_path=0;
 my $contig=0;
 my $seq = "";
@@ -35,6 +36,14 @@ while (<>) {
     next unless $in_path;
     chomp();
     my ($node,$dir) = ($_=~m/(\S+)([-+])$/);
+    push(@path, [$dir, $node]);
+}
+
+print "@path\n";
+
+$seq = "";
+foreach my $p (@path) {
+    my ($dir,$node) = @{$p};
     my $gseq = $gfa{$node}{seq};
     if ($dir eq "-") {
 	$gseq =~ tr/ACGT/TGCA/;
@@ -42,4 +51,5 @@ while (<>) {
     }
     $seq .= $gseq;
 }
+
 print ">contig_$contig\n$seq\n" if ($seq);

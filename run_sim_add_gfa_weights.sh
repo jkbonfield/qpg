@@ -2,8 +2,8 @@
 
 . $QDIR/sim_path_config_hifi.sh
 
-query=$1
-gfa=$2
+gfa=$1
+query=$2
 k1=$3
 k2=$4
 k3=$5

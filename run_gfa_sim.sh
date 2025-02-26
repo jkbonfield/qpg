@@ -44,7 +44,7 @@ do
     #     $i.nodes.$k2
     #     $i.nodes.$k3
     #     $i.nodes
-    run_sim_add_gfa_weights.sh $i pop.gfa $k1 $k2 $k3
+    run_sim_add_gfa_weights.sh pop.gfa $i $k1 $k2 $k3
 
     # Find a path
     # Creates:
@@ -60,7 +60,7 @@ do
     #     $i.path_cons
     #     $i.eval_seq
     #     $i.eval_cons
-    run_sim_evaluate_path.sh pop.gfa $i $i.path
+    run_sim_evaluate_path.sh pop.gfa $i.path $i $i.shred.fa
 done
 
 # Summary
