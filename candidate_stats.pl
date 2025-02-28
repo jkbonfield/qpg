@@ -63,8 +63,8 @@ my $aligner = "bwa mem";
 my $aligner_index = "bwa index";
 my $aligner_opts = "-B4 -O4 -E2";
 #my $aligner_opts = "";
-system("$aligner_index $ARGV[0] 2>/dev/null") && die "$!";
-open(my $mm, "$aligner $aligner_opts @ARGV 2>/dev/null|tee /tmp/_.sam|samtools sort -O sam|") || die "$!";
+system(". /nfs/users/nfs_j/jc59/spack/share/spack/setup-env.sh; spack load bwa; $aligner_index $ARGV[0] 2>/dev/null") && die "$!";
+open(my $mm, ". /nfs/users/nfs_j/jc59/spack/share/spack/setup-env.sh; spack load bwa; $aligner $aligner_opts @ARGV 2>/dev/null|tee _.sam|samtools sort -O sam|") || die "$!";
 
 # Read header and SAM records
 my $last_contig = "";
@@ -110,7 +110,7 @@ while (<$mm>) {
     # Process cigar
     foreach ($cigar =~ m/\d+./g) {
 	m/(\d+)(.)/;
-	#print "$rpos ",$qpos+$hc," $1$2\n";
+	print "$rpos ",$qpos+$hc," $1$2\n";
 	if ($2 eq "M") {
 	    substr($cov{$rname}, $rpos, $1) = "1" x $1;
 
@@ -133,10 +133,10 @@ while (<$mm>) {
 	    $nindels{$rname}++ if ($1 >= $indel_max);
 	    if ($1 < $indel_max) {
 		substr($match{$rname}, $rpos, $1) = "n" x $1;
-		#print "del N $rpos to ",$rpos+$1,"\n";
+		print "del N $rpos to ",$rpos+$1,"\n";
 	    } else {
 		substr($match{$rname}, $rpos, $1) = "d" x $1;
-		#print "del D $rpos to ",$rpos+$1,"\n";
+		print "del D $rpos to ",$rpos+$1,"\n";
 	    }
 	    $rpos += $1;
 	} elsif ($2 eq "I") {
@@ -155,7 +155,7 @@ while (<$mm>) {
 	}
     }
 
-    #print STDERR "Read $F[0] covers $F[3] to $rpos\n";
+    print STDERR "Read $F[0] covers $F[3] to $rpos\n";
 }
 
 my $total_len = 0;
@@ -200,13 +200,13 @@ foreach (sort keys %SQ_len) {
 		}
 	    }
 	}
-	#print "$pos $d $i ",int($delta_score),"/",int($max_score),"\n";
+	print "$pos $d $i ",int($delta_score),"/",int($max_score),"\n";
 
 	if (($d eq "y" || $d eq "d") && $i eq "0") {
 	    # Match or a big deletion
 	    if (--$delta_score < 0) {
 		if ($max_score > 0 && $end_pos - $start_pos >= $diff_max) {
-		    #print "DELTA $start_pos $end_pos ",$end_pos-$start_pos,"\n";
+		    print "DELTA $start_pos $end_pos ",$end_pos-$start_pos,"\n";
 		    $ndiffs{$_}++;
 		    $pos = $end_pos; # restart to find up-down-up combos.
 		}
@@ -227,7 +227,7 @@ foreach (sort keys %SQ_len) {
     }
     if ($max_score > 0 && $end_pos - $start_pos >= $diff_max) {
 	$ndiffs{$_}++;
-	#print "DELTA $start_pos $end_pos ",$end_pos-$start_pos,"\n";
+	print "DELTA $start_pos $end_pos ",$end_pos-$start_pos,"\n";
     }
 
 

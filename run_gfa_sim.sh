@@ -85,6 +85,12 @@ if [ $# -gt 0 ]; then
     shift
 fi
 
+seed=$1
+solver=$2
+prefix=${3:-sim_}
+time_limits=$4
+num_jobs=$5
+# TODO: why need to export this before?
 export QDIR=${QDIR:-`pwd`}
 export PATH=$QDIR:$PATH
 export CONFIG=$config; # still used in some other scripts
@@ -97,6 +103,7 @@ echo "prefix:   $prefix"
 echo ""
 
 out_dir=`printf "$prefix%05d" $seed`
+echo $out_dir
 rm -rf $out_dir 2>/dev/null
 mkdir $out_dir
 
@@ -135,19 +142,47 @@ do
     # Find a path
     # Creates:
     #     $i.path
-    echo === Running solver $solver
-    run_sim_solver_$solver.sh $i.gfa > $i.path
-    sed -n '/PATH/,$p' $i.path \
-	| awk '/^\[/ {printf("%s ",$3)} END {print "\n"}' 1>&2
+    qubo_solvers="mqlib gurobi dwave"
+    if [[ " $qubo_solvers " =~ " $solver " ]]; then
+        if [ -z "${time_limits}" ]; then
+            time_limits="3,5"
+        fi
+        if [ -z "${num_jobs}" ]; then
+            num_jobs=2
+        fi
+        run_sim_solver_qubo.sh $i.gfa $solver $i $time_limits $num_jobs
+        echo "Finished sim solver qubo"
+        for t in ${time_limits//,/ }; do
+            for ((idx=0;idx<num_jobs;idx++)); do
+                path2seq.pl $i.gfa "$i.gaf.$t.$idx" > $i.path_seq.$t.$idx
+            done
+        done
+        echo "Finished path2seq"
+    else
+        time_limits=0
+        num_jobs=1
+        run_sim_solver_$solver.sh $i.gfa > $i.path
+        pathfinder2seq.pl pop.gfa $i.path > $i.path_seq.0.0
+        sed -n '/PATH/,$p' $i.path \
+        | awk '/^\[/ {printf("%s ",$3)} END {print "\n"}' 1>&2
+    fi
 
-    # Evaluate the path
+
+    # Evaluate the paths
     # Creates:
     #     $i.path_seq
     #     $i.bam
     #     $i.path_cons
     #     $i.eval_seq
     #     $i.eval_cons
-    run_sim_evaluate_path.sh pop.gfa $i.path $i $i.shred.fa
+    # New args
+    echo "Start evaluate"
+    for t in ${time_limits//,/ }; do
+        for ((idx=0;idx<num_jobs;idx++)); do
+            echo $t $idx
+            run_sim_evaluate_path.sh $i $i.shred.fa $t $idx
+        done
+    done
 done
 
 # Summary
@@ -155,4 +190,15 @@ echo
 echo === Summary ===
 head -1 `ls -1 *.eval_seq|head -1`
 cat *.eval_seq|awk '!/Per/'
+
+for t in ${time_limits//,/ }; do
+    for ((idx=0;idx<num_jobs;idx++)); do
+        echo
+        echo "=== Summary ==="
+        head -1 `ls -1 *.eval_cons.$t.$idx|head -1`
+        cat *.eval_cons.$t.$idx | awk '!/Per/'  
+    done
+done
+
 ) 2>sim.err | tee sim.out
+

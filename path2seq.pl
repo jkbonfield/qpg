@@ -6,6 +6,11 @@
 
 # Usage: path2seq.pl in.gfa path
 
+if (scalar @ARGV != 2) {
+    print STDERR "Usage: path2seq.pl in.gfa path\n";
+    exit 1;
+}
+
 # Parse GFA; minimally
 open(my $gfa, "<", shift(@ARGV)) || die;
 while (<$gfa>) {
