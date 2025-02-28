@@ -91,7 +91,7 @@ prefix=${3:-sim_}
 time_limits=$4
 num_jobs=$5
 # TODO: why need to export this before?
-export QDIR=${QDIR:-`pwd`}
+export QDIR=${QDIR:-$(pwd)}
 export PATH=$QDIR:$PATH
 export CONFIG=$config; # still used in some other scripts
 
@@ -111,7 +111,7 @@ k1=75
 k2=35
 k3=20
 
-cd $out_dir
+cd "$out_dir" || exit
 
 (
 # Create fake genomes and use the training set to create a pangenome
@@ -122,10 +122,10 @@ cd $out_dir
 #    pop.gfa.ns$k3
 #    fofn.test
 #    fofn.train
-run_sim_create_gfa.sh $seed $k1 $k2 $k3
+run_sim_create_gfa.sh "$seed" $k1 $k2 $k3
 
 # Foreach test genome, not used in pangenome creation, find path and eval
-for i in `cat fofn.test`
+for i in $(cat fofn.test)
 do
     # Add weights to the GFA via minigraph
     # Creates:
@@ -150,20 +150,20 @@ do
         if [ -z "${num_jobs}" ]; then
             num_jobs=2
         fi
-        run_sim_solver_qubo.sh $i.gfa $solver $i $time_limits $num_jobs
+        run_sim_solver_qubo.sh "$i".gfa "$solver" "$i" "$time_limits" "$num_jobs"
         echo "Finished sim solver qubo"
         for t in ${time_limits//,/ }; do
             for ((idx=0;idx<num_jobs;idx++)); do
-                path2seq.pl $i.gfa "$i.gaf.$t.$idx" > $i.path_seq.$t.$idx
+                path2seq.pl "$i".gfa "$i.gaf.$t.$idx" > "$i".path_seq."$t".$idx
             done
         done
         echo "Finished path2seq"
     else
         time_limits=0
         num_jobs=1
-        run_sim_solver_$solver.sh $i.gfa > $i.path
-        pathfinder2seq.pl pop.gfa $i.path > $i.path_seq.0.0
-        sed -n '/PATH/,$p' $i.path \
+        run_sim_solver_"$solver".sh "$i".gfa > "$i".path
+        pathfinder2seq.pl pop.gfa "$i".path > "$i".path_seq.0.0
+        sed -n '/PATH/,$p' "$i".path \
         | awk '/^\[/ {printf("%s ",$3)} END {print "\n"}' 1>&2
     fi
 
@@ -179,8 +179,10 @@ do
     echo "Start evaluate"
     for t in ${time_limits//,/ }; do
         for ((idx=0;idx<num_jobs;idx++)); do
-            echo $t $idx
-            run_sim_evaluate_path.sh $i $i.shred.fa $t $idx
+            echo
+            echo
+            echo "=== Evaluate $t $idx ==="
+            run_sim_evaluate_path.sh "$i" "$i".shred.fa "$t" $idx
         done
     done
 done
@@ -193,10 +195,11 @@ cat *.eval_seq|awk '!/Per/'
 
 for t in ${time_limits//,/ }; do
     for ((idx=0;idx<num_jobs;idx++)); do
+        echo 
         echo
-        echo "=== Summary ==="
-        head -1 `ls -1 *.eval_cons.$t.$idx|head -1`
-        cat *.eval_cons.$t.$idx | awk '!/Per/'  
+        echo "=== Summary $t $idx==="
+        head -1 $(ls -1 *.eval_cons.$t.$idx |head -1)
+        cat *.eval_cons."$t".$idx | awk '!/Per/'  
     done
 done
 

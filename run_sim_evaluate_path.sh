@@ -11,6 +11,7 @@ echo === Evaluating result: GFA node sequence
 truth=$query
 
 echo "Try bwa in shell"
+echo "will run bwa mem $truth $query.path_seq.$t.$idx"
 bwa index $truth 
 bwa mem $truth $query.path_seq.$t.$idx
 echo "------"

@@ -22,19 +22,28 @@ while (<$gfa>) {
 
 
 # Parse the path
+my @path = ();
+my $seq = "";
+
+# Parse the path
 while (<>) {
     chomp();
-    my $seq="";
-
     foreach ($_=~m/[<>][^<>]*/g) {
 	my ($dir,$node) = ($_=~m/(.)(.*)/);
-	my $gseq = $gfa{$node}{seq};
-	if ($dir eq "<") {
+    push(@path, [$dir, $node]);
+    }
+}
+
+print "@path\n";
+
+foreach my $p (@path) {
+    my ($dir,$node) = @{$p};
+    my $gseq = $gfa{$node}{seq};
+    if ($dir eq "<") {
 	    $gseq =~ tr/ACGT/TGCA/;
 	    $gseq = reverse($gseq);
 	}
-	$seq .= $gseq;
-    }
-    
-    print "$seq\n";
+    $seq .= $gseq;
 }
+
+print ">contig_1\n$seq\n";
