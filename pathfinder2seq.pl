@@ -39,8 +39,6 @@ while (<>) {
     push(@path, [$dir, $node]);
 }
 
-print "@path\n";
-
 $seq = "";
 foreach my $p (@path) {
     my ($dir,$node) = @{$p};
