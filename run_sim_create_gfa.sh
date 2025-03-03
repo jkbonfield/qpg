@@ -42,7 +42,7 @@ echo "Node count:" `egrep -c '^S' pop.gfa`
 # Build the nodeseq index
 echo === Creating nodeseq files, kmers $k1, $k2, $k3
 head -40 pop.fa > train.fa
-ssh seq4d "cd `pwd`;/nfs/sam_scratch/jkb/conda22.old/bin/GraphAligner -g pop.gfa -f train.fa -x vg -a pop.gaf --threads 32" >pop.GraphAligner.out
+/nfs/sam_scratch/jkb/conda22.old/bin/GraphAligner -g pop.gfa -f train.fa -x vg -a pop.gaf >pop.GraphAligner.out
 gaf2nodeseq2.pl pop.gaf train.fa pop.gfa $k1 > pop.gfa.ns$k1
 gaf2nodeseq2.pl pop.gaf train.fa pop.gfa $k2 > pop.gfa.ns$k2
 gaf2nodeseq2.pl pop.gaf train.fa pop.gfa $k3 > pop.gfa.ns$k3
