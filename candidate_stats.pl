@@ -59,15 +59,14 @@ my %nbreaks;  # No. of alignments minus ncontigs
 #my $aligner_index = "/bin/true";
 #my $aligner_opts = "-a -O 2 -E 4 -r 100 -x lr:hq --no-long-join --secondary=no";
 
-my $aligner = "bwa mem";
-my $aligner_index = "bwa index";
+my $aligner = "/software/sciops/pkgg/bwa/0.7.17/bin/bwa mem";
+my $aligner_index = "/software/sciops/pkgg/bwa/0.7.17/bin/bwa index";
 my $aligner_opts = "-B4 -O4 -E2";
 #my $aligner_opts = "";
 
 # TODO: something about bsub breaks next line
-
-system(". /nfs/users/nfs_j/jc59/spack/share/spack/setup-env.sh; spack load bwa; $aligner_index $ARGV[0] 2>bwa_idx.err") && die "$!";
-open(my $mm, ". /nfs/users/nfs_j/jc59/spack/share/spack/setup-env.sh; spack load bwa; $aligner $aligner_opts @ARGV 2>bwa_mem.err | tee _.sam|samtools sort -O sam|") || die "$!";
+system("$aligner_index $ARGV[0] 1>log.txt 2>bwa_idx.err") && die "$!";
+open(my $mm, "$aligner $aligner_opts @ARGV 2>bwa_mem.err | tee _.sam|samtools sort -O sam|") || die "$!";
 
 # Read header and SAM records
 my $last_contig = "";

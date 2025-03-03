@@ -13,5 +13,4 @@ source $QUBO_DIR/.venv/bin/activate
 python3 $QUBO_DIR/qubo_solvers/oriented_tangle/build_oriented_qubo_matrix.py -f $gfa_filepath -d $outdir
 python3 $QUBO_DIR/qubo_solvers/oriented_tangle/oriented_max_path.py -s $solver -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t $time_limits -o "$query.gaf"
 
-
-# TODO: read file output and write to path string
+exit 0

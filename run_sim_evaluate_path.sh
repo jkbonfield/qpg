@@ -10,12 +10,6 @@ idx=$4
 echo === Evaluating result: GFA node sequence
 truth=$query
 
-echo "Try bwa in shell"
-echo "will run bwa mem $truth $query.path_seq.$t.$idx"
-bwa index $truth 
-bwa mem $truth $query.path_seq.$t.$idx
-echo "------"
-
 echo $truth $query.path_seq.$t.$idx
 echo "start candidate stats.sh" 1>&2
 candidate_stats.sh $truth $query.path_seq.$t.$idx | tee $query.eval_seq.$t.$idx
@@ -34,3 +28,4 @@ samtools consensus -C0 $query.bam.$t.$idx -o $query.path_cons.$t.$idx
 candidate_stats.sh $truth $query.path_cons.$t.$idx | tee $query.eval_cons.$t.$idx
 
 #--- TODO: round 2: remap back to the consensus to improve further?
+exit 0

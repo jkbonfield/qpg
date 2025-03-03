@@ -28,3 +28,5 @@ merge_kmer2node.pl $gfa $query.nodes.$k1 $query.nodes.$k2 $query.nodes.$k3 > $qu
 
 # Annotate the GFA with kmer counts
 tag_gfa.pl $gfa < $query.nodes > $query.gfa
+
+exit 0

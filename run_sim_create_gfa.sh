@@ -1,4 +1,5 @@
 #!/bin/bash
+mode=1
 
 . ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
 
@@ -6,7 +7,7 @@ seed=$1
 k1=$2
 k2=$3
 k3=$4
-
+mode=$5
 
 # Produce sequences
 echo === Creating population
@@ -37,7 +38,7 @@ cat fofn.train > train.fa
 # Build the nodeseq index
 if [ "x$annotate" == "xkm" ]
 then
-    echo === Creating nodeseq files, kmers $k1, $k2, $k3
+    echo "=== Creating nodeseq files, kmers $k1, $k2, $k3"
     /nfs/sam_scratch/jkb/conda22.old/bin/GraphAligner -g pop.gfa -f train.fa -x vg -a pop.gaf >pop.GraphAligner.out
     gaf2nodeseq2.pl pop.gaf train.fa pop.gfa $k1 > pop.gfa.ns$k1
     gaf2nodeseq2.pl pop.gaf train.fa pop.gfa $k2 > pop.gfa.ns$k2
@@ -50,3 +51,7 @@ then
 #    gfa2nodeseq.pl pop.gfa $k3 > pop.gfa.ns$k3
 fi
 
+# Use the last 10 as the test set
+ls -1 seq_* | tail -10 > fofn.test
+
+exit 0
