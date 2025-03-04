@@ -8,6 +8,7 @@ k1=$2
 k2=$3
 k3=$4
 mode=$5
+num_training=$6
 
 # Produce sequences
 echo === Creating population
@@ -51,7 +52,7 @@ then
 #    gfa2nodeseq.pl pop.gfa $k3 > pop.gfa.ns$k3
 fi
 
-# Use the last 10 as the test set
-ls -1 seq_* | tail -10 > fofn.test
+# Use the last $num_training as the test set
+ls -1 seq_* | tail -$num_training > fofn.test
 
 exit 0

@@ -91,6 +91,7 @@ prefix=${3:-sim_}
 time_limits=$4
 num_jobs=$5
 mode=$6
+num_training=$7
 
 # TODO: why need to export this before?
 export QDIR=${QDIR:-$(pwd)}
@@ -124,7 +125,7 @@ cd "$out_dir" || exit
 #    pop.gfa.ns$k3
 #    fofn.test
 #    fofn.train
-run_sim_create_gfa.sh "$seed" $k1 $k2 $k3 $mode
+run_sim_create_gfa.sh "$seed" $k1 $k2 $k3 $mode $num_training
 
 # Foreach test genome, not used in pangenome creation, find path and eval
 for i in $(cat fofn.test)
