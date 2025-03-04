@@ -12,6 +12,8 @@ prefix=${3:-sim_}
 export QDIR=${QDIR:-`pwd`}
 export PATH=$QDIR:$PATH
 
+. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
+
 out_dir=`printf "$prefix%05d" $seed`
 rm -rf $out_dir 2>/dev/null
 mkdir $out_dir
@@ -36,22 +38,26 @@ run_sim_create_gfa.sh $seed $k1 $k2 $k3
 # Foreach test genome, not used in pangenome creation, find path and eval
 for i in `cat fofn.test`
 do
-    # Add weights to the GFA via kmer2node.
-    # Creates:
-    #     $i.gfa (primary output; annotated pop.gfa)
-    #     $i.shred.fa
-    #     $i.nodes.$k1
-    #     $i.nodes.$k2
-    #     $i.nodes.$k3
-    #     $i.nodes
-    run_sim_add_gfa_weights.sh pop.gfa $i $k1 $k2 $k3
+    if [ "x$use_mg" = "x1" ]
+    then
+        # Add weights to the GFA via minigraph
+        # Creates:
+        #     $i.gfa (primary output; annotated pop.gfa)
+        #     $i.shred.fa
+        #     $i.mg
+        run_sim_add_gfa_weights_mg.sh pop.gfa $i
+    else
+        # Add weights to the GFA via kmer2node.
+        # Creates:
+        #     $i.gfa (primary output; annotated pop.gfa)
+        #     $i.shred.fa
+        #     $i.nodes.$k1
+        #     $i.nodes.$k2
+        #     $i.nodes.$k3
+        #     $i.nodes
+        run_sim_add_gfa_weights.sh pop.gfa $i $k1 $k2 $k3
+    fi
 
-    # Add weights to the GFA via minigraph
-    # Creates:
-    #     $i.gfa (primary output; annotated pop.gfa)
-    #     $i.shred.fa
-    #     $i.mg
-#    run_sim_add_gfa_weights_mg.sh pop.gfa $i
 
     # Find a path
     # Creates:

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Adds weights using minigraph to align and amend the GFA
+. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
 
-. $QDIR/sim_path_config_hifi.sh
+# Adds weights using minigraph to align and amend the GFA
 
 gfa=$1
 query=$2
