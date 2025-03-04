@@ -1,4 +1,10 @@
 #!/bin/bash
+if [ $# -lt 2 ]
+then
+    echo Usage: run_gfa_sim.sh seed solver [out_prefix time_limits num_jobs mode num_training]  1>&2
+    exit 1
+fi
+
 
 help() {
     echo Usage: run_gfa_sim.sh [options] [seed solver [out_prefix]] 1>&2
