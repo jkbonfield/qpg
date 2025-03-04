@@ -62,6 +62,7 @@ do
     # Find a path
     # Creates:
     #     $i.path
+    echo === Running solver $solver
     run_sim_solver_$solver.sh $i.gfa > $i.path
     sed -n '/PATH/,$p' $i.path \
 	| awk '/^\[/ {printf("%s ",$3)} END {print "\n"}' 1>&2

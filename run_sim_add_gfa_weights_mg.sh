@@ -19,10 +19,11 @@ then
 else
     mg_opts="-x sr"
 fi
-mg_opts="$mg_opts -j 0.01 --cov"
+mg_opts="$mg_opts -j 0.01 --cov ${MINIGRAPH_OPTS}"
 
 
 # Run minigraph to get a GFA
+echo === Aligning data
 eval minigraph $mg_opts $gfa $shred_fa 2>/dev/null > $query.mg
 
 # Quantise dc:f field to kmer-count by multplying up the length.
