@@ -17,3 +17,6 @@ pathfinder_cz3=/lustre/scratch127/qpg/cz3/QuantumTangle/pathfinder/pathfinder
 pathfinder_jkb=/lustre/scratch125/ids/team117/sam/jkb/quantum/pathfinder/pathfinder
 pathfinder=$pathfinder_jkb
 pathfinder_opts="-a"
+
+#mqlib timeout
+timeout=30
