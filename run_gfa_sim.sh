@@ -36,7 +36,7 @@ run_sim_create_gfa.sh $seed $k1 $k2 $k3
 # Foreach test genome, not used in pangenome creation, find path and eval
 for i in `cat fofn.test`
 do
-    # Add weights to the GFA.
+    # Add weights to the GFA via kmer2node.
     # Creates:
     #     $i.gfa (primary output; annotated pop.gfa)
     #     $i.shred.fa
@@ -45,6 +45,13 @@ do
     #     $i.nodes.$k3
     #     $i.nodes
     run_sim_add_gfa_weights.sh pop.gfa $i $k1 $k2 $k3
+
+    # Add weights to the GFA via minigraph
+    # Creates:
+    #     $i.gfa (primary output; annotated pop.gfa)
+    #     $i.shred.fa
+    #     $i.mg
+#    run_sim_add_gfa_weights_mg.sh pop.gfa $i
 
     # Find a path
     # Creates:
