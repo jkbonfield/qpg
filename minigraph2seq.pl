@@ -6,7 +6,7 @@ use strict;
 # pathfinder compatible path
 my $gfa = shift(@ARGV);
 my $seq = shift(@ARGV);
-open(FH, "minigraph -x lr -l 100 -d 100 --vc -m 100,100 -n 10,10 $gfa $seq 2>/dev/null |");
+open(FH, "minigraph -x lr -j 0.01 -l 100 -d 100 --vc -m 100,100 -n 10,10 $gfa $seq 2>/dev/null |");
 while (<FH>) {
     my @F = split("\t", $_);
     my $n=1;
