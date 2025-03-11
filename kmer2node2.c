@@ -27,6 +27,8 @@ static int kmer = 50;
 static int kmer_idx = 50;
 // Whether to use non-unique kmers in scoring
 static int use_non_uniq = 0;
+// Output edge metrics too;
+static FILE *edge_fp = NULL;
 
 // KMER_IDX is the hash table size for storing kmer entries.
 #ifndef KMER_IDX
@@ -39,6 +41,11 @@ static int use_non_uniq = 0;
 #define MAX_NODES (100*1024)
 
 static int ndup = 0, nuniq = 0;
+
+// Node->node edge counts
+// FIXME: need to map ++, +-, -+ and -- transitions
+KHASH_MAP_INIT_INT64(edge, int)
+khash_t(edge) *edges = NULL;
 
 /* ----------------------------------------------------------------------
  * A node has a name, a length, and a bitvector of which kmers are present.
@@ -127,6 +134,7 @@ typedef struct {
     khash_t(node) *nodes;
     int nnodes;
     int kmer[KSIZE];   // maps hash(kmer) to node number
+    char kdir[KSIZE];  // 0=unknown, 1=+ 2=- 3=both (eg dup within node)
     int unique[KSIZE]; // number of unique maps for this kmer
     node *num2node[MAX_NODES];
 } nodeset;
@@ -216,11 +224,14 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
 		dup_n->kmer_dup    += ns->unique[k];
 	    }
 	    ns->kmer[k] = -1;
+	    ns->kdir[k] = 0;
 	    n->kmer_dup++;
 	} else {
 	    ns->kmer[k] = num;
 	    ns->unique[k]++;
 	    n->kmer_unique++;
+	    int kdir=2-bidir; // 1(+)->1 0(-)->2
+	    ns->kdir[k] = (ns->kdir[k] && ns->kdir[k] != kdir) ? 3 : kdir;
 	    unique = 1;
 	}
 //	printf("%d Index %08x %.*s %s %s\n", bidir, k, kmer, str+i,
@@ -298,16 +309,18 @@ nodeset *nodeset_load(char *fn, int bidir) {
 	}
     }
 
+    fprintf(stderr, "Indexing done\n");
     fclose(fp);
     return ns;
 
  err:
+    fprintf(stderr, "Failed to index nodeseq\n");
     if (fp)
 	fclose(fp);
     if (ns)
 	nodeset_free(ns);
 
-    fprintf(stderr, "Indexing done\n");
+    return NULL;
 }
 
 void nodeset_report(nodeset *ns) {
@@ -352,6 +365,25 @@ void nodeset_report(nodeset *ns) {
 	       n->name, n->length, expected2, n->hit_count,n->hit_possible,
 	       ratio);
     }
+
+    if (edge_fp) {
+	khiter_t k;
+	for (k = kh_begin(edges); k != kh_end(edges); k++) {
+	    if (!kh_exist(edges, k))
+		continue;
+
+	    int64_t ee = kh_key(edges, k);
+	    int n1 = ee>>32;
+	    int k1 = n1&3; n1>>=2;
+	    int n2 = ee & ((1ULL<<32)-1);
+	    int k2 = n2&3; n2>>=2;
+
+	    fprintf(edge_fp, "Edge %8s%c %8s%c %8d\n",
+		   ns->num2node[n1]->name, "?+-b"[k1],
+		   ns->num2node[n2]->name, "?+-b"[k2],
+		   kh_value(edges, k));
+	}
+    }
 }
 
 /* ----------------------------------------------------------------------
@@ -366,7 +398,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
     uint8_t *seq = bam_get_seq(b);
 
 //    printf("Seq %s\n", bam_get_qname(b));
-    int last_node = -1, last_node_base = 0, last_node_poss = 0;
+    int last_node = -1, last_node_base = 0, last_node_poss = 0, last_dir = 0;
     int nposs_run = 0; // for node -1 and then changing node
 
     // Our hashing works on ASCII
@@ -382,9 +414,10 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	uint32_t k = kh & KMASK;
 	
 	int num = ns->kmer[k];
-//	printf(" %2d %08x %.*s %s %d   %d %d %d\n", num, k, kmer, bases+i,
+	int dir = ns->kdir[k];
+//	printf(" %2d %08x %.*s %s %d   %d %d %d, %d %d\n", num, k, kmer, bases+i,
 //	       num > 0 ? ns->num2node[num]->name : "?",
-//	       i, nposs_run, last_node, last_node_poss);
+//	       i, nposs_run, last_node, last_node_poss, dir, last_dir);
 	if (num > 0) {
 	    ns->num2node[num]->hit_count++;
 	    if (i > last_node_base+1 && last_node == num) {
@@ -413,11 +446,38 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 //		       nposs_run, ns->num2node[last_node_poss]->name);
 		ns->num2node[last_node_poss]->hit_possible+=nposs_run;
 	}
+
+	if (edge_fp && num > 0 && last_node_poss != num && last_node_poss > 0) {
+	    khiter_t k;
+	    int ret;
+	    int n1 = last_node_poss, d1 = last_dir;
+	    int n2 = num,       d2 = dir;
+	    if (d2 == 2 && 0) {
+		// reverse; n1- n2- => n2+ n1+
+		d2 = 1;
+		n2 = last_node_poss;
+		d1 = dir==3 ? 3 : 3-dir;
+		n1 = num;
+	    }
+	    fprintf(stderr, "Switch node %s%c -> %s%c\n",
+	    	    ns->num2node[n1]->name, "?+-b"[d1],
+	    	    ns->num2node[n2]->name, "?+-b"[d2]);
+	    uint64_t ee = ((int64_t)(n1*4+d1)<<32) | (n2*4+d2);
+	    k = kh_put(edge, edges, ee, &ret);
+	    if (ret > 0) {
+		// new
+		kh_value(edges, k) = 1;
+	    } else {
+		kh_value(edges, k)++;
+	    }
+	}
+
 	if (num) {
 	    last_node_base = i; // records dup too so we only correct SNPs
 	    last_node = num;
 	    if (num > 0) {
 		last_node_poss = num;
+		last_dir = dir;
 		nposs_run = 0;
 	    } else {
 		nposs_run++;
@@ -425,7 +485,6 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	}
     }
     free(bases);
-    puts("");
 }
 
 void usage(int ret) {
@@ -435,6 +494,7 @@ void usage(int ret) {
     printf("   -k INT     Set kmer indexing / matching size\n");
     printf("   -K INT     Set kmer previously used in nodeseq creation\n");
     printf("   -U         Account for non-unique kmers in kmer ratio\n");
+    printf("   -E FILE    Output edge weights too to FILE\n");
     exit(ret);
 }
 
@@ -445,7 +505,7 @@ int main(int argc, char **argv) {
     bam1_t *b = NULL;
     int c;
 
-    while ((c = getopt(argc, argv, "hk:K:U")) != -1) {
+    while ((c = getopt(argc, argv, "hk:K:UE:")) != -1) {
 	switch (c) {
 	case 'k':
 	    kmer = atoi(optarg);
@@ -457,6 +517,14 @@ int main(int argc, char **argv) {
 
 	case 'U':
 	    use_non_uniq++;
+	    break;
+
+	case 'E':
+	    edge_fp = fopen(optarg, "w");
+	    if (!edge_fp) {
+		perror(optarg);
+		return 1;
+	    }
 	    break;
 
 	case 'h':
@@ -490,12 +558,19 @@ int main(int argc, char **argv) {
     // (bar the annoying in-memory sequence encoding).
     if (!(b = bam_init1()))
 	goto err;
+    if (edge_fp)
+	edges = kh_init(edge);
+
     while (sam_read1(sam, hdr, b) >= 0) {
 	count_bam_kmers(ns, b);
     }
 
     // Report node hit rates
     nodeset_report(ns);
+    if (edge_fp) {
+	kh_destroy(edge, edges);
+	fclose(edge_fp);
+    }
     
     printf("%d / %d dups\n", ndup, ndup+nuniq);
     

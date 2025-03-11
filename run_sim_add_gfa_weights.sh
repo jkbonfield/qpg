@@ -19,10 +19,11 @@ shred.pl -s 1 -l $shred_len -e $shred_err -d $shred_depth $query > $shred_fa
 
 # Map kmers in the shredded fasta to the graph nodeseq
 echo === Mapping kmers: k=$k1,$k2,$k3
-kmer2node2 -U -k$k1 $nodeseq1 $shred_fa | grep Node > $query.nodes.$k1
-kmer2node2 -U -k$k2 $nodeseq2 $shred_fa | grep Node > $query.nodes.$k2
-kmer2node2    -k$k3 $nodeseq3 $shred_fa | grep Node > $query.nodes.$k3
-merge_kmer2node.pl $query.nodes.$k1 $query.nodes.$k2 $query.nodes.$k3 > $query.nodes
+kmer2node2 -U -k$k1 $nodeseq1 $shred_fa -E /dev/stdout | egrep 'Edge|Node' > $query.nodes.$k1
+kmer2node2 -U -k$k2 $nodeseq2 $shred_fa -E /dev/stdout | egrep 'Edge|Node' > $query.nodes.$k2
+#kmer2node2    -k$k3 $nodeseq3 $shred_fa -E /dev/stdout | egrep 'Edge|Node' > $query.nodes.$k3
+kmer2node2 -U -k$k3 $nodeseq3 $shred_fa -E /dev/stdout | egrep 'Edge|Node' > $query.nodes.$k3
+merge_kmer2node.pl $gfa $query.nodes.$k1 $query.nodes.$k2 $query.nodes.$k3 > $query.nodes
 
 # Annotate the GFA with kmer counts
 tag_gfa.pl $gfa < $query.nodes > $query.gfa

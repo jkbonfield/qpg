@@ -13,11 +13,17 @@ my $gfa = shift(@ARGV);
 
 # Parse kmer2node output
 my %coverage;
+my %EC;
 while (<>) {
-    next unless /^Node/;
     chomp($_);
     my @F = split(/\s+/, $_);
-    $coverage{$F[1]} = $F[-1];
+    if (/^Node/) {
+       $coverage{$F[1]} = $F[-1];
+    } elsif (/^Edge/) {
+	m/^Edge\s+(\S+)\s+(\S+)\s+(\d+)/;
+	$EC{"$1.$2"} += $3;
+	#print STDERR "EC{$1.$2} += $3\n";
+    }
 }
 
 # Parse GFA and mark it up
@@ -32,6 +38,12 @@ while (<$fh>) {
 	push(@F, "KC:i:".int($coverage{$F[1]} * length($F[2])));
 	push(@F, "SC:f:".$coverage{$F[1]});
 	print "@F\n";
+    } elsif (/^L\s/) {
+	chomp($_);
+	my @F = split(/\s+/, $_);
+	my $e = "$F[1]$F[2].$F[3]$F[4]";
+	my $ec = exists($EC{$e}) ? int($EC{$e}+.99) : 0;
+	print "$_\tEC:i:$ec\n";
     } else {
 	print;
     }
