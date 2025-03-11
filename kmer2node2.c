@@ -203,7 +203,7 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
     int num = n->num;
     int i, j, len = strlen(str);
 
-    //printf("Index %s\n", str);
+    //printf("Indexing %s\n", str);
     // Assign "kmer" to node "num".  Duplicates get number -1
     uint32_t kh;
     uint8_t *str8 = (uint8_t *)str;

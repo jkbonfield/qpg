@@ -30,6 +30,12 @@ then
     gaf2nodeseq2.pl pop.gaf train.fa pop.gfa $k1 > pop.gfa.ns$k1
     gaf2nodeseq2.pl pop.gaf train.fa pop.gfa $k2 > pop.gfa.ns$k2
     gaf2nodeseq2.pl pop.gaf train.fa pop.gfa $k3 > pop.gfa.ns$k3
+
+#    # Faster alternative using population GFA file only
+#    # Oddly this is sometimes better than using GraphAligner despite fewer kmers
+#    gfa2nodeseq.pl pop.gfa $k1 > pop.gfa.ns$k1
+#    gfa2nodeseq.pl pop.gfa $k2 > pop.gfa.ns$k2
+#    gfa2nodeseq.pl pop.gfa $k3 > pop.gfa.ns$k3
 fi
 
 # Use the last 10 as the test set
