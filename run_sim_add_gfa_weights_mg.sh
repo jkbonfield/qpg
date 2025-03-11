@@ -23,8 +23,7 @@ mg_opts="$mg_opts -j 0.01 --cov ${MINIGRAPH_OPTS}"
 
 
 # Run minigraph to get a GFA
-echo === Aligning data
-eval minigraph $mg_opts $gfa $shred_fa 2>/dev/null > $query.mg
+eval minigraph $mg_opts $gfa $shred_fa 2>mg.err > $query.mg
 
 # Quantise dc:f field to kmer-count by multplying up the length.
 # For edges we use it as EC direct, but in both cases it must be integer.

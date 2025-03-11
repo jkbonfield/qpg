@@ -17,12 +17,19 @@ use strict;
 while (<>) {
     next unless /^S/;
     m/dc:f:([0-9.]*)/;
-    print int($1/'$shred_depth' + .8), " ";
+    print int($1/'$shred_depth' + .8), ",";
 }
-print "\n";' $gfa_filepath)
+' $gfa_filepath)
 
+echo $copy_numbers >> sim.err
+if [[ " dwave " =~ " $solver " ]]; then
+    penalties="10,5,1"
+else
+    penalties="100,50,1"
+fi
+echo $penalties
 
-python3 $QUBO_DIR/qubo_solvers/oriented_tangle/build_oriented_qubo_matrix.py -f $gfa_filepath -d $outdir -c 
+python3 $QUBO_DIR/qubo_solvers/oriented_tangle/build_oriented_qubo_matrix.py -f $gfa_filepath -d $outdir -c $copy_numbers -p $penalties
 python3 $QUBO_DIR/qubo_solvers/oriented_tangle/oriented_max_path.py -s $solver -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t $time_limits -o "$query.gaf"
 
 exit 0
