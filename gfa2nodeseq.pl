@@ -43,17 +43,17 @@ close($gfa);
 # This is recursive until $plen bases have been copied or we hit the end of
 # the previous links.
 sub prev_seq {
-    my ($n, $plen) = @_;
-    
-    #print ">>> PREV SEQ for $n $plen\n";
+    my ($n, $plen, $start_seq, $level) = @_;
+
+    #print STDERR "    "x$level . ">>> PREV SEQ for $n $plen: $start_seq\n";
 
     my @pseq = ();
-
     # Incoming for + dir
     if (exists($edge_in{$n})) {
 	foreach my $e (@{$edge_in{$n}}) {
 	    my @E=split("\t", $edge[$e]);
 	    next unless $E[4] eq "+";
+	    #print STDERR "    "x$level . "edge_in $e\n";
 	    my @N2 = split("\t", $node{$E[1]});
 	    my $pseq = $N2[2];
 	    if ($E[2] eq "-") {
@@ -63,19 +63,20 @@ sub prev_seq {
 
 	    if (length($pseq) < $plen) {
 		my $p2len = $plen-length($pseq);
-		my @p = prev_seq($E[1], $p2len);
-		#print "Too short $plen => @p\n";
+		$start_seq = $pseq . $start_seq;
+		my @p = prev_seq($E[1], $p2len, $start_seq, $level+1);
+		#print STDERR "    "x$level . "Was too short by $p2len => @p\n";
 		if (scalar(@p)) {
 		    foreach (@p) {
-			push(@pseq, substr($_, -$p2len) . $pseq);
+			push(@pseq, $_);
 		    }
 		} else {
-		    #print "No previous edges\n";
-		    push(@pseq, substr($pseq,-$plen));
+		    #print STDERR "    "x$level . "No previous edges\n";
+		    push(@pseq, $start_seq);
 		}
 	    } else {
-		#print "Long enough: ",length($pseq),">=$plen\n";
-		push(@pseq, substr($pseq,-$plen));
+		#print STDERR "    "x$level . "Long enough: ",length($pseq),">=$plen\n";
+		push(@pseq, substr($pseq,-$plen) . $start_seq);
 	    }
 	}
     }
@@ -85,17 +86,32 @@ sub prev_seq {
 	foreach my $e (@{$edge_out{$n}}) {
 	    my @E=split("\t", $edge[$e]);
 	    next unless $E[2] eq "-";
+	    #print STDERR "    "x$level . "edge_out $e\n";
 	    my @N2 = split("\t", $node{$E[3]});
 	    my $pseq = $N2[2];
 	    if ($E[4] eq "+") {
 		$pseq =~ tr/ACGT/TGCA/;
 		$pseq = reverse($pseq);
 	    }
-	    push(@pseq, substr($pseq,-$plen));
+	    if (length($pseq) < $plen) {
+		my $p2len = $plen-length($pseq);
+		$start_seq = $start_seq . substr($pseq,0, $plen);
+		my @p = prev_seq($E[3], $p2len, $start_seq, $level+1);
+		#print STDERR "    "x$level . "Was too short by $p2len => @p\n";
+		if (scalar(@p)) {
+		    foreach (@p) {
+			push(@pseq, $_);
+		    }
+		} else {
+		    push(@pseq, $start_seq);
+		}
+	    } else {
+		push(@pseq, $start_seq . substr($pseq,0, $plen));
+	    }
 	}
     }
 
-    #print "<<< return @pseq\n";
+    #print STDERR "    "x$level . "<<< return @pseq\n";
     return @pseq;
 }
 
@@ -103,8 +119,9 @@ foreach my $n (sort keys %node) {
     my $nseq = $seq{$n};
     print "\@$n\n$nseq\n";
 
-    foreach my $prev (prev_seq($n, $kmer-1)) {
-	print $prev . $nseq, "\n";
+    foreach my $prev (prev_seq($n, $kmer-1, $nseq, 0)) {
+	#print $prev . $nseq, "\n";
+	print "$prev\n";
     }
 }
 
