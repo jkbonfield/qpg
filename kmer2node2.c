@@ -24,7 +24,8 @@
 // kmer is the kmer size itself.
 static int kmer = 50;
 // kmer_idx is the size of kmer used in the nodeseq file
-static int kmer_idx = 50;
+#define KMER_IDX_START 50
+static int kmer_idx = KMER_IDX_START;
 // Whether to use non-unique kmers in scoring
 static int use_non_uniq = 0;
 // Output edge metrics too;
@@ -202,9 +203,8 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
     int num = n->num;
     int i, j, len = strlen(str);
 
+    //printf("Index %s\n", str);
     // Assign "kmer" to node "num".  Duplicates get number -1
-    // This is costly as we're recomputing hash every time rather than using
-    // a rolling hash.
     uint32_t kh;
     uint8_t *str8 = (uint8_t *)str;
     for (i = 0; i < len - (kmer-1); i++) {
@@ -234,8 +234,8 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
 	    ns->kdir[k] = (ns->kdir[k] && ns->kdir[k] != kdir) ? 3 : kdir;
 	    unique = 1;
 	}
-//	printf("%d Index %08x %.*s %s %s\n", bidir, k, kmer, str+i,
-//	       n->name, unique?"":"dup");
+	//printf("%d Index %08x %.*s %s %s\n", bidir, k, kmer, str+i,
+	//       n->name, unique?"":"dup");
 
 	ndup  += !unique;
 	nuniq +=  unique;
@@ -459,9 +459,9 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		d1 = dir==3 ? 3 : 3-dir;
 		n1 = num;
 	    }
-	    fprintf(stderr, "Switch node %s%c -> %s%c\n",
-	    	    ns->num2node[n1]->name, "?+-b"[d1],
-	    	    ns->num2node[n2]->name, "?+-b"[d2]);
+//	    fprintf(stderr, "Switch node %s%c -> %s%c\n",
+//	    	    ns->num2node[n1]->name, "?+-b"[d1],
+//	    	    ns->num2node[n2]->name, "?+-b"[d2]);
 	    uint64_t ee = ((int64_t)(n1*4+d1)<<32) | (n2*4+d2);
 	    k = kh_put(edge, edges, ee, &ret);
 	    if (ret > 0) {
@@ -491,7 +491,7 @@ void usage(int ret) {
     printf("kmer2node2 [options] graph.nodeseq in.fasta\n");
     printf("Options:\n");
     printf("   -h         Help\n");
-    printf("   -k INT     Set kmer indexing / matching size\n");
+    printf("   -k INT     Set kmer indexing / matching size (also sets -K)\n");
     printf("   -K INT     Set kmer previously used in nodeseq creation\n");
     printf("   -U         Account for non-unique kmers in kmer ratio\n");
     printf("   -E FILE    Output edge weights too to FILE\n");
@@ -509,7 +509,7 @@ int main(int argc, char **argv) {
 	switch (c) {
 	case 'k':
 	    kmer = atoi(optarg);
-	    break;
+	    // fall through
 
 	case 'K':
 	    kmer_idx = atoi(optarg);

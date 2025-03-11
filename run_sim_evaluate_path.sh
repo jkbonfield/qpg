@@ -26,6 +26,5 @@ samtools view $shred -o $query.shred.fq
 minimap2 -x lr:hq -a $query.path_seq $query.shred.fq | samtools sort -o $query.bam
 
 samtools consensus -C0 $query.bam -o $query.path_cons
+#samtools consensus -C0 $query.bam -o $query.path_cons --show-ins no --show-del o
 candidate_stats.sh $truth $query.path_cons | tee $query.eval_cons
-
-#--- TODO: round 2: remap back to the consensus to improve further?

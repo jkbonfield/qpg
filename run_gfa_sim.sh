@@ -18,9 +18,12 @@ out_dir=`printf "$prefix%05d" $seed`
 rm -rf $out_dir 2>/dev/null
 mkdir $out_dir
 
+#k1=75
+#k2=50
+#k3=35
 k1=75
-k2=50
-k3=35
+k2=35
+k3=15
 
 cd $out_dir
 

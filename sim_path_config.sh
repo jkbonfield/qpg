@@ -31,5 +31,5 @@ pathfinder=${PATHFINDER:-$pathfinder_jkb}
 pathfinder_opts=${PATHFINDER_OPTS:--C40}
 
 #mqlib timeout
-timeout=${MQLIB_TIMEOUT:-30}
+timeout=${MQLIB_TIMEOUT:-10}
 
