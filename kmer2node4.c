@@ -39,6 +39,7 @@ static FILE *edge_fp = NULL;
 #define KSIZE (1<<KMER_IDX)
 #define KMASK (KSIZE-1)
 
+#define MAX_DUPS 10 // maximum number of nodes a kmer can be in.
 #define MAX_NODES (100*1024)
 
 static int ndup = 0, nuniq = 0;
@@ -47,6 +48,97 @@ static int ndup = 0, nuniq = 0;
 // FIXME: need to map ++, +-, -+ and -- transitions
 KHASH_MAP_INIT_INT64(edge, int)
 khash_t(edge) *edges = NULL;
+
+KHASH_MAP_INIT_STR(gfa_edge, int)
+khash_t(gfa_edge) *gfa_edges = NULL;
+
+/* ----------------------------------------------------------------------
+ * Loads edges from a GFA.  Minimal parsing.
+ * Returns 0 on success, <0 on failure
+ */
+int gfa_load(char *fn) {
+    FILE *fp = fopen(fn, "r");
+    if (!fp) {
+	perror(fn);
+	return -1;
+    }
+
+    if (!(gfa_edges = kh_init(gfa_edge)))
+	return -1;
+
+    kstring_t ks = KS_INITIALIZE;
+    while (ks.l = 0, kgetline(&ks, (kgets_func *)fgets, fp) >= 0) {
+	if (ks.l && *ks.s == 'L') {
+	    // Edge
+	    char *n1, *n2, d1, d2, *s = ks.s+2;
+	    n1 = s;
+	    if (!(s = strchr(s, '\t')))
+		continue;
+	    *s++ = 0;
+
+	    d1 = *s;
+	    if (!(s = strchr(s, '\t')))
+		continue;
+	    n2 = ++s;
+	    if (!(s = strchr(s, '\t')))
+		continue;
+	    *s++ = 0;
+	    d2 = *s;
+
+	    char *e = malloc(strlen(n1)+strlen(n2)+4);
+	    if (!e)
+		return -1;
+	    sprintf(e, "%s%c,%s%c", n1,d1, n2,d2);
+
+	    int ret;
+	    khiter_t k = kh_put(gfa_edge, gfa_edges, e, &ret);
+	    if (ret < -1)
+		return -1;
+	    if (ret == 0)
+		free(e); // already present
+
+	    kh_value(gfa_edges, k) = 0; // FIXME: should use a SET.
+	}
+    }
+    fclose(fp);
+
+    return 0;
+}
+
+/*
+ * Checks whether node n1 and n2 are linked with directions d1 and d2, which
+ * are '+' or '-'.
+ *
+ * TODO: permit distance N for N transitions away? Eg A and C are linked
+ * if we have A->B->C?  This may also need to be adjusted for M basepair away
+ * we can we track some expectation based on the offset between two kmers
+ * found within a sequence.
+ *
+ * Returns 0 if edge exists,
+ *        -1 if not.
+ */
+int gfa_edge_exists(khash_t(gfa_edge) *g, char *n1, char d1, char *n2, char d2) {
+    char *e = malloc(strlen(n1)+strlen(n2)+4);
+    if (!e)
+	return -1;
+    sprintf(e, "%s%c,%s%c", n1,d1, n2,d2);
+    khiter_t k = kh_get(gfa_edge, g, e);
+    //printf("Check %s %d,%d\n", e, k, k!=kh_end(g));
+
+    if (k == kh_end(g)) {
+	char dt = d1, *nt = n1;
+	d1 = d2=='+'?'-':'+';
+	n1 = n2;
+	d2 = dt=='+'?'-':'+';
+	n2 = nt;
+	sprintf(e, "%s%c,%s%c", n1,d1, n2,d2);
+	k = kh_get(gfa_edge, g, e);
+	//printf("Check %s %d,%d\n", e, k, k!=kh_end(g));
+    }
+    free(e);
+
+    return k != kh_end(g);
+}
 
 /* ----------------------------------------------------------------------
  * A node has a name, a length, and a bitvector of which kmers are present.
@@ -131,11 +223,18 @@ static inline void nibble2base(uint8_t *nib, char *seq, int len) {
  */
 KHASH_MAP_INIT_STR(node, node*)
 
+//// A node list
+//typedef struct node_list {
+//    int node;
+//    struct node_list *next;
+//} node_list;
+
 typedef struct {
     khash_t(node) *nodes;
     int nnodes;
-    int kmer[KSIZE];   // maps hash(kmer) to node number
-    char kdir[KSIZE];  // 0=unknown, 1=+ 2=- 3=both (eg dup within node)
+    char kdup[KSIZE]; // last used ele of kmer[].  >0 implies duplicated
+    int kmer[KSIZE][MAX_DUPS];   // maps hash(kmer) to node number
+    char kdir[KSIZE][MAX_DUPS];  // 0=unknown, 1=+ 2=- 3=both (eg dup within node)
     int unique[KSIZE]; // number of unique maps for this kmer
     node *num2node[MAX_NODES];
 } nodeset;
@@ -215,23 +314,41 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
 	//kh = hash_seq(str8+i); // FNV1a
 	uint32_t k = kh & KMASK;
 
-	int unique = 0;
-	if (ns->kmer[k] && ns->kmer[k] != num) {
-	    if (ns->kmer[k] != -1) {
-		// Dups with an old node, we need to fix kmer_unique/dup.
-		node *dup_n = ns->num2node[ns->kmer[k]];
+	int unique = 0, kc;
+
+	if (ns->kmer[k][0] && ns->kmer[k][0] != num) {
+	    if (ns->kdup[k] == 0) {
+		// Not previously observed as duplicated.
+		// Fix up the first occurance kmer_unique/dup counts.
+		node *dup_n = ns->num2node[ns->kmer[k][0]];
 		dup_n->kmer_unique -= ns->unique[k];
 		dup_n->kmer_dup    += ns->unique[k];
 	    }
-	    ns->kmer[k] = -1;
-	    ns->kdir[k] = 0;
+	    int kc = ++ns->kdup[k];
+
+	    // While it's dup, it may not be a new dup to us.
+	    for (kc = 1; kc < MAX_DUPS && ns->kmer[k][kc]; kc++)
+		if (ns->kmer[k][kc] == num)
+		    break;
+
+	    if (kc < MAX_DUPS && ns->kmer[k][kc] == 0) {
+		// Not observed with this node before
+		//printf("Set ns->kmer[%d][%d] = %d\n", k, kc, num);
+		ns->kdup[k] = kc;
+		ns->kmer[k][kc] = num;
+		int kdir=2-bidir; // 1(+)->1 0(-)->2
+		ns->kdir[k][kc] = (ns->kdir[k][kc] && ns->kdir[k][kc] != kdir)
+		    ? 3 : kdir;
+	    }
 	    n->kmer_dup++;
-	} else {
-	    ns->kmer[k] = num;
+	} else {	
+	    // First time finding it or only ever found in this same node
+	    ns->kmer[k][0] = num;
 	    ns->unique[k]++;
 	    n->kmer_unique++;
 	    int kdir=2-bidir; // 1(+)->1 0(-)->2
-	    ns->kdir[k] = (ns->kdir[k] && ns->kdir[k] != kdir) ? 3 : kdir;
+	    ns->kdir[k][0] = (ns->kdir[k][0] && ns->kdir[k][0] != kdir)
+		? 3 : kdir;
 	    unique = 1;
 	}
 	//printf("%d Index %08x %.*s %s %s\n", bidir, k, kmer, str+i,
@@ -345,17 +462,16 @@ void nodeset_report(nodeset *ns) {
 		ratio = ratio2;
 	}
 
-	// Compensate for possible hits where we don't know where they belong,
-	// but we had previous and next node hits and missing bits inbetween,
-	// due to duplications.
-	// We add them in a small degree so pathfinder has a better chance of
-	// using this node, but still not in full depth.
-	// TODO: count the number of places it could hit and randomly place them
-	// in proportion.
-	if (use_non_uniq) {
-	    ratio = ratio1 + (1-(double)expected2/n->length) *
-		log((double)n->hit_possible / n->length + 1);
-	}
+//	if (use_non_uniq) {
+//	    if (ratio < ratio2)
+//		ratio = ratio2;
+//
+//	    printf("%f %f \n", expected2, n->length - (n->length - expected2)/1.5);
+//	    expected2 = n->length - (n->length - expected2)/1.5;
+//	    double ratio3 = (n->hit_count+n->hit_possible+0.01)/(expected2+.01);
+//	    if (ratio < ratio3)
+//		ratio = ratio3;
+//	}
 
 	// Also compensation for small nodes.
 	double r = sqrt(n->length)/10;
@@ -378,10 +494,11 @@ void nodeset_report(nodeset *ns) {
 	    int n2 = ee & ((1ULL<<32)-1);
 	    int k2 = n2&3; n2>>=2;
 
-	    fprintf(edge_fp, "Edge %8s%c %8s%c %8d\n",
-		   ns->num2node[n1]->name, "?+-b"[k1],
-		   ns->num2node[n2]->name, "?+-b"[k2],
-		   kh_value(edges, k));
+	    if (n1 && n2)
+		fprintf(edge_fp, "Edge %8s%c %8s%c %8d\n",
+			ns->num2node[n1]->name, "?+-b"[k1],
+			ns->num2node[n2]->name, "?+-b"[k2],
+			kh_value(edges, k));
 	}
     }
 }
@@ -397,7 +514,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
     int i, len = b->core.l_qseq;
     uint8_t *seq = bam_get_seq(b);
 
-//    printf("Seq %s\n", bam_get_qname(b));
+    //printf("Seq %s\n", bam_get_qname(b));
     int last_node = -1, last_node_base = 0, last_node_poss = 0, last_dir = 0;
     int nposs_run = 0; // for node -1 and then changing node
 
@@ -412,14 +529,55 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	    : hash_init(bases, kmer);
 	//kh = hash_seq(bases+i); // FNV1a
 	uint32_t k = kh & KMASK;
-	
-	int num = ns->kmer[k];
-	int dir = ns->kdir[k];
+
+	int dup = (ns->kdup[k] > 0), was_dup = dup;
+	int num = ns->kmer[k][0];
+	int dir = ns->kdir[k][0];
+
+	// FIXME: we may start with a duplicate node and transition into
+	// unique, but for now we only rescue the other way around.
+
+	// Dup, but maybe graph unambiguates it for us.
+	if (dup && last_node_poss > 0) {
+	    int kc, kc1, kcn = 0;
+	    for (kc = 0; kc < MAX_DUPS && ns->kmer[k][kc]; kc++) {
+		int n = ns->kmer[k][kc];
+
+//		if (n != last_node_poss)
+//		    printf("i=%d: last=%d, dup %d %d\n", i, last_node_poss, kc, n);
+		if (n == last_node_poss ||
+		    gfa_edge_exists(gfa_edges,
+				    ns->num2node[last_node_poss]->name,
+				    "?+-b"[last_dir],
+				    ns->num2node[n]->name,
+				    "?+-b"[ns->kdir[k][kc]]) ||
+		    gfa_edge_exists(gfa_edges,
+				    ns->num2node[n]->name,
+				    "?+-b"[ns->kdir[k][kc]],
+				    ns->num2node[last_node_poss]->name,
+				    "?+-b"[last_dir])) {
+		    kc1 = kc;
+		    kcn++;
+		}
+	    }
+	    if (kcn == 1) {
+		kc = kc1;
+		num = ns->kmer[k][kc];
+		dir = ns->kdir[k][kc];
+//		if (last_node_poss != num)
+//		    printf("Found transition %d %d (%d)\n", last_node_poss, num, kc);
+		dup = 0;
+	    }
+	}
+
 //	printf(" %2d %08x %.*s %s %d   %d %d %d, %d %d\n", num, k, kmer, bases+i,
 //	       num > 0 ? ns->num2node[num]->name : "?",
 //	       i, nposs_run, last_node, last_node_poss, dir, last_dir);
-	if (num > 0) {
-	    ns->num2node[num]->hit_count++;
+	if (!dup && num > 0) {
+	    if (!use_non_uniq && was_dup)
+		ns->num2node[num]->hit_possible++;
+	    else
+		ns->num2node[num]->hit_count++;
 	    if (i > last_node_base+1 && last_node == num) {
 		// Correct for missing kmers from SNPs
 		int j;
@@ -447,7 +605,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		ns->num2node[last_node_poss]->hit_possible+=nposs_run;
 	}
 
-	if (edge_fp && num > 0 && last_node_poss != num && last_node_poss > 0) {
+	if (edge_fp && !dup && last_node_poss != num && last_node_poss > 0) {
 	    khiter_t k;
 	    int ret;
 	    int n1 = last_node_poss, d1 = last_dir;
@@ -459,9 +617,13 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		d1 = dir==3 ? 3 : 3-dir;
 		n1 = num;
 	    }
-//	    fprintf(stderr, "Switch node %s%c -> %s%c\n",
+//	    fprintf(stderr, "Switch node %s%c -> %s%c -> %d\n",
 //	    	    ns->num2node[n1]->name, "?+-b"[d1],
-//	    	    ns->num2node[n2]->name, "?+-b"[d2]);
+//	    	    ns->num2node[n2]->name, "?+-b"[d2],
+//		    gfa_edge_exists(gfa_edges,
+//				    ns->num2node[n1]->name, "?+-"[d1],
+//				    ns->num2node[n2]->name, "?+-"[d2]));
+
 	    uint64_t ee = ((int64_t)(n1*4+d1)<<32) | (n2*4+d2);
 	    k = kh_put(edge, edges, ee, &ret);
 	    if (ret > 0) {
@@ -474,8 +636,8 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 
 	if (num) {
 	    last_node_base = i; // records dup too so we only correct SNPs
-	    last_node = num;
-	    if (num > 0) {
+	    last_node = num ? num : (dup ? -1 : 0);
+	    if (!dup) {
 		last_node_poss = num;
 		last_dir = dir;
 		nposs_run = 0;
@@ -495,6 +657,7 @@ void usage(int ret) {
     printf("   -K INT     Set kmer previously used in nodeseq creation\n");
     printf("   -U         Account for non-unique kmers in kmer ratio\n");
     printf("   -E FILE    Output edge weights too to FILE\n");
+    printf("   -G FILE    Load GFA from FILE\n");
     exit(ret);
 }
 
@@ -505,7 +668,7 @@ int main(int argc, char **argv) {
     bam1_t *b = NULL;
     int c;
 
-    while ((c = getopt(argc, argv, "hk:K:UE:")) != -1) {
+    while ((c = getopt(argc, argv, "hk:K:UE:G:")) != -1) {
 	switch (c) {
 	case 'k':
 	    kmer = atoi(optarg);
@@ -525,6 +688,11 @@ int main(int argc, char **argv) {
 		perror(optarg);
 		return 1;
 	    }
+	    break;
+
+	case 'G':
+	    if (gfa_load(optarg) < 0)
+		return 1;
 	    break;
 
 	case 'h':
@@ -571,6 +739,10 @@ int main(int argc, char **argv) {
 	kh_destroy(edge, edges);
 	fclose(edge_fp);
     }
+
+    if (gfa_edges)
+	// FIXME: mem leak on keys.
+	kh_destroy(gfa_edge, gfa_edges);
     
     printf("%d / %d dups\n", ndup, ndup+nuniq);
     
