@@ -118,6 +118,9 @@ int gfa_load(char *fn) {
  *        -1 if not.
  */
 int gfa_edge_exists(khash_t(gfa_edge) *g, char *n1, char d1, char *n2, char d2) {
+    if (!g)
+	return -1;
+
     char *e = malloc(strlen(n1)+strlen(n2)+4);
     if (!e)
 	return -1;
@@ -514,15 +517,18 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
     int i, len = b->core.l_qseq;
     uint8_t *seq = bam_get_seq(b);
 
-    //printf("Seq %s\n", bam_get_qname(b));
+    static int poss_nodes[MAX_NODES] = {0};
+
+//    printf("Seq %s\n", bam_get_qname(b));
     int last_node = -1, last_node_base = 0, last_node_poss = 0, last_dir = 0;
     int nposs_run = 0; // for node -1 and then changing node
+    int nposs_dir = 0;
 
     // Our hashing works on ASCII
     uint8_t *bases = malloc(b->core.l_qseq);
     nibble2base(seq, (char *)bases, b->core.l_qseq);
     
-    uint32_t kh;
+    uint32_t kh, last_node_kmer;
     for (i = 0; i < len-(kmer-1); i++) {
 	kh = i
 	    ? hash_shift(kh, bases[i-1], bases[i+kmer-1], kmer)
@@ -533,6 +539,9 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	int dup = (ns->kdup[k] > 0), was_dup = dup;
 	int num = ns->kmer[k][0];
 	int dir = ns->kdir[k][0];
+
+//	printf("Pos %d, dup=%d num=%d dir=%d last=%d,%d x %d\n",
+//	       i, dup, num, dir, last_node, last_node_poss, nposs_run);
 
 	// FIXME: we may start with a duplicate node and transition into
 	// unique, but for now we only rescue the other way around.
@@ -553,9 +562,9 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 				    "?+-b"[ns->kdir[k][kc]]) ||
 		    gfa_edge_exists(gfa_edges,
 				    ns->num2node[n]->name,
-				    "?+-b"[ns->kdir[k][kc]],
+				    "?-+b"[ns->kdir[k][kc]],
 				    ns->num2node[last_node_poss]->name,
-				    "?+-b"[last_dir])) {
+				    "?-+b"[last_dir])) {
 		    kc1 = kc;
 		    kcn++;
 		}
@@ -595,6 +604,52 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 //		printf("Possible %d hits in new node %s\n",
 //		       nposs_run, ns->num2node[num]->name);
 		ns->num2node[num]->hit_possible+=nposs_run;
+	    } else if (nposs_run) {
+//		printf("Possible %d hits from dup node\n", nposs_run);
+		int nposs = 0, nposs_best;
+		for (int n = 0; n < ns->nnodes; n++) {
+		    if (!poss_nodes[n] || poss_nodes[n] < 0.5 * nposs_run)
+			continue;
+
+		    // Possible candidate for the dup part.
+		    int exists = 
+			(gfa_edge_exists(gfa_edges,
+					 ns->num2node[n]->name,
+					 "?+-b"[nposs_dir],
+					 ns->num2node[num]->name,
+					 "?+-b"[dir]) ||
+			 gfa_edge_exists(gfa_edges,
+					 ns->num2node[num]->name,
+					 "?-+b"[dir],
+					 ns->num2node[n]->name,
+					 "?-+b"[nposs_dir]));
+//		    printf("    %d %d:  %d\n", n, poss_nodes[i], exists);
+		    if (exists) {
+			nposs_best = n;
+			nposs++;
+		    }
+		}
+		if (nposs == 1) {
+//		    printf("    Add %d hits between %d and %d\n",
+//			   nposs_run, nposs_best, num);
+		    if (use_non_uniq) {
+			ns->num2node[nposs_best]->hit_count += nposs_run;
+		    } else {
+			ns->num2node[nposs_best]->hit_possible += nposs_run;
+		    }
+		    if (edges) {
+			int n1 = nposs_best, n2 = num, ret;
+			int d1 = nposs_dir, d2 = dir;
+			uint64_t ee = ((int64_t)(n1*4+d1)<<32) | (n2*4+d2);
+			khiter_t k = kh_put(edge, edges, ee, &ret);
+			if (ret > 0) {
+			    // new
+			    kh_value(edges, k) = 1;
+			} else {
+			    kh_value(edges, k)++;
+			}
+		    }
+		}
 	    }
 //	} else if (last_node_poss > 0) {
 //	    printf("Possible hit in node %d\n", last_node_poss);
@@ -639,10 +694,16 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	    last_node = num ? num : (dup ? -1 : 0);
 	    if (!dup) {
 		last_node_poss = num;
+		last_node_kmer = k;
 		last_dir = dir;
+		if (nposs_run)
+		    memset(poss_nodes, 0, ns->nnodes * sizeof(*poss_nodes));
 		nposs_run = 0;
 	    } else {
 		nposs_run++;
+		for (int kc = 0; kc < MAX_DUPS && ns->kmer[k][kc]; kc++)
+		    poss_nodes[ns->kmer[k][kc]]++;
+		nposs_dir = dir;
 	    }
 	}
     }
