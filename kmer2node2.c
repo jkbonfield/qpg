@@ -437,6 +437,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 //		printf("Possible %d hits in new node %s\n",
 //		       nposs_run, ns->num2node[num]->name);
 		ns->num2node[num]->hit_possible+=nposs_run;
+		nposs_run = 0;
 	    }
 //	} else if (last_node_poss > 0) {
 //	    printf("Possible hit in node %d\n", last_node_poss);
@@ -445,6 +446,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 //		printf("Possible %d hits in NEW node %s\n",
 //		       nposs_run, ns->num2node[last_node_poss]->name);
 		ns->num2node[last_node_poss]->hit_possible+=nposs_run;
+		nposs_run = 0;
 	}
 
 	if (edge_fp && num > 0 && last_node_poss != num && last_node_poss > 0) {

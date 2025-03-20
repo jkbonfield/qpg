@@ -114,16 +114,16 @@ int gfa_load(char *fn) {
  * we can we track some expectation based on the offset between two kmers
  * found within a sequence.
  *
- * Returns 0 if edge exists,
- *        -1 if not.
+ * Returns 1 if edge exists,
+ *         0 if not.
  */
 int gfa_edge_exists(khash_t(gfa_edge) *g, char *n1, char d1, char *n2, char d2) {
     if (!g)
-	return -1;
+	return 0;
 
     char *e = malloc(strlen(n1)+strlen(n2)+4);
     if (!e)
-	return -1;
+	return 0;
     sprintf(e, "%s%c,%s%c", n1,d1, n2,d2);
     khiter_t k = kh_get(gfa_edge, g, e);
     //printf("Check %s %d,%d\n", e, k, k!=kh_end(g));
@@ -519,7 +519,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 
     static int poss_nodes[MAX_NODES] = {0};
 
-//    printf("Seq %s\n", bam_get_qname(b));
+    printf("Seq %s\n", bam_get_qname(b));
     int last_node = -1, last_node_base = 0, last_node_poss = 0, last_dir = 0;
     int nposs_run = 0; // for node -1 and then changing node
     int nposs_dir = 0;
@@ -540,8 +540,8 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	int num = ns->kmer[k][0];
 	int dir = ns->kdir[k][0];
 
-//	printf("Pos %d, dup=%d num=%d dir=%d last=%d,%d x %d\n",
-//	       i, dup, num, dir, last_node, last_node_poss, nposs_run);
+	printf("Pos %d, dup=%d num=%d,%s dir=%d last=%d,%d x %d\n",
+	       i, dup, num, num?ns->num2node[num]->name:"*", dir, last_node, last_node_poss, nposs_run);
 
 	// FIXME: we may start with a duplicate node and transition into
 	// unique, but for now we only rescue the other way around.
@@ -604,8 +604,8 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 //		printf("Possible %d hits in new node %s\n",
 //		       nposs_run, ns->num2node[num]->name);
 		ns->num2node[num]->hit_possible+=nposs_run;
+		nposs_run = 0;
 	    } else if (nposs_run) {
-//		printf("Possible %d hits from dup node\n", nposs_run);
 		int nposs = 0, nposs_best;
 		for (int n = 0; n < ns->nnodes; n++) {
 		    if (!poss_nodes[n] || poss_nodes[n] < 0.5 * nposs_run)
@@ -629,6 +629,13 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 			nposs++;
 		    }
 		}
+		//if (nposs == 1) {
+		//    printf("Possible %d hits from dup node %s\n", nposs_run,
+		//	   ns->num2node[nposs_best]->name);
+		//} else {
+		//    printf("Possible %d hits from multiple dup nodes\n",
+		//	   nposs_run);
+		//}
 		if (nposs == 1) {
 //		    printf("    Add %d hits between %d and %d\n",
 //			   nposs_run, nposs_best, num);
@@ -637,6 +644,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		    } else {
 			ns->num2node[nposs_best]->hit_possible += nposs_run;
 		    }
+		    nposs_run = 0;
 		    if (edges) {
 			int n1 = nposs_best, n2 = num, ret;
 			int d1 = nposs_dir, d2 = dir;
@@ -658,6 +666,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 //		printf("Possible %d hits in NEW node %s\n",
 //		       nposs_run, ns->num2node[last_node_poss]->name);
 		ns->num2node[last_node_poss]->hit_possible+=nposs_run;
+		nposs_run = 0;
 	}
 
 	if (edge_fp && !dup && last_node_poss != num && last_node_poss > 0) {
