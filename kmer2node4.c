@@ -517,10 +517,11 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
     int i, len = b->core.l_qseq;
     uint8_t *seq = bam_get_seq(b);
 
-    static int poss_nodes[MAX_NODES] = {0};
+    int poss_nodes[MAX_NODES] = {0};
 
     printf("Seq %s\n", bam_get_qname(b));
     int last_node = -1, last_node_base = 0, last_node_poss = 0, last_dir = 0;
+    int last_node_count = 0;
     int nposs_run = 0; // for node -1 and then changing node
     int nposs_dir = 0;
 
@@ -569,12 +570,41 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		    kcn++;
 		}
 	    }
+
+// Attempt to track the number of copies of a node before/after a dup
+// so we don't create transitions unless the number is significant.
+//
+// This doesn't appear to help, but overall it needs a big rewrite to.
+// 1. Allocate all kmers to all nodes (unique or dups).
+// 2. Stitch together uniquely mapping nodes to ensure consistency.
+//    Maybe prune random hits so we have high scoring unique data only.
+// 3. Stitch together non-uniquely mapping nodes between the unique ones
+//    based on the GFA to see what routes are feasible.  This is a brute force
+//    path enumeration between all pairs uniquely mapped nodes.
+// 4. Allocate node weight to the paths found in 3, including completely
+//    unobserved nodes.
+// 5. Emit the full path for this sequence.
+//
+// The only difference between this and the whole thing is whether we do it
+// per read or at the end.  At the end is basically rewriting pathfinder.
+// Per read however turns it into a mapper and permits more complex analysis
+// such as diploid path finding or creating newly observed routes.
+
+#undef TRANSITION_COUNT
+
+#ifdef TRANSITION_COUNT
+	    if (kcn == 1 && last_node_count > 1) {
+#else
 	    if (kcn == 1) {
+#endif
 		kc = kc1;
 		num = ns->kmer[k][kc];
 		dir = ns->kdir[k][kc];
 //		if (last_node_poss != num)
-//		    printf("Found transition %d %d (%d)\n", last_node_poss, num, kc);
+//		    printf("Found transition %s %s %d (%d)\n",
+//			   ns->num2node[last_node_poss]->name,
+//			   ns->num2node[num]->name,
+//			   last_node_count, kc);
 		dup = 0;
 	    }
 	}
@@ -605,11 +635,29 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 //		       nposs_run, ns->num2node[num]->name);
 		ns->num2node[num]->hit_possible+=nposs_run;
 		nposs_run = 0;
-	    } else if (nposs_run) {
+	    } else if (nposs_run && last_node) {
+#ifdef TRANSITION_COUNT
+		// Scan ahead to count how many of the new node we have
+		int j;
+		uint32_t kh2 = kh;
+		printf("Scan ahead from %d of %d\n", i, len-(kmer-1));
+		for (j=i+1; j < len-(kmer-1); j++) {
+		    kh2 = hash_shift(kh2, bases[j-1], bases[j+kmer-1], kmer);
+		    uint32_t k = kh2 & KMASK;
+		    printf("%d %d, %c, %d ns->kmer[%u][0]=%d\n",
+			   i, j, bases[j-1], num, k, ns->kmer[k][0]);
+		    if (ns->kdup[k] > 0 || ns->kmer[k][0] != num)
+			break;
+		}
+		printf("Run for %d more kmers\n", j-i-1);
+#endif
 		int nposs = 0, nposs_best;
 		for (int n = 0; n < ns->nnodes; n++) {
 		    if (!poss_nodes[n] || poss_nodes[n] < 0.5 * nposs_run)
 			continue;
+//		    printf("Poss_nodes[%d]=%d, nposs_run=%d, %s %s\t",
+//			   n, poss_nodes[n], nposs_run,
+//			   ns->num2node[n]->name, ns->num2node[num]->name);
 
 		    // Possible candidate for the dup part.
 		    int exists = 
@@ -636,7 +684,11 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		//    printf("Possible %d hits from multiple dup nodes\n",
 		//	   nposs_run);
 		//}
-		if (nposs == 1) {
+#ifdef TRANSITION_COUNT
+		if (nposs == 1 && j-i > 1) {
+#else
+		if (nposs == 1 /*&& j-i > 1*/) {
+#endif
 //		    printf("    Add %d hits between %d and %d\n",
 //			   nposs_run, nposs_best, num);
 		    if (use_non_uniq) {
@@ -702,6 +754,10 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	    last_node_base = i; // records dup too so we only correct SNPs
 	    last_node = num ? num : (dup ? -1 : 0);
 	    if (!dup) {
+		if (num == last_node_poss)
+		    last_node_count++;
+		else
+		    last_node_count = 1;
 		last_node_poss = num;
 		last_node_kmer = k;
 		last_dir = dir;
