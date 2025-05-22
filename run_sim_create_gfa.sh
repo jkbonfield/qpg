@@ -17,10 +17,11 @@ echo === Building GFA
 perl -lane 'if (/>/) {s/>//;close(FH),open(FH,">$_");print FH ">$_";next} {print FH $_} END {close(FH)}' pop.fa
 
 ls -1 seq_* | head -30 > fofn.train
-minigraph -l 1000 -d 1000 -cxggs `cat fofn.train` > pop.gfa 2>pop.minigraph.err
+#minigraph -l 1000 -d 1000 -cxggs `cat fofn.train` > pop.gfa 2>pop.minigraph.err
+minigraph  -l 1000 -d 1000 -n 5,30 -cxggs `cat fofn.train` > pop.gfa 2>pop.minigraph.err
 echo "Node count:" `egrep -c '^S' pop.gfa`
 
-head -40 pop.fa > train.fa
+cat fofn.train > train.fa
 
 # Build the nodeseq index
 if [ "x$use_mg" != "x1" ]
