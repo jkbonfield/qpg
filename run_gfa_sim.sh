@@ -54,6 +54,10 @@ do
         #     $i.shred.fa
         #     $i.mg
         run_sim_add_gfa_weights_mg.sh pop.gfa $i
+    elif [ "x$use_ga" = "x1" ]
+    then
+	echo USE GraphAligner
+        run_sim_add_gfa_weights_ga.sh pop.gfa $i
     else
         # Add weights to the GFA via kmer2node.
         # Creates:
