@@ -92,6 +92,6 @@ done
 # Summary
 echo
 echo === Summary ===
-head -1 `ls -1 *.eval_cons|head -1`
-cat *.eval_cons|awk '!/Per/'
+head -1 `ls -1 *.eval_seq|head -1`
+cat *.eval_seq|awk '!/Per/'
 ) 2>sim.err | tee sim.out
