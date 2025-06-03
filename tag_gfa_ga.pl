@@ -38,9 +38,46 @@ close($fh);
 # Parse GraphAligner output
 my %coverage;
 my %EC;
+my @lines = ();
+my %ids;
 while (<>) {
     chomp($_);
+    push(@lines,$_);
     my @F = split(/\s+/, $_);
+    $ids{$F[0]}++;
+}
+
+for (my $i=0; $i <= $#lines; $i++) {
+    $_ = $lines[$i];
+    my @F = split(/\s+/, $_);
+    if ($ids{$F[0]} > 1) {
+	# Pick best
+	my $best = 0;
+	my $best_line = "";
+	#my $best_mq = 0;
+	#my $dup = 0;
+	my $j;
+	for ($j = 0; $j < $ids{$F[0]}; $j++) {
+	    my @F = split(/\s+/,$lines[$i+$j]);
+	    if ($F[10] >= $best && $F[11] > 0) {
+		#if ($F[10] > $best || $best_mq < $F[11]) {
+		#    $best_mq = $F[11];
+		#    $best_line = $lines[$i+$j];
+		#    $best = $F[10];
+		#}
+		#$dup = ($F[10] > $best) ? 0 : 1;
+		$best = $F[10];
+		$best_line = $lines[$i+$j];
+	    }
+	}
+	$i = $i+$j-1;
+	#if ($best > 0 && !$dup) { # doesn't help
+	if ($best > 0) {
+	    @F = split(/\s+/, $best_line);
+	} else {
+	    next;
+	}
+    }
     my @nodes = ();
     my @dirs = (); # FIXME: unused currently
     foreach ($F[5]=~m/[<>][^<>]*/g) {

@@ -41,3 +41,4 @@ fi
 
 # Use the last 10 as the test set
 ls -1 seq_* | tail -10 > fofn.test
+#echo seq_0006#1#1 > fofn.test
