@@ -26,8 +26,8 @@ static double CNV_new_rate = 1;
 static double CNV_edit_rate = 0;
 static double SNP_edit_rate = 0.005;
 //static double SNP_edit_rate = 0.05; // extreme!
-static double INS_edit_rate = 0.0005;
-static double DEL_edit_rate = 0.0005;
+//static double INS_edit_rate = 0.0005;
+//static double DEL_edit_rate = 0.0005;
 
 // Add repeat elements, such as SINE and LINEs.
 // For a given rep_len we use the same repeat sequence, but mutate it
@@ -152,7 +152,6 @@ void edit_STRs(char **seq_p, char **meta_p, int *length_p, double count_f,
     char *seq = *seq_p;
     char *meta = *meta_p;
 
-    int pos = -1, sz=1;
     int count = count_f + (drand48() < (count_f - (int)count_f));
     if (!count)
 	return;
@@ -288,7 +287,7 @@ void add_inversions(char *seq, char *meta, int length, double count_f, char code
     int count = count_f + (drand48() < (count_f - (int)count_f));
     for (int i = 0; i < count; i++) {
 	int iv_len = random()%256;
-	while (random()%3)
+	while (random()%3 && iv_len < (1<<29))
 	    iv_len*=2;
 	while (iv_len > length/10)
 	    iv_len/=3;
@@ -340,18 +339,21 @@ void genome_create(char **bases, char **meta, int *length, char *name) {
 
     // TODO: indels, use a tmp copy so we can insert/del without memmoves.
 
-    fprintf(seq_out, ">%s\n%s\n", name, *bases);
-    if (meta_out)
-	fprintf(meta_out, ">%s\n%s\n", name, *meta);
-
+    if (seq_out) {
+	fprintf(seq_out, ">%s\n%s\n", name, *bases);
+	if (meta_out)
+	    fprintf(meta_out, ">%s\n%s\n", name, *meta);
+    }
 }
 
-void population_create(int count) {
+void population_create(int pre_count, int count) {
+    //count++;
+
     // Initial pass;
-    char **bases = malloc(count * sizeof(*bases));
-    char **meta = malloc(count * sizeof(*meta));
+    char **bases = calloc(count, sizeof(*bases));
+    char **meta = calloc(count, sizeof(*meta));
     int global_length = length;
-    int *length = malloc(count * sizeof(*length));
+    int *length = calloc(count, sizeof(*length));
     if (!bases || !meta || !length) abort();
 
     length[0] = global_length;
@@ -365,42 +367,56 @@ void population_create(int count) {
     bases[0][length[0]] = 0;
     meta[0][length[0]] = 0;
 
+    // Create initial ancestral genome
+    FILE *seq_out_tmp = seq_out;  // FIXME: refactor to avoid globals
+    seq_out = NULL;
     genome_create(&bases[0], &meta[0], &length[0], "seq_0000#1#1");
 
     // proportion of the standard counts for new vs editing
-    STR_new_rate = 0.05;
-    STR_edit_rate = 1;
-    CNV_new_rate = 0.1;
-    CNV_edit_rate = 0.2;
-    trans_rate *= 0.1;
-    LINE_rate *= 0.1;
-    SINE_rate *= 0.1;
+    STR_new_rate   /= 100;
+    CNV_new_rate   /= 100;
+    STR_edit_rate   = 1e-1;
+    CNV_edit_rate   = 1e-3;
+    SNP_edit_rate  /= 100;
+    trans_rate     /= 100;
+    LINE_rate      /= 100;
+    SINE_rate      /= 100;
+    inversion_rate /= 100;
+    STR_snp_rate   /= 100;
+    rep_snp_rate   /= 100;
 
-    // DEBUG
-//    STR_edit_rate *= 2;
-//    CNV_edit_rate *= 2;
-
-//    // DEBUG
-//    STR_new_rate = 0;
-//    CNV_new_rate = 0;
-
-    LINE_rate /= 50;
-    SINE_rate /= 50;
-    trans_rate /= 10;
-
+    // Create a rolling population
     char name[100];
-    for (int i = 1; i < count; i++) {
+    for (int j = 0; j < pre_count; j++) {
 	// FIXME: make diploid
-	int prev = random()%i;
+	int prev = (j ? random()%j : 0)%count;
+	int i = (j+1)%count;
 	length[i] = length[prev];
-	bases[i] = malloc(length[i]+1);
-	meta[i] = malloc(length[i]+1);
+	bases[i] = realloc(bases[i], length[i]+1);
+	meta[i] = realloc(meta[i], length[i]+1);
 	if (!bases[i] || !meta[i]) abort();
 
 	memcpy(bases[i], bases[prev], length[i]+1);
 	memcpy(meta[i], meta[prev], length[i]+1);
 
-	sprintf(name, "seq_%04d#1#1", i);
+	sprintf(name, "seq_%04d#1#1", j);
+	genome_create(&bases[i], &meta[i], &length[i], name);
+    }
+    seq_out = seq_out_tmp;
+
+    // Continue the population, but now reporting members
+    for (int j = pre_count; j < pre_count + count; j++) {
+	int prev = (j ? random()%j : 0)%count;
+	int i = (j+1)%count;
+	length[i] = length[prev];
+	bases[i] = realloc(bases[i], length[i]+1);
+	meta[i] = realloc(meta[i], length[i]+1);
+	if (!bases[i] || !meta[i]) abort();
+
+	memcpy(bases[i], bases[prev], length[i]+1);
+	memcpy(meta[i], meta[prev], length[i]+1);
+
+	sprintf(name, "seq_%04d-%04d-#1#1", j, prev);
 	genome_create(&bases[i], &meta[i], &length[i], name);
     }
 
@@ -414,12 +430,15 @@ void population_create(int count) {
 }
 
 int main(int argc, char **argv) {
-    int seed = 0, count =1;
+    int seed = 0, generations = 0, count =1;
     int opt;
     seq_out = stdout;
 
-    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:o:O:P:E:I:")) != -1) {
+    while ((opt = getopt(argc, argv, "l:s:S:C:N:n:A:L:T:o:O:G:P:E:I:")) != -1) {
 	switch (opt) {
+	case 'G':
+	    generations = atoi(optarg);
+	    break;
 	case 'P':
 	    count = atoi(optarg);
 	    break;
@@ -494,6 +513,8 @@ int main(int argc, char **argv) {
 		    "    -L fraction    Rate of 2000bp repeat element [%f]\n"
 		    "    -T fraction    Rate of translocations [%f]\n"
 		    "    -I fraction    Rate of inversions [%f]\n"
+		    "    -P integer     Size of population to report\n"
+		    "    -G integer     Number of generations before report\n"
 		    "    -o FILE        Filename for fasta sequence [stdout]\n"
 		    "    -O FILE        Filename for fasta meta-data [/dev/null]\n",
 		    length, seed, STR_rate, CNV_rate, STR_snp_rate,
@@ -505,7 +526,7 @@ int main(int argc, char **argv) {
 
     srandom(seed);
 
-    population_create(count);
+    population_create(count * generations, count);
     //genome_create();
 
     int err = 0;

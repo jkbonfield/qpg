@@ -21,10 +21,16 @@ cd $out_dir
 
 (
 # Create fake genomes
-# Creates seq_* and fofn.test
-eval genome_create $genome_opts -s $seed | tail -20 | \
-perl -lane 'if (/>/) {s/>//;close(FH),open(FH,">$_");print FH ">$_";next} {print FH $_} END {close(FH)}'
-ls -1 seq_* | tail -10 > fofn.test
+# Even though we don't need it, we use run_sim_create_gfa.sh here so
+# we get a consistent list of test genomes.  TODO: hive this off to
+# its own script for efficiency.
+export use_syncasm=1
+run_sim_create_gfa.sh $seed 10 20 30
+
+## Creates seq_* and fofn.test
+#eval genome_create $genome_opts -s $seed | tail -20 | \
+#perl -lane 'if (/>/) {s/>//;close(FH),open(FH,">$_");print FH ">$_";next} {print FH $_} END {close(FH)}'
+#ls -1 seq_* | tail -10 > fofn.test
 
 # Foreach test genome, assemble and eval
 for i in `cat fofn.test`
