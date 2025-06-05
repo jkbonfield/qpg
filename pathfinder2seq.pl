@@ -19,14 +19,30 @@ while (<$gfa>) {
 my @path = ();
 my $in_path=0;
 my $contig=0;
-my $seq = "";
+
+sub print_path {
+    $contig++;
+    print ">contig_$contig\n";
+    my $seq = "";
+    foreach my $p (@_) {
+	my ($dir,$node) = @{$p};
+	my $gseq = $gfa{$node}{seq};
+	if ($dir eq "-") {
+	    $gseq =~ tr/ACGT/TGCA/;
+	    $gseq = reverse($gseq);
+	}
+	$seq .= $gseq;
+    }
+    print "$seq\n";
+}
+
 while (<>) {
     if (!/^\[/) {
 	if (/^PATH/) {
-	    print ">contig_$contig\n$seq\n" if ($seq);
+	    #print ">contig_$contig\n";
+	    print_path @path if (scalar(@path));
 	    $in_path = 1;
-	    $contig++;
-	    $seq = "";
+	    @path = ();
 	} else {
 	    $in_path = 0;
 	}
@@ -35,19 +51,9 @@ while (<>) {
 
     next unless $in_path;
     chomp();
+    print STDERR "in path $contig: $_\n";
     my ($node,$dir) = ($_=~m/(\S+)([-+])$/);
     push(@path, [$dir, $node]);
 }
 
-$seq = "";
-foreach my $p (@path) {
-    my ($dir,$node) = @{$p};
-    my $gseq = $gfa{$node}{seq};
-    if ($dir eq "-") {
-	$gseq =~ tr/ACGT/TGCA/;
-	$gseq = reverse($gseq);
-    }
-    $seq .= $gseq;
-}
-
-print ">contig_$contig\n$seq\n" if ($seq);
+print_path @path if (scalar(@path));
