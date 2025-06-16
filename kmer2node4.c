@@ -486,6 +486,7 @@ void nodeset_report(nodeset *ns) {
     }
 
     if (edge_fp) {
+	fflush(stdout); // Work around mixing stdout with edge_fp
 	khiter_t k;
 	for (k = kh_begin(edges); k != kh_end(edges); k++) {
 	    if (!kh_exist(edges, k))
