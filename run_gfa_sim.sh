@@ -1,30 +1,104 @@
 #!/bin/bash
 
-if [ $# -lt 2 ]
-then
-    echo Usage: run_gfa_sim.sh seed solver [out_prefix] 1>&2
-    exit 1
+help() {
+    echo Usage: run_gfa_sim.sh [options] [seed solver [out_prefix]] 1>&2
+    echo Options:
+    echo "    -c,--config    FILE    Use FILE as configuration"
+    echo "    -s,--seed      INT     Specificy random number seed"
+    echo "    -p,--prefix    STR     Use STR as the output dir prefix [sim_]"
+    echo "       --solver    STR     Specify the solver"
+    echo "    -a,--annotate  STR     GFA node weight algorithm"
+    echo "       --shred_len INT     Shotgun read length"
+    echo "       --shred_err FLOAT   Shotgun read error rate (fraction)"
+    echo ""
+    echo "The old API is still supported with fixed argument order."
+}
+
+config=${CONFIG:-$QDIR/config_hifi_km.sh}
+. $config
+
+prefix="sim_"
+seed=1
+solver=pathfinder
+
+while true
+do
+    case "$1" in
+	'-h')
+	    help
+	    exit 0
+	    ;;
+	'-c'|'--config')
+	    # Run now so we can override with other arguments
+	    config=$2
+	    . $config
+	    shift 2
+	    continue
+	    ;;
+	'-s'|'--seed')
+	    seed=$2
+	    shift 2
+	    continue
+	    ;;
+	'--solver')
+	    solver=$2
+	    shift 2
+	    continue
+	    ;;
+	'-p'|'--prefix')
+	    prefix=$2
+	    shift 2
+	    continue
+	    ;;
+	'-a'|'--annotate')
+	    annotate=$2
+	    shift 2
+	    continue
+	    ;;
+	'--shred-len')
+	    shred_len=$2
+	    shift 2
+	    continue
+	    ;;
+	'--shred-err')
+	    shred_err=0.001
+	    shift 2
+	    continue
+	    ;;
+	*)
+	    break
+	    ;;
+    esac
+done
+
+# Old CLI syntax also used and overrides any --opt setting
+if [ $# -gt 0 ]; then
+    seed=$1
+    shift
+fi
+if [ $# -gt 0 ]; then
+    solver=$1
+    shift
+fi
+if [ $# -gt 0 ]; then
+    prefix=$1
+    shift
 fi
 
-seed=$1
-solver=$2
-prefix=${3:-sim_}
 export QDIR=${QDIR:-`pwd`}
 export PATH=$QDIR:$PATH
+export CONFIG=$config; # still used in some other scripts
 
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
+echo "Config:   $config"
+echo "Solver:   $solver"
+echo "Seed:     $seed"
+echo "Annotate: $annotate"
+echo "prefix:   $prefix"
+echo ""
 
 out_dir=`printf "$prefix%05d" $seed`
 rm -rf $out_dir 2>/dev/null
 mkdir $out_dir
-
-#k1=75
-#k2=50
-#k3=35
-
-#k1=75
-#k2=35
-#k3=15
 
 k1=75
 k2=35
@@ -46,30 +120,17 @@ run_sim_create_gfa.sh $seed $k1 $k2 $k3
 # Foreach test genome, not used in pangenome creation, find path and eval
 for i in `cat fofn.test`
 do
-    if [ "x$use_mg" = "x1" ]
-    then
-        # Add weights to the GFA via minigraph
-        # Creates:
-        #     $i.gfa (primary output; annotated pop.gfa)
-        #     $i.shred.fa
-        #     $i.mg
-        run_sim_add_gfa_weights_mg.sh pop.gfa $i
-    elif [ "x$use_ga" = "x1" ]
-    then
-	echo USE GraphAligner
-        run_sim_add_gfa_weights_ga.sh pop.gfa $i
-    else
-        # Add weights to the GFA via kmer2node.
-        # Creates:
-        #     $i.gfa (primary output; annotated pop.gfa)
-        #     $i.shred.fa
-        #     $i.nodes.$k1
-        #     $i.nodes.$k2
-        #     $i.nodes.$k3
-        #     $i.nodes
-        run_sim_add_gfa_weights.sh pop.gfa $i $k1 $k2 $k3
-    fi
-
+    # Add weights to the GFA via minigraph
+    # Creates:
+    #     $i.gfa (primary output; annotated pop.gfa)
+    #     $i.shred.fa
+    #     $i.mg
+    # For kmer2node also creates:
+    #     $i.nodes.$k1
+    #     $i.nodes.$k2
+    #     $i.nodes.$k3
+    #     $i.nodes
+    eval run_sim_add_gfa_weights_${annotate}.sh pop.gfa $i $k1 $k2 $k3 2>&1
 
     # Find a path
     # Creates:

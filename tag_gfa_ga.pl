@@ -35,7 +35,12 @@ while (<$fh>) {
 }
 close($fh);
 
-# Parse GraphAligner output
+# Parse GraphAligner output.  Uses:
+# F[0] for name to identify secondary alignments
+# F[5] for the path ([<>]node)*
+# F[10] for alignment length
+# F[11] for alignment mapping quality
+# F[2] and F[3] for alignment start/end
 my %coverage;
 my %EC;
 my @lines = ();

@@ -35,7 +35,7 @@ echo "Node count:" `egrep -c '^S' pop.gfa`
 cat fofn.train > train.fa
 
 # Build the nodeseq index
-if [ "x$use_mg" == "x0" -a "x$use_mg" == "x0" ]
+if [ "x$annotate" == "xkm" ]
 then
     echo === Creating nodeseq files, kmers $k1, $k2, $k3
     /nfs/sam_scratch/jkb/conda22.old/bin/GraphAligner -g pop.gfa -f train.fa -x vg -a pop.gaf >pop.GraphAligner.out

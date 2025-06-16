@@ -31,14 +31,14 @@ miniasm_opts="-s1500 -F0.9 -c3 -m500 -e10"
 syncasm_kmer=401
 kmer2node_kmer=51
 
-# Use minigraph
-use_mg=1
+# Annotation method
+annotate=km; # kmer2node
 
 #pathfinder_cz3=/lustre/scratch127/qpg/cz3/QuantumTangle/pathfinder/pathfinder
 #pathfinder_jkb=/lustre/scratch125/ids/team117/sam/jkb/quantum/pathfinder/pathfinder
 #pathfinder=${PATHFINDER:-$pathfinder_jkb}
 pathfinder=/software/badger/opt/pangenomes/bin/pathfinder
-#pathfinder_opts=${PATHFINDER_OPTS:--C40}
+#pathfinder_opts=${PATHFINDER_OPTS:--X40}
 pathfinder_opts=${PATHFINDER_OPTS:--X40 --min-seq-cov 2}
 
 #mqlib timeout
