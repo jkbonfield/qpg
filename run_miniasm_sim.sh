@@ -49,7 +49,7 @@ do
     # Higher -w is fewer contigs and better %used, but worse covered%
     minimap2_opts="-k17 -w7 -X -m50 -f 0.0005"
     # slower, but maybe a bit better
-    #minimap2_opts="-k17 -w7 -X -m50 -f 0.0002"
+    minimap2_opts="-k17 -w7 -X -m50 -f 0.001"
 
     # Higher -F is fewer contigs and better %used, but slightly worse covered%
     # Lower  -m is                   poorer %used, poorer covered%?

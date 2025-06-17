@@ -41,7 +41,7 @@ do
     shred.pl -s 1 -l $shred_len -e $shred_err -d $shred_depth $i > $shred_fa
 
     # Assemble and turn GFA to contigs fasta
-    syncasm -k 60 $shred_fa
+    eval syncasm $syncasm_opts $shred_fa
     awk '/^S/ {printf(">%s\n",$2);print $3}' syncasm.asm.utg.gfa > $i.asm.fa
 
     # Evaluate

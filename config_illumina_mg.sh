@@ -1,5 +1,2 @@
-. $QDIR/config_base.sh
-
-shred_len=200
-shred_err=0.001
+. $QDIR/config_illumina.sh
 annotate=mg
