@@ -120,7 +120,6 @@ k1=75
 k2=35
 k3=20
 
-cd "$out_dir" || exit
 
 (
 # Create fake genomes and use the training set to create a pangenome
@@ -159,7 +158,7 @@ do
         if [ -z "${num_jobs}" ]; then
             num_jobs=2
         fi
-        run_sim_solver_qubo.sh "$i".gfa "$solver" "$i" "$time_limits" "$num_jobs"
+        run_sim_solver_qubo.sh "$i".gfa "$solver" "$i" "$time_limits" "$num_jobs" $mode
         echo "Finished sim solver qubo"
         for t in ${time_limits//,/ }; do
             for ((idx=0;idx<num_jobs;idx++)); do
@@ -170,7 +169,7 @@ do
     else
         time_limits=0
         num_jobs=1
-        run_sim_solver_"$solver".sh "$i".gfa > "$i".path
+        run_sim_solver_"$solver".sh "$i".gfa $mode > "$i".path
         pathfinder2seq.pl pop.gfa "$i".path > "$i".path_seq.0.0
         sed -n '/PATH/,$p' "$i".path \
         | awk '/^\[/ {printf("%s ",$3)} END {print "\n"}' 1>&2

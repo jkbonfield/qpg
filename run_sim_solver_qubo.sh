@@ -4,10 +4,11 @@ solver="$2"
 query="$3"
 time_limits="$4"
 num_jobs="$5"
+mode="$6"
 
 outdir="."
 
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
+. ${CONFIG:-$QDIR/sim_path_config_hifi.sh} $mode
 
 QUBO_DIR=/nfs/users/nfs_j/jc59/quantumwork/pangenome/qubo_solvers
 source $QUBO_DIR/.venv/bin/activate

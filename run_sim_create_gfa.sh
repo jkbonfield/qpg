@@ -1,7 +1,4 @@
 #!/bin/bash
-mode=1
-
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
 
 seed=$1
 k1=$2
@@ -9,6 +6,8 @@ k2=$3
 k3=$4
 mode=$5
 num_training=$6
+
+. ${CONFIG:-$QDIR/sim_path_config_hifi.sh} $mode
 
 # Produce sequences
 echo === Creating population

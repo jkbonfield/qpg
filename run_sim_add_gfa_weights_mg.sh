@@ -1,6 +1,6 @@
 #!/bin/bash
-
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
+mode=$3
+. ${CONFIG:-$QDIR/sim_path_config_hifi.sh} $mode
 
 # Adds weights using minigraph to align and amend the GFA
 

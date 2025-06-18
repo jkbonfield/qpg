@@ -1,12 +1,14 @@
 #!/bin/bash
 
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
-
 gfa=$1
 query=$2
 k1=$3
 k2=$4
 k3=$5
+mode=$6
+
+. ${CONFIG:-$QDIR/sim_path_config_hifi.sh} $mode
+
 
 nodeseq1=$gfa.ns$k1
 nodeseq2=$gfa.ns$k2

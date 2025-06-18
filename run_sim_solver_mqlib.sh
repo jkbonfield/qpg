@@ -1,6 +1,7 @@
 #!/bin/bash
+mode=$2
 
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
+. ${CONFIG:-$QDIR/sim_path_config_hifi.sh} $mode
 
 copy_numbers=$(perl -e '
 use strict;
