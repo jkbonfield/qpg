@@ -99,7 +99,7 @@ num_jobs=$5
 mode=$6
 num_training=$7
 
-# TODO: why need to export this before?
+
 export QDIR=${QDIR:-$(pwd)}
 export PATH=$QDIR:$PATH
 export CONFIG=$config; # still used in some other scripts
@@ -111,7 +111,7 @@ echo "Annotate: $annotate"
 echo "prefix:   $prefix"
 echo ""
 
-out_dir=`printf "$prefix%05d" $seed`
+out_dir=$(printf "$prefix%05d" $seed)
 echo $out_dir
 rm -rf $out_dir 2>/dev/null
 mkdir $out_dir
@@ -197,8 +197,8 @@ done
 
 # Summary
 echo
-echo === Summary ===
-head -1 `ls -1 *.eval_seq|head -1`
+echo "=== Summary ==="
+head -1 $(ls -1 *.eval_seq|head -1)
 cat *.eval_seq|awk '!/Per/'
 
 for t in ${time_limits//,/ }; do
