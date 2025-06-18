@@ -1,21 +1,17 @@
 #!/bin/bash
-if [ $# -lt 2 ]
-then
-    echo "Usage: run_gfa_sim.sh seed solver [out_prefix time_limits num_jobs mode num_training]"  1>&2
-    exit 1
-fi
-
-
 help() {
     echo Usage: run_gfa_sim.sh [options] [seed solver [out_prefix]] 1>&2
     echo Options:
     echo "    -c,--config    FILE    Use FILE as configuration"
-    echo "    -s,--seed      INT     Specificy random number seed"
+    echo "    -s,--seed      INT     Specify random number seed [1]"
     echo "    -p,--prefix    STR     Use STR as the output dir prefix [sim_]"
-    echo "       --solver    STR     Specify the solver"
-    echo "    -a,--annotate  STR     GFA node weight algorithm"
+    echo "       --solver    STR     Specify the solver [pathfinder]"
+    echo "    -a,--annotate  STR     GFA node weight algorithm [km]"
     echo "       --shred_len INT     Shotgun read length"
     echo "       --shred_err FLOAT   Shotgun read error rate (fraction)"
+    echo "    -t,--times     INT_LIST   Time limits provided to QUBO solvers"
+    echo "    -j,--jobs      INT     Number of runs of QUBO solvers"
+    echo "    -n,--training  INT     Number of strings to use as training set [10]"
     echo ""
     echo "The old API is still supported with fixed argument order."
 }
@@ -26,6 +22,7 @@ config=${CONFIG:-$QDIR/config_hifi_km.sh}
 prefix="sim_"
 seed=1
 solver=pathfinder
+num_training=10
 
 while true
 do
@@ -61,6 +58,21 @@ do
 	    shift 2
 	    continue
 	    ;;
+	'-t'|'--times')
+	    time_limits=$2
+	    shift 2
+	    continue
+	    ;;
+	'-j'|'--jobs')
+	    num_jobs=$2
+	    shift 2
+	    continue
+	    ;;
+	'-n'|'--training')
+	    num_training=$2
+	    shift 2
+	    continue
+	    ;;
 	'--shred-len')
 	    shred_len=$2
 	    shift 2
@@ -91,13 +103,7 @@ if [ $# -gt 0 ]; then
     shift
 fi
 
-seed=$1
-solver=$2
-prefix=${3:-sim_}
-time_limits=$4
-num_jobs=$5
-mode=$6
-num_training=$7
+# mode=$6
 
 
 export QDIR=${QDIR:-$(pwd)}
@@ -111,15 +117,16 @@ echo "Annotate: $annotate"
 echo "prefix:   $prefix"
 echo ""
 
-out_dir=$(printf "$prefix%05d" $seed)
-echo $out_dir
-rm -rf $out_dir 2>/dev/null
-mkdir $out_dir
+out_dir=$(printf "$prefix%05d" "$seed")
+echo "$out_dir"
+rm -rf "$out_dir" 2>/dev/null
+mkdir "$out_dir"
 
 k1=75
 k2=35
 k3=20
 
+cd "$out_dir" || exit 1
 
 (
 # Create fake genomes and use the training set to create a pangenome
@@ -130,7 +137,7 @@ k3=20
 #    pop.gfa.ns$k3
 #    fofn.test
 #    fofn.train
-run_sim_create_gfa.sh "$seed" $k1 $k2 $k3 $mode $num_training
+run_sim_create_gfa.sh "$seed" $k1 $k2 $k3 "$num_training" # $mode 
 
 # Foreach test genome, not used in pangenome creation, find path and eval
 for i in $(cat fofn.test)
@@ -151,11 +158,13 @@ do
     # Creates:
     #     $i.path
     qubo_solvers="mqlib gurobi dwave"
-    if [[ " $qubo_solvers " =~ " $solver " ]]; then
+    if [[ " $qubo_solvers " =~  $solver  ]]; then
         if [ -z "${time_limits}" ]; then
+            echo "Default time limits: 3,5"
             time_limits="3,5"
         fi
         if [ -z "${num_jobs}" ]; then
+            echo "Default jobs: 2"
             num_jobs=2
         fi
         run_sim_solver_qubo.sh "$i".gfa "$solver" "$i" "$time_limits" "$num_jobs" $mode
@@ -196,20 +205,16 @@ do
 done
 
 # Summary
-echo
-echo "=== Summary ==="
-head -1 $(ls -1 *.eval_seq|head -1)
-cat *.eval_seq|awk '!/Per/'
-
 for t in ${time_limits//,/ }; do
     for ((idx=0;idx<num_jobs;idx++)); do
         echo 
         echo
         echo "=== Summary $t $idx==="
-        head -1 $(ls -1 *.eval_cons.$t.$idx |head -1)
-        cat *.eval_cons."$t".$idx | awk '!/Per/'  
+        head -1 $(ls -1 *.eval_cons.$t.$idx | head -1)
+        cat ./*.eval_cons."$t".$idx | awk '!/Per/'  
     done
 done
 
 ) 2>sim.err | tee sim.out
 
+exit 0
