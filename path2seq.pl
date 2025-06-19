@@ -34,7 +34,7 @@ while (<>) {
     }
 }
 
-print "@path\n";
+#print "@path\n";
 
 foreach my $p (@path) {
     my ($dir,$node) = @{$p};
