@@ -208,7 +208,7 @@ foreach (sort keys %SQ_len) {
 	    # Match or a big deletion
 	    if (--$delta_score < 0) {
 		if ($max_score > 0 && $end_pos - $start_pos >= $diff_max) {
-		    print "DELTA $start_pos $end_pos ",$end_pos-$start_pos,"\n";
+		    # print "DELTA $start_pos $end_pos ",$end_pos-$start_pos,"\n";
 		    $ndiffs{$_}++;
 		    $pos = $end_pos; # restart to find up-down-up combos.
 		}
