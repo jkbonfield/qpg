@@ -103,8 +103,6 @@ if [ $# -gt 0 ]; then
     shift
 fi
 
-# mode=$6
-
 
 export QDIR=${QDIR:-$(pwd)}
 export PATH=$QDIR:$PATH
@@ -137,7 +135,7 @@ cd "$out_dir" || exit 1
 #    pop.gfa.ns$k3
 #    fofn.test
 #    fofn.train
-run_sim_create_gfa.sh "$seed" $k1 $k2 $k3 "$num_training" # $mode 
+run_sim_create_gfa.sh "$seed" $k1 $k2 $k3 "$num_training"
 
 # Foreach test genome, not used in pangenome creation, find path and eval
 for i in $(cat fofn.test)
@@ -167,7 +165,7 @@ do
             echo "Default jobs: 2"
             num_jobs=2
         fi
-        run_sim_solver_qubo.sh "$i".gfa "$solver" "$i" "$time_limits" "$num_jobs" $mode
+        run_sim_solver_qubo.sh "$i".gfa "$solver" "$i" "$time_limits" "$num_jobs"
         echo "Finished sim solver qubo"
         for t in ${time_limits//,/ }; do
             for ((idx=0;idx<num_jobs;idx++)); do
@@ -178,7 +176,7 @@ do
     else
         time_limits=0
         num_jobs=1
-        run_sim_solver_"$solver".sh "$i".gfa $mode > "$i".path
+        run_sim_solver_"$solver".sh "$i".gfa > "$i".path
         pathfinder2seq.pl pop.gfa "$i".path > "$i".path_seq.0.0
         sed -n '/PATH/,$p' "$i".path \
         | awk '/^\[/ {printf("%s ",$3)} END {print "\n"}' 1>&2

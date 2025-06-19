@@ -10,8 +10,8 @@ outdir="."
 
 . ${CONFIG:-$QDIR/config_hifi_km.sh} # $mode
 
-QUBO_DIR=/nfs/users/nfs_j/jc59/quantumwork/pangenome/qubo_solvers
-source $QUBO_DIR/.venv/bin/activate
+QUBO_DIR=/software/badger/opt/pangenomes/qubo
+source $QUBO_DIR/qubo_venv/bin/activate
 
 copy_numbers=$(perl -e '
 use strict;
@@ -32,7 +32,7 @@ else
 fi
 echo $penalties
 
-python3 $QUBO_DIR/qubo_solvers/oriented_tangle/build_oriented_qubo_matrix.py -f $gfa_filepath -d $outdir -c $copy_numbers -p $penalties
-python3 $QUBO_DIR/qubo_solvers/oriented_tangle/oriented_max_path.py -s $solver -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t $time_limits -o "$query.gaf"
+python3 $QUBO_DIR/qubo_venv/bin/build_oriented_qubo_matrix.py -f $gfa_filepath -d $outdir -c $copy_numbers -p $penalties
+python3 $QUBO_DIR/qubo_venv/bin/oriented_max_path.py -s $solver -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t $time_limits -o "$query.gaf"
 
 exit 0
