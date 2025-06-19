@@ -34,7 +34,7 @@ echo "=== Building GFA"
 minigraph  -l 1000 -d 10000 -n 5,20 -cxggs $(cat fofn.train) > pop.gfa 2>pop.minigraph.err
 echo "Node count:" "$(grep -E -c '^S' pop.gfa)"
 
-cat fofn.train > train.fa
+cat `cat fofn.train` > train.fa
 
 # Build the nodeseq index
 if [ "$annotate" == "km" ]
