@@ -123,7 +123,7 @@ while (<$fh>) {
 	my @F_ = split(/\s+/, $_);
 	my @F = @F_[0..2];
 	push(@F, "LN:i:".length($F[2]));
-	my $cov = exists($coverage{$F[1]}) ? $coverage{$F[1]} : 0;
+	my $cov = exists($coverage{$F[1]}) ? int($coverage{$F[1]}+.99) : 0;
 	#$cov = $cov * 30 / length($F[2]);
 	push(@F, "KC:i:".$cov);
 	push(@F, "SC:f:".$cov / length($F[2]));
