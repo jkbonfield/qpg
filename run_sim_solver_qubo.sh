@@ -10,7 +10,7 @@ outdir="."
 
 . ${CONFIG:-$QDIR/config_hifi_km.sh} # $mode
 
-QUBO_DIR=/software/badger/opt/pangenomes/qubo
+QUBO_DIR=/software/qpg/qubo
 source $QUBO_DIR/qubo_venv/bin/activate
 
 copy_numbers=$(perl -e '
