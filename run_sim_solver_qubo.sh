@@ -11,6 +11,7 @@ outdir="."
 . ${CONFIG:-$QDIR/config_hifi_km.sh} # $mode
 
 QUBO_DIR=/software/qpg/qubo
+PATH=$PATH:$QUBO_DIR
 source $QUBO_DIR/qubo_venv/bin/activate
 
 copy_numbers=$(perl -e '

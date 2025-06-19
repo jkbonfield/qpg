@@ -150,6 +150,7 @@ do
     #     $i.nodes.$k2
     #     $i.nodes.$k3
     #     $i.nodes
+    echo "Annotate: run_sim_add_gfa_weights_${annotate}.sh pop.gfa $i $k1 $k2 $k3"
     eval run_sim_add_gfa_weights_${annotate}.sh pop.gfa $i $k1 $k2 $k3
 
     # Find a path
