@@ -32,7 +32,7 @@ else
 fi
 echo $penalties
 
-python3 $QUBO_DIR/qubo_venv/bin/build_oriented_qubo_matrix.py -f $gfa_filepath -d $outdir -c $copy_numbers -p $penalties
-python3 $QUBO_DIR/qubo_venv/bin/oriented_max_path.py -s $solver -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t $time_limits -o "$query.gaf"
+python3 $QUBO_DIR/build_oriented_qubo_matrix.py -f $gfa_filepath -d $outdir -c $copy_numbers -p $penalties
+python3 $QUBO_DIR/oriented_max_path.py -s $solver -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t $time_limits -o "$query.gaf"
 
 exit 0
