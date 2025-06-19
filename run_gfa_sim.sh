@@ -208,7 +208,11 @@ for t in ${time_limits//,/ }; do
     for ((idx=0;idx<num_jobs;idx++)); do
         echo 
         echo
-        echo "=== Summary $t $idx==="
+        echo "=== Summary $t $idx ==="
+        head -1 $(ls -1 *.eval_seq.$t.$idx | head -1)
+        cat ./*.eval_seq."$t".$idx | awk '!/Per/'  
+
+	echo
         head -1 $(ls -1 *.eval_cons.$t.$idx | head -1)
         cat ./*.eval_cons."$t".$idx | awk '!/Per/'  
     done

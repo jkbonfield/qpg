@@ -10,7 +10,7 @@ k1=75
 k2=50
 k3=35
 
-. $qdir/sim_path_config_hifi.sh
+. $qdir/config_illumina.sh
 
 /bin/rm -f _ar.*
 

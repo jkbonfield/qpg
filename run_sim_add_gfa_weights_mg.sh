@@ -1,6 +1,6 @@
 #!/bin/bash
 mode=$3
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh} $mode
+. ${CONFIG:-$QDIR/config_illumina.sh} $mode
 
 # Adds weights using minigraph to align and amend the GFA
 

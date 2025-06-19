@@ -1,5 +1,5 @@
 #!/bin/sh
-. ${CONFIG:-./sim_path_config.sh}
+. ${CONFIG:-./config_illumina.sh}
 
 # Path reconstruction with a simulated sequence and pathfinder
 

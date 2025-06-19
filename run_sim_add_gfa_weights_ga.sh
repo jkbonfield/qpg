@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
+. ${CONFIG:-$QDIR/config_illumina.sh}
 
 gfa=$1
 query=$2

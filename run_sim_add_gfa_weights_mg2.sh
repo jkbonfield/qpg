@@ -5,7 +5,7 @@
 # minigraph >s1>s2... paths into kmer counts, instead of using --cov
 ############
 
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
+. ${CONFIG:-$QDIR/config_illumina.sh}
 
 # Adds weights using minigraph to align and amend the GFA
 

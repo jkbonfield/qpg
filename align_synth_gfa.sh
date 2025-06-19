@@ -6,7 +6,7 @@ query=$1
 gfa=$2
 nodeseq=$3
 
-. $qdir/sim_path_config_hifi.sh
+. $qdir/config_illumina.sh
 
 /bin/rm -f _ar.*
 

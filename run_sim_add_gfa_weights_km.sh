@@ -7,7 +7,7 @@ k2=$4
 k3=$5
 mode=$6
 
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh} $mode
+. ${CONFIG:-$QDIR/config_illumina.sh} $mode
 
 
 nodeseq1=$gfa.ns$k1

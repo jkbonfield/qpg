@@ -11,7 +11,7 @@ prefix=${2:-sim_}
 export QDIR=${QDIR:-`pwd`}
 export PATH=$QDIR:$PATH
 
-. ${CONFIG:-$QDIR/sim_path_config_hifi.sh}
+. ${CONFIG:-$QDIR/config_illumina.sh}
 
 out_dir=`printf "$prefix%05d" $seed`
 rm -rf $out_dir 2>/dev/null
