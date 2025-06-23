@@ -39,7 +39,42 @@ annotate=km; # kmer2node
 #pathfinder=${PATHFINDER:-$pathfinder_jkb}
 pathfinder=/software/badger/opt/pangenomes/bin/pathfinder
 #pathfinder_opts=${PATHFINDER_OPTS:--X40}
-pathfinder_opts=${PATHFINDER_OPTS:--X40 --min-seq-cov 2}
+
+#Illumina
+#ga6	9984.7	9870.1	94.6	95.3	1.4	1.9	1.6	0.3	96.7
+#mg6	9984.7	9381.0	87.6	92.8	4.1	2.0	0.9	0.0	97.3
+#km	9984.7	9180.9	88.5	95.2	3.2	1.3	1.1	0.1	97.1 old k2n
+#km2	9984.7	9521.0	89.9	93.6	2.4	2.4	1.5	0.2	96.8 -m-s-cov 2
+#km3	9984.7	10183.4	93.6	92.3	1.0	2.8	2.0	0.4	96.5 -m-s-cov 1
+#km3	9984.7	10183.4	93.6	92.3	1.0	2.8	2.0	0.4	96.5 " -neighs 1
+#km4    9984.7	9588.4	90.1	93.5	2.2	2.6	1.6	0.2	96.7 " " -c0
+#km5    9984.7	9641.5	90.7	93.6	2.2	2.6	1.6	0.2	96.7 """ -bub-check
+#km6    9984.7	9619.9	90.9	93.7	2.2	2.5	1.6	0.2	96.7 """" -X50
+#km7    9984.7	9584.1	91.0	94.5	2.1	2.0	1.6	0.2	96.8 km6 r=r2 if 0
+#km8    9984.7	8907.5	85.6	94.8	4.4	1.6	1.0	0.0	97.3 no -U
+#km8    9984.7	9663.0	91.5	94.5	2.1	1.9	1.7	0.2	96.8 -U at 35,20
+#km8    9984.7	9712.0	92.0	94.6	2.1	1.8	1.6	0.2	96.8 -U at 75,35,20
+#km9    9984.7	9740.1	91.9	93.9	2.2	2.0	1.6	0.3	96.6 km8 poss+=.3
+#km9    9984.7	9605.6	91.5	95.1	2.4	1.7	1.3	0.1	96.9 km8 poss+=.01
+#km9    9984.7	9508.8	91.0	95.2	2.6	1.5	1.4	0.1	96.9 km8 count+=.01
+#km9    9984.7	9508.8	91.0	95.2	2.6	1.5	1.4	0.1	96.9 also +=.1 +=.5
+#kmA    9984.7	9297.5	89.7	95.6	2.9	1.3	1.2	0.1	97.0 " cnt+=.1 msc 2
+#km2    9984.7	9335.3	90.0	95.6	2.9	1.3	1.2	0.1	97.0 " cnt+=.1 msc 2
+#km2.50 9984.7	9335.3	90.0	95.6	2.9	1.3	1.2	0.1	97.0 ""
+#km3.50 9984.7	10174.2	94.3	93.2	1.0	2.5	1.9	0.3	96.6 ""
+#kmorig 9984.7	9486.7	90.6	95.3	2.6	1.5	1.3	0.1	96.9 with km9 prfle
+
+#kmorig-with-km9 shows most gain is the options rather than kmer2node4 changes,
+#but there's still some benefit to be had there.
+
+#pathfinder_opts=${PATHFINDER_OPTS:--X40 --min-seq-cov 2}; # km2
+#pathfinder_opts=${PATHFINDER_OPTS:--X50 --min-seq-cov 1}; # km3.50
+#pathfinder_opts=${PATHFINDER_OPTS:--X40 --min-seq-cov 1}; # km3
+#pathfinder_opts=${PATHFINDER_OPTS:--X40 --min-seq-cov 1 --neighbour-steps 1}; # km3
+#pathfinder_opts=${PATHFINDER_OPTS:--X40 -c0 --min-seq-cov 1 --neighbour-steps 1}; # km4
+#pathfinder_opts=${PATHFINDER_OPTS:--X40 -c0 --min-seq-cov 1 --neighbour-steps 1 --bub-check}; # km5
+pathfinder_opts=${PATHFINDER_OPTS:--X50 -c0 --min-seq-cov 1 --neighbour-steps 1 --bub-check}; # km6, km7, km8, km9
+#--edge-to-seq appears to change nothing now.
 
 #mqlib timeout
 timeout=${MQLIB_TIMEOUT:-10}

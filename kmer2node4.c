@@ -39,7 +39,7 @@ static FILE *edge_fp = NULL;
 #define KSIZE (1<<KMER_IDX)
 #define KMASK (KSIZE-1)
 
-#define MAX_DUPS 10 // maximum number of nodes a kmer can be in.
+#define MAX_DUPS 20 // maximum number of nodes a kmer can be in.
 #define MAX_NODES (100*1024)
 
 static int ndup = 0, nuniq = 0;
@@ -157,7 +157,8 @@ typedef struct {
 
     // Possible hits as we didn't switch node inbetween.
     // This is an upper-bound on the counting for cycles.
-    int hit_possible, hit_count;
+    int hit_count;
+    double hit_possible;
 } node;
 
 void node_free(node *n) {
@@ -464,6 +465,8 @@ void nodeset_report(nodeset *ns) {
 	    if (ratio < ratio2) // max
 		ratio = ratio2;
 	}
+	if (ratio == 0 && ratio2 >= 1)
+	    ratio = ratio2;
 
 //	if (use_non_uniq) {
 //	    if (ratio < ratio2)
@@ -481,7 +484,7 @@ void nodeset_report(nodeset *ns) {
 	ratio *= r>1?1:r;
 
 	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d+%-6d\tratio %.2f\n",
-	       n->name, n->length, expected2, n->hit_count,n->hit_possible,
+	       n->name, n->length, expected2, n->hit_count,(int)n->hit_possible,
 	       ratio);
     }
 
@@ -542,8 +545,13 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	int num = ns->kmer[k][0];
 	int dir = ns->kdir[k][0];
 
-	printf("Pos %d, dup=%d num=%d,%s dir=%d last=%d,%d x %d\n",
+	printf("Pos %d, dup=%d num=%d,%s dir=%d last=%d,%d x %d",
 	       i, dup, num, num?ns->num2node[num]->name:"*", dir, last_node, last_node_poss, nposs_run);
+	for (int kc=0; kc<MAX_DUPS && ns->kmer[k][kc]; kc++) {
+	    int n = ns->kmer[k][kc];
+	    printf(" %s", ns->num2node[n]->name);
+	}
+	printf("\n");
 
 	// FIXME: we may start with a duplicate node and transition into
 	// unique, but for now we only rescue the other way around.
@@ -554,8 +562,8 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	    for (kc = 0; kc < MAX_DUPS && ns->kmer[k][kc]; kc++) {
 		int n = ns->kmer[k][kc];
 
-//		if (n != last_node_poss)
-//		    printf("i=%d: last=%d, dup %d %d\n", i, last_node_poss, kc, n);
+		//if (n != last_node_poss)
+		//    printf("k=%08x i=%d: last=%d,%d dup %d %d %s\n", k, i, last_node_poss, last_dir,  kc, n, ns->num2node[n]->name);
 		if (n == last_node_poss ||
 		    gfa_edge_exists(gfa_edges,
 				    ns->num2node[last_node_poss]->name,
@@ -571,6 +579,8 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		    kcn++;
 		}
 	    }
+
+	    //printf("kcn=%d last kc1=%d %s\n", kcn, kc1, ns->num2node[ns->kmer[k][kc1]]->name);
 
 // Attempt to track the number of copies of a node before/after a dup
 // so we don't create transitions unless the number is significant.
@@ -594,18 +604,19 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 #undef TRANSITION_COUNT
 
 #ifdef TRANSITION_COUNT
-	    if (kcn == 1 && last_node_count > 1) {
+	    if (kcn == 1 && last_node_count > 1)
 #else
-	    if (kcn == 1) {
+	    if (kcn == 1)
 #endif
+	    {
 		kc = kc1;
 		num = ns->kmer[k][kc];
 		dir = ns->kdir[k][kc];
-//		if (last_node_poss != num)
-//		    printf("Found transition %s %s %d (%d)\n",
-//			   ns->num2node[last_node_poss]->name,
-//			   ns->num2node[num]->name,
-//			   last_node_count, kc);
+		if (last_node_poss != num)
+		    printf("Found transition %s %s %d (%d)\n",
+			   ns->num2node[last_node_poss]->name,
+			   ns->num2node[num]->name,
+			   last_node_count, kc);
 		dup = 0;
 	    }
 	}
@@ -686,10 +697,11 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		//	   nposs_run);
 		//}
 #ifdef TRANSITION_COUNT
-		if (nposs == 1 && j-i > 1) {
+		if (nposs == 1 && j-i > 1)
 #else
-		if (nposs == 1 /*&& j-i > 1*/) {
+		if (nposs == 1 /*&& j-i > 1*/)
 #endif
+		{
 //		    printf("    Add %d hits between %d and %d\n",
 //			   nposs_run, nposs_best, num);
 		    if (use_non_uniq) {
@@ -720,6 +732,14 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 //		       nposs_run, ns->num2node[last_node_poss]->name);
 		ns->num2node[last_node_poss]->hit_possible+=nposs_run;
 		nposs_run = 0;
+	} else if (dup && num) {
+	    for (int kc=0; kc<MAX_DUPS && ns->kmer[k][kc]; kc++) {
+		int n = ns->kmer[k][kc];
+		if (use_non_uniq)
+		    ns->num2node[n]->hit_count+=0.1;
+		else
+		    ns->num2node[n]->hit_possible+=0.1;
+	    }
 	}
 
 	if (edge_fp && !dup && last_node_poss != num && last_node_poss > 0) {
