@@ -208,11 +208,17 @@ for t in ${time_limits//,/ }; do
     for ((idx=0;idx<num_jobs;idx++)); do
         echo 
         echo
+<<<<<<< Updated upstream
+        echo "=== Summary $t $idx==="
+=======
         echo "=== Summary $t $idx ==="
+
+        echo "eval seq"
         head -1 $(ls -1 *.eval_seq.$t.$idx | head -1)
         cat ./*.eval_seq."$t".$idx | awk '!/Per/'  
 
-	echo
+	    echo "eval cons"
+>>>>>>> Stashed changes
         head -1 $(ls -1 *.eval_cons.$t.$idx | head -1)
         cat ./*.eval_cons."$t".$idx | awk '!/Per/'  
     done
