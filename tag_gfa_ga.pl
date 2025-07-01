@@ -94,12 +94,16 @@ for (my $i=0; $i <= $#lines; $i++) {
     # Internal nodes, excluding the first and last
     for (my $i = 1; $i < $#nodes; $i++) {
 	my $node_len = length($seq{$nodes[$i]});
-	$EC{$nodes[$i-1].$nodes[$i]}++;
+	my $d2 = $nodes[$i-1] eq ">" ? "+" : "-";
+	my $d1 = $nodes[$i  ] eq ">" ? "+" : "-";
+	$EC{"$nodes[$i-1]$d2.$nodes[$i]$d1"}++;
 	$coverage{$nodes[$i]} += $node_len;
 	$len_used += $node_len;
     }
     if ($#nodes > 0) {
-	$EC{$nodes[-2].$nodes[-1]}++;
+	my $d2 = $dirs[-2] eq ">" ? "+" : "-";
+	my $d1 = $dirs[-1] eq ">" ? "+" : "-";
+	$EC{"$nodes[-2]$d2.$nodes[-1]$d1"}++;
     }
 
     # Remaining length to distribute between first and last node
@@ -132,7 +136,13 @@ while (<$fh>) {
 	chomp($_);
 	my @F = split(/\s+/, $_);
 	my $e = "$F[1]$F[2].$F[3]$F[4]";
+
 	my $ec = exists($EC{$e}) ? int($EC{$e}+.99) : 0;
+	$F[2]=~tr/+-/-+/;
+	$F[4]=~tr/+-/-+/;
+	my $f = "$F[3]$F[4].$F[1]$F[2]";
+	$ec += exists($EC{$f}) ? int($EC{$f}+.99) : 0;
+
 	print "$_\tEC:i:$ec\n";
     } else {
 	print;
