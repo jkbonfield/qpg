@@ -1,5 +1,10 @@
 #!/bin/bash
 
 qpg_dir="$HOME/quantumwork/pangenome/modules/qpg"
+max_seed="$1"
+time_limits="$2"
+num_jobs="$3"
+num_training="$4"
 
-parallel -j 128 --header  : "$qpg_dir/run_gfa_sim.sh" -s {seed} -c "$qpg_dir"/config_illumina_{annotate}.sh -a {annotate} --solver {solver} -p {solver}.{annotate}. -t 1,3 -j 2 -n 2 ::: seed $(seq 1 5) ::: annotate ga km mg ::: solver pathfinder gurobi mqlib
+
+parallel -j 128 --header  : "$qpg_dir/run_gfa_sim.sh" -s {seed} -c "$qpg_dir"/config_illumina_{annotate}.sh -a {annotate} --solver {solver} -p {solver}.{annotate}. -t $time_limits -j $num_jobs -n $num_training ::: seed $(seq 1 $max_seed) ::: annotate mg ::: solver pathfinder gurobi mqlib
