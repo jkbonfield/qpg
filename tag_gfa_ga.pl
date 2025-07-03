@@ -108,13 +108,38 @@ for (my $i=0; $i <= $#lines; $i++) {
 
     # Remaining length to distribute between first and last node
     my $align_len = $F[3]-$F[2]+1;
-    $len_used = ($align_len - $len_used)/2;
-    $len_used = 1 if ($len_used < 1);
+    my $len_used1 = ($align_len - $len_used)/2;
+    $len_used1 = 1 if ($len_used1 < 1);
 
-    $coverage{$nodes[0]} += $len_used;
+    my $node_len = length($seq{$nodes[0]});
+    $len_used1 = $node_len if ($len_used1 > $node_len);
+
+    $coverage{$nodes[0]} += $len_used1;
     if ($#nodes > 0) {
-	$coverage{$nodes[-1]} += $len_used;
+	my $len_used2 = $align_len - $len_used - $len_used1;
+	my $node_len = length($seq{$nodes[-1]});
+	$len_used2 = $node_len if ($len_used2 > $node_len);
+	$coverage{$nodes[-1]} += $len_used2;
     }
+
+#    # This sounds like a better strategy, with proportional distribution,
+#    # but for some reason it doesn't work as well as the above (pathfinder).
+#    my $align_len = $F[3]-$F[2]+1;
+#    my $remaining = $align_len - $len_used;
+#    my $node_len1 = length($seq{$nodes[0]});
+#    my $node_len2 = $#nodes > 0 ? length($seq{$nodes[-1]}) : 0;
+#
+#    my $len_used1 = $remaining * $node_len1 / ($node_len1 + $node_len2);
+#    my $len_used2 = $remaining * $node_len2 / ($node_len1 + $node_len2);
+#    $len_used1 = 1 if ($len_used1 < 1);
+#    $len_used2 = 1 if ($len_used2 < 1);
+#    $len_used1 = $node_len1 if ($len_used1 > $node_len1);
+#    $len_used2 = $node_len2 if ($len_used2 > $node_len2);
+#
+#    $coverage{$nodes[0]} += $len_used1;
+#    if ($#nodes > 0) {
+#    	$coverage{$nodes[-1]} += $len_used2;
+#    }
 }
 
 
