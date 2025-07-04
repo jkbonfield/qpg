@@ -151,7 +151,8 @@ do
     #     $i.nodes.$k3
     #     $i.nodes
     echo "Annotate: run_sim_add_gfa_weights_${annotate}.sh pop.gfa $i $k1 $k2 $k3"
-    eval run_sim_add_gfa_weights_${annotate}.sh pop.gfa $i $k1 $k2 $k3
+    eval run_sim_add_gfa_weights_${annotate}.sh pop.gfa "$i" $k1 $k2 $k3
+    gfa_edge_to_node.pl < "$i".gfa > "$i".edge2node.gfa
 
     # Find a path
     # Creates:
@@ -166,7 +167,7 @@ do
             echo "Default jobs: 2"
             num_jobs=2
         fi
-        run_sim_solver_qubo.sh "$i".gfa "$solver" "$i" "$time_limits" "$num_jobs"
+        run_sim_solver_qubo.sh "$i".edge2node.gfa "$solver" "$i" "$time_limits" "$num_jobs"
         echo "Finished sim solver qubo"
         for t in ${time_limits//,/ }; do
             for ((idx=0;idx<num_jobs;idx++)); do
