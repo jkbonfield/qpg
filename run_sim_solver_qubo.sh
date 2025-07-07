@@ -52,9 +52,10 @@ else
     while (<>) {
         next unless /^S/;
         m/SC:f:([0-9.]*)/;
-        print int($1/'$shred_depth' + 0.6), ",";
+        print int($1/50 + 0.8), ",";
     }
     ' $gfa_filepath)
+    # print int($1/'$shred_depth' + 0.8), ",";
     python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$gfa_filepath" -d "$outdir" -c "$copy_numbers" -p "$penalties"
     python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.gaf"
 fi
