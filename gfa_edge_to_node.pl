@@ -16,6 +16,8 @@ my @edge;     # edge GFA line (L)
 my $edge_num=0;
 my %edge_in;  # index into @edge above
 my %edge_out; # index into @edge above
+my %inv_edge_in;
+my %inv_edge_out;
 local $"="\t";
 while (<>) {
     chomp();
@@ -27,25 +29,76 @@ while (<>) {
         $edge[$edge_num] = $_;
         push(@{$edge_out{$1}}, $edge_num);
         push(@{$edge_in{$3}},  $edge_num);
+
+        push(@{$inv_edge_out{$3}}, $edge_num);
+        push(@{$inv_edge_in{$1}}, $edge_num);
+
         $edge_num++;
     }
 }
 
 # Count routes into a node via edges and emit the modified GFA
+
+# TODO: confirm that this is sensible. 
+# "Fixing overall parity" but only taking the versions present in the .gfa and not the inverses. 
+# e.g. s1 + s2 + should also imply s2 - s1 -.
+
+# Counter example??
+# Node Weight
+# s0 2 
+# s1 2
+# s2 1
+# s3 1
+# s4 1
+# Edges
+# s0 + s1 + 2
+# s1 + s2 + 1
+# s2 + s4 + 1
+# s1 + s3 + 1
+# s4 + s3 - 1
+
+# Paths
+# s0+ -> s1+ -> s2+ -> s4+ -> s3- -> s1- -> s0-
+# s0+ -> s1+ -> s3+ -> s4- -> s2- -> s1- -> s0-
+# In either case, we have weight on s0- & s1- which is not counted below. The orientation of s2 & s3 is ambiguous, but only s3 has ambiguous weighting.
+
 foreach my $n (sort keys %node) {
     print "$n \n";
     my ($SC) = $node{$n} =~ m/SC:[if]:(\d+(\.\d+)?)/;
     my %dc=qw/+ 0 - 0/;
+
     foreach my $e (@{$edge_in{$n}}) {
     print "edge in num: $e\n";
 	my ($d1,$d2,$EC) = $edge[$e] =~ m/.*([+-]).*([+-]).*EC:i:(\d+)/;
 	$dc{$d2}+=$EC;
     }
+
     foreach my $e (@{$edge_out{$n}}) {
     print "edge out num: $e\n";
 	my ($d1,$d2,$EC) = $edge[$e] =~ m/.*([+-]).*([+-]).*EC:i:(\d+)/;
 	$dc{$d1}+=$EC;
     }
+
+    # foreach my $e (@{$inv_edge_in{$n}}) {
+    # print "inv edge in num: $e\n";
+	# my ($d1,$d2,$EC) = $edge[$e] =~ m/.*([+-]).*([+-]).*EC:i:(\d+)/;
+    # if ($d1 =~ m/\+/) {
+	#     $dc{"-"}+=$EC;
+    # } else {
+    #     $dc{"+"}+=$EC;
+    # }
+    # }
+
+    # foreach my $e (@{$inv_edge_out{$n}}) {
+    # print "inv edge out num: $e\n";
+	# my ($d1,$d2,$EC) = $edge[$e] =~ m/.*([+-]).*([+-]).*EC:i:(\d+)/;
+    # if ($d2 =~ m/\+/) {
+	#     $dc{"-"}+=$EC;
+    # } else {
+    #     $dc{"+"}+=$EC;
+    # }
+    # }
+
     my $dn=$dc{"+"}+$dc{"-"};
     print "dn: $dn \n";
     print "dc+: ", $dc{"+"}, "\n";
@@ -54,8 +107,8 @@ foreach my $n (sort keys %node) {
     $dc{"+"}=($dc{"+"}+0)/($dn+1) * $SC;
     $dc{"-"}=($dc{"-"}+0)/($dn+1) * $SC;
 
-    # printf("%-10s %5.1f %5.1f %5.1f\n",
-	#    $n, $SC, $dc{"+"}, $dc{"-"});
+    printf("%-10s %5.1f %5.1f %5.1f\n",
+	   $n, $SC, $dc{"+"}, $dc{"-"});
     # print "$node{$n}\tsp:f:",$dc{"+"},"\tsm:f:",$dc{"-"},"\n";
 }
 # foreach my $e (@edge) {
