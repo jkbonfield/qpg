@@ -23,6 +23,7 @@ prefix="sim_"
 seed=1
 solver=pathfinder
 num_training=10
+edge2node=0
 
 while true
 do
@@ -83,6 +84,11 @@ do
 	    shift 2
 	    continue
 	    ;;
+    '--edge2node')
+        edge2node=1
+        shift 2
+        continue
+        ;;
 	*)
 	    break
 	    ;;
@@ -113,6 +119,7 @@ echo "Solver:   $solver"
 echo "Seed:     $seed"
 echo "Annotate: $annotate"
 echo "prefix:   $prefix"
+echo "Edge2node:$edge2node"
 echo ""
 
 out_dir=$(printf "$prefix%05d" "$seed")
@@ -167,7 +174,14 @@ do
             echo "Default jobs: 2"
             num_jobs=2
         fi
-        run_sim_solver_qubo.sh "$i".edge2node.gfa "$solver" "$i" "$time_limits" "$num_jobs"
+
+        gfa_file_name="$i".gfa
+        if [ "$edge2node" -eq 1 ]; then
+            echo "Using edge2node"
+            gfa_file_name="$i".edge2node.gfa
+        fi
+
+        run_sim_solver_qubo.sh "$gfa_file_name" "$solver" "$i" "$time_limits" "$num_jobs" "$edge2node" 
         echo "Finished sim solver qubo"
         for t in ${time_limits//,/ }; do
             for ((idx=0;idx<num_jobs;idx++)); do
@@ -178,6 +192,7 @@ do
     else
         time_limits=0
         num_jobs=1
+        echo "Start $solver"
         run_sim_solver_"$solver".sh "$i".gfa > "$i".path
         pathfinder2seq.pl pop.gfa "$i".path > "$i".path_seq.0.0
         sed -n '/PATH/,$p' "$i".path \
