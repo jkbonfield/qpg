@@ -1,23 +1,85 @@
 #!/bin/bash
-gfa_filepath="$1"
-solver="$2"
-query="$3"
-time_limits="$4"
-num_jobs="$5"
-edge2node="$6"
+
+help() {
+    echo Usage: run_sim_solver_qubo.sh [options] 1>&2
+    echo Options:
+    echo "    -f,--filename  FILE    Use FILE as graph"
+    echo "    -s,--solver    STR     Specify the solver"
+    echo "    -q,--query     STR     Name of sequence aligned against the graph"
+    echo "    -t,--times     INT_LIST   Time limits provided to QUBO solvers"
+    echo "    -j,--jobs      INT     Number of runs of QUBO solvers"
+    echo "    -n,--training  INT     Number of strings to use as training set [10]"
+    echo ""
+}
+
+edge2node=0
+pathfinder_copy_numbers=0
+
+while true
+do
+    case "$1" in
+	'-h')
+	    help
+	    exit 0
+	    ;;
+	'-f'|'--filename')
+	    gfa_filepath=$2
+	    shift 2
+	    continue
+	    ;;
+	'-s'|'--solver')
+	    solver=$2
+	    shift 2
+	    continue
+	    ;;
+	'-q'|'--query')
+	    query=$2
+	    shift 2
+	    continue
+	    ;;
+	'-t'|'--times')
+	    time_limits=$2
+	    shift 2
+	    continue
+	    ;;
+	'-j'|'--jobs')
+	    num_jobs=$2
+	    shift 2
+	    continue
+	    ;;
+	'--pathfinder')
+	    pathfinder_copy_numbers=$2
+	    shift 2
+	    continue
+	    ;;
+    '--edge2node')
+        edge2node=$2
+        shift 2
+        continue
+        ;;
+	*)
+	    break
+	    ;;
+    esac
+done
+
 
 outdir="."
 
-. ${CONFIG:-$QDIR/config_hifi_km.sh} # $mode
+. ${CONFIG:-$QDIR/config_illumina.sh}
 
 QUBO_DIR=/software/qpg/qubo
 PATH=$PATH:$QUBO_DIR
 source $QUBO_DIR/qubo_venv/bin/activate
 
-echo $gfa_filepath
-
-
-
+echo "Gfa:         $gfa_filepath"
+echo "Query:       $query"
+echo "Solver:      $solver"
+echo "Time limits: $time_limits"
+echo "Num jobs:    $num_jobs"
+echo "Edge2node:   $edge2node"
+echo "Pathfinder:  $pathfinder_copy_numbers"
+echo ""
 
 if [[ " dwave " =~  $solver  ]]; then
     penalties="10,5,1"
@@ -45,7 +107,22 @@ if [ "$edge2node" -eq 1 ]; then
 
     python3 "$QUBO_DIR/build_edge2node_qubo_matrix.py" -f "$gfa_filepath" -d "$outdir" -c "$copy_numbers" -p "$penalties"
     python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.gaf" "--edge2node"
+
+
+    for t in ${time_limits//,/ }; do
+        for ((idx=0;idx<num_jobs;idx++)); do
+            echo ">contig_1" >> "$query.path_seq.$t.$idx"
+            path2seq.pl "$gfa_filepath" "$query.gaf.$t.$idx" >> "$query.path_seq.$t.$idx"
+        done
+    done
+
+
+elif [ "$pathfinder_copy_numbers" -eq 1 ]; then
+    run_sim_solver_qubo_with_pathfinder.sh $gfa_filepath $query $outdir $penalties $solver $num_jobs $time_limits
+
+    
 else
+    echo "Default solve"
 
     copy_numbers=$(perl -e '
     use strict;
@@ -55,9 +132,17 @@ else
         print int($1/50 + 0.8), ",";
     }
     ' $gfa_filepath)
+    
     # print int($1/'$shred_depth' + 0.8), ",";
     python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$gfa_filepath" -d "$outdir" -c "$copy_numbers" -p "$penalties"
     python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.gaf"
+
+    for t in ${time_limits//,/ }; do
+        for ((idx=0;idx<num_jobs;idx++)); do
+            echo ">contig_1" >> "$query.path_seq.$t.$idx"
+            path2seq.pl "$gfa_filepath" "$query.gaf.$t.$idx" >> "$query.path_seq.$t.$idx"
+        done
+    done
 fi
 
 

@@ -12,6 +12,8 @@ help() {
     echo "    -t,--times     INT_LIST   Time limits provided to QUBO solvers"
     echo "    -j,--jobs      INT     Number of runs of QUBO solvers"
     echo "    -n,--training  INT     Number of strings to use as training set [10]"
+    echo "       --edge2node         Use edge2node version"
+    echo "       --pathfinder        Use pathfinder to get subgraphs"
     echo ""
     echo "The old API is still supported with fixed argument order."
 }
@@ -24,6 +26,7 @@ seed=1
 solver=pathfinder
 num_training=10
 edge2node=0
+pathfinder_copy_numbers=0
 
 while true
 do
@@ -86,7 +89,12 @@ do
 	    ;;
     '--edge2node')
         edge2node=1
-        shift 2
+        shift 1
+        continue
+        ;;
+    '--pathfinder')
+        pathfinder_copy_numbers=1
+        shift 1
         continue
         ;;
 	*)
@@ -120,6 +128,7 @@ echo "Seed:     $seed"
 echo "Annotate: $annotate"
 echo "prefix:   $prefix"
 echo "Edge2node:$edge2node"
+echo "Pathfinder:$pathfinder_copy_numbers"
 echo ""
 
 out_dir=$(printf "$prefix%05d" "$seed")
@@ -181,14 +190,8 @@ do
             gfa_file_name="$i".edge2node.gfa
         fi
 
-        run_sim_solver_qubo.sh "$gfa_file_name" "$solver" "$i" "$time_limits" "$num_jobs" "$edge2node" 
+        run_sim_solver_qubo.sh -f "$gfa_file_name" -s "$solver" -q "$i" -t "$time_limits" -j "$num_jobs" --edge2node "$edge2node" --pathfinder "$pathfinder_copy_numbers"
         echo "Finished sim solver qubo"
-        for t in ${time_limits//,/ }; do
-            for ((idx=0;idx<num_jobs;idx++)); do
-                path2seq.pl "$i".gfa "$i.gaf.$t.$idx" > "$i".path_seq."$t".$idx
-            done
-        done
-        echo "Finished path2seq"
     else
         time_limits=0
         num_jobs=1

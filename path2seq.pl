@@ -46,4 +46,4 @@ foreach my $p (@path) {
     $seq .= $gseq;
 }
 
-print ">contig_1\n$seq\n";
+print "$seq\n";
