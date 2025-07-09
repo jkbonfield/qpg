@@ -1,8 +1,8 @@
 #!/bin/bash
 
 input_file="$1" 
-batch_size="$2"  # Number of tables per batch
-table_size="$3"  # Number of rows per table
+table_size_new="$2"  # Number of rows per table
+batch_size="$3"  # Number of rows per table
 data_version="$4"
 temp_file="merged_data.tmp"
 temp_file2="merged_data2.tmp"
@@ -13,16 +13,17 @@ rm -f "$temp_file2"
 
 # Extract numeric data from all tables and merge them
 
-grep -A $(( 1 + batch_size )) "eval $data_version" < "$input_file" 2>/dev/null >> "$temp_file"
+grep -A $(( 1 + table_size_new )) "eval $data_version" < "$input_file" 2>/dev/null >> "$temp_file"
 awk '!/^=/ && !/^-/ && !/^#/ && !/^Per/ && !/^eval/ && NF {print}' "$temp_file" >> "$temp_file2"
 
-awk -v batch_size=$batch_size -v table_size=$table_size '
+
+awk -v table_size_new=$table_size_new -v batch_size=$batch_size '
 {
     if (NF < 4 || $3 == 0) next;  # Skip lines with insufficient columns
 
-    row_idx = (NR - 1) % table_size  # Row index within a batch (0-4)
-    batch_idx = int((NR - 1) / (batch_size * table_size))  # Batch index
-    table_idx = int(((NR % (batch_size * table_size)) / table_size))  # Table index within batch (0-4)
+    row_idx = (NR - 1) % table_size_new # Row index within each table (0: num_training - 1)
+    table_idx = int(((NR-1) % (table_size_new * batch_size)) / table_size_new) # Table index within each batch
+    batch_idx = int( (NR-1) / (table_size_new * batch_size))
     
     avg = ($4 + $5) / 2  # Average of 3rd and 4th columns
 
@@ -33,9 +34,10 @@ awk -v batch_size=$batch_size -v table_size=$table_size '
     }
 }
 END {
-    for (batch = 0; batch * batch_size * table_size < NR; batch++) {
+    for (batch = 0; batch * table_size_new * batch_size < NR; batch++) {
         print "==============="
-        for (row = 0; row < table_size; row++) {
+        print batch
+        for (row = 0; row < table_size_new; row++) {
             if ((batch, row) in best_row) {
                 print best_row[batch, row]
             }
@@ -46,5 +48,5 @@ END {
 
 
 # Clean up temporary file
-# rm -f "$temp_file"
-# rm -f "$temp_file2"
+rm -f "$temp_file"
+rm -f "$temp_file2"
