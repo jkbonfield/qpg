@@ -15,6 +15,7 @@ PATH=$PATH:$QUBO_DIR
 source $QUBO_DIR/qubo_venv/bin/activate
 
 echo "Solve with pathfinder copy numbers"
+echo $pathfinder $pathfinder_opts $gfa_filepath
 eval $pathfinder $pathfinder_opts $gfa_filepath 2>$gfa_filepath.pf.err > "$query".path
 
 awk '

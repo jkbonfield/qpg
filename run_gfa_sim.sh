@@ -13,6 +13,7 @@ help() {
     echo "    -j,--jobs      INT     Number of runs of QUBO solvers"
     echo "    -n,--training  INT     Number of strings to use as training set [10]"
     echo "       --edge2node         Use edge2node version"
+    echo "       --trim-edges        Use trim_edges.pl"
     echo "       --pathfinder        Use pathfinder to get subgraphs"
     echo ""
     echo "The old API is still supported with fixed argument order."
@@ -26,6 +27,7 @@ seed=1
 solver=pathfinder
 num_training=10
 edge2node=0
+trimedges=0
 pathfinder_copy_numbers=0
 
 while true
@@ -92,6 +94,11 @@ do
         shift 1
         continue
         ;;
+    '--trim-edges')
+        trimedges=1
+        shift 1
+        continue
+        ;;
     '--pathfinder')
         pathfinder_copy_numbers=1
         shift 1
@@ -128,6 +135,7 @@ echo "Seed:     $seed"
 echo "Annotate: $annotate"
 echo "prefix:   $prefix"
 echo "Edge2node:$edge2node"
+echo "TrimEdges:$trimedges"
 echo "Pathfinder:$pathfinder_copy_numbers"
 echo ""
 
@@ -190,13 +198,25 @@ do
             gfa_file_name="$i".edge2node.gfa
         fi
 
+	if [ "$trimedges" -eq 1 ]; then
+	    echo ">>> Using trim_edges.pl"
+	    trim_edges.pl $gfa_file_name > $i.edited.gfa
+	    gfa_file_name=$i.edited.gfa
+	fi
+
         run_sim_solver_qubo.sh -f "$gfa_file_name" -s "$solver" -q "$i" -t "$time_limits" -j "$num_jobs" --edge2node "$edge2node" --pathfinder "$pathfinder_copy_numbers"
         echo "Finished sim solver qubo"
     else
         time_limits=0
         num_jobs=1
+	gfa=$i.gfa
+	if [ "$trimedges" -eq 1 ]; then
+	    echo ">>> Using trim_edges.pl"
+	    trim_edges.pl $i.gfa > $i.edited.gfa
+	    gfa=$i.edited.gfa
+	fi
         echo "Start $solver"
-        run_sim_solver_"$solver".sh "$i".gfa > "$i".path
+        run_sim_solver_"$solver".sh $gfa > "$i".path
         pathfinder2seq.pl pop.gfa "$i".path > "$i".path_seq.0.0
         sed -n '/PATH/,$p' "$i".path \
         | awk '/^\[/ {printf("%s ",$3)} END {print "\n"}' 1>&2
