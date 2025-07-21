@@ -10,6 +10,8 @@ use strict;
 # 1st argument = GFA file
 # Stdout = amended GFA
 my $gfa = shift(@ARGV);
+my $mqual = shift(@ARGV);
+$mqual = 0 if (!defined($mqual));
 
 # Parse GFA
 my %seq;      # node sequence
@@ -55,6 +57,8 @@ while (<>) {
 for (my $i=0; $i <= $#lines; $i++) {
     $_ = $lines[$i];
     my @F = split(/\s+/, $_);
+    next if $F[2] eq "*";
+    next if $F[11] lt $mqual;
     if ($ids{$F[0]} > 1) {
 	# Pick best
 	my $best = 0;

@@ -150,7 +150,9 @@ awk '
                     }
                 ' "$gfa_filepath" >> "$output_gfa_file"
 
+		echo python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$output_gfa_file" -d "$outdir" -c "$(cat $output_data_file)" -p "$penalties"
                 python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$output_gfa_file" -d "$outdir" -c "$(cat $output_data_file)" -p "$penalties"
+                echo python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$output_gfa_file" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.subgraph.$current_subgraph_name.gaf"
                 python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$output_gfa_file" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.subgraph.$current_subgraph_name.gaf"
 
                 for t in ${time_limits//,/ }; do
