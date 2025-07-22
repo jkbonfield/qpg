@@ -62,7 +62,6 @@ my %nbreaks;  # No. of alignments minus ncontigs
 my $aligner = "/software/sciops/pkgg/bwa/0.7.17/bin/bwa mem";
 my $aligner_index = "/software/sciops/pkgg/bwa/0.7.17/bin/bwa index";
 my $aligner_opts = "-B4 -O4 -E2";
-#my $aligner_opts = "";
 
 # TODO: something about bsub breaks next line
 system("$aligner_index $ARGV[0] 1>log.txt 2>bwa_idx.err") && die "$!";
@@ -96,7 +95,12 @@ while (<$mm>) {
 
     my $rname = $F[2];
     my $rpos = $F[3]-1;
+    my $rdel = 0;
     my $qpos  = 0;
+    my $qstart = -1;
+    my $left_H = 0;
+    my $left_S = 0;
+    my $right_S = 0;
     my $cigar = $F[5];
     my $seq   = $F[9];
     #print "Read $F[0] at $rpos\n";
@@ -114,6 +118,7 @@ while (<$mm>) {
 	m/(\d+)(.)/;
 	# print "$rpos ",$qpos+$hc," $1$2\n";
 	if ($2 eq "M") {
+	    $qstart = $qpos if ($qstart == -1);
 	    substr($cov{$rname}, $rpos, $1) = "1" x $1;
 
 	    #print "FILL $rpos to ",$rpos+$1,"\n";
@@ -133,6 +138,7 @@ while (<$mm>) {
 	    $qpos += $1;
 	} elsif ($2 eq "D") {
 	    $nindels{$rname}++ if ($1 >= $indel_max);
+	    $rdel += $1;
 	    if ($1 < $indel_max) {
 		substr($match{$rname}, $rpos, $1) = "n" x $1;
 		# print "del N $rpos to ",$rpos+$1,"\n";
@@ -150,14 +156,19 @@ while (<$mm>) {
 	    $qpos += $1;
 	} elsif ($2 eq "S") {
 	    $qpos += $1;
+	    $left_S  = $1 if ($qstart == -1);
+	    $right_S = $1 if ($qstart != -1);
 	} elsif ($2 eq "H") {
 	    $hc += $1; # used for debugging only
+	    $left_H = $1 if ($qstart == -1);
 	} else {
 	    print STDERR "Unexpected CIGAR op $2\n";
 	}
     }
 
-    # print STDERR "Read $F[0] covers $F[3] to $rpos\n";
+    $qstart += $left_H;
+    my $qend = $qpos+$left_H-$right_S;
+    #print STDERR "Read $F[0] covers $F[3] to $rpos ref ($rdel D), $qstart to $qend qry\n";
 }
 
 my $total_len = 0;
