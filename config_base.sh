@@ -79,7 +79,8 @@ pathfinder=/software/badger/opt/pangenomes/bin/pathfinder
 #pathfinder_opts=${PATHFINDER_OPTS:--X40 --min-seq-cov 1 --neighbour-steps 1}; # km3
 #pathfinder_opts=${PATHFINDER_OPTS:--X40 -c0 --min-seq-cov 1 --neighbour-steps 1}; # km4
 #pathfinder_opts=${PATHFINDER_OPTS:--X40 -c0 --min-seq-cov 1 --neighbour-steps 1 --bub-check}; # km5
-pathfinder_opts=${PATHFINDER_OPTS:--X50 -c0 --min-seq-cov 1 --neighbour-steps 1 -v 3 --bub-check}; # km6, km7, km8, km9
+#pathfinder_opts=${PATHFINDER_OPTS:--X50 -c0 --min-seq-cov 1 --neighbour-steps 1 -v 3 --bub-check}; # km6, km7, km8, km9
+pathfinder_opts=${PATHFINDER_OPTS:--X50 -c0 --min-seq-cov 1 --neighbour-steps 1 -v 3}
 #--edge-to-seq appears to change nothing now.
 
 #mqlib timeout
