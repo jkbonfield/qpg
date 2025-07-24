@@ -10,13 +10,11 @@ time_limits=$7
 
 . ${CONFIG:-$QDIR/config_illumina.sh}
 
-QUBO_DIR=/software/qpg/qubo
-PATH=$PATH:$QUBO_DIR
-source $QUBO_DIR/qubo_venv/bin/activate
+QUBO_DIR=$QDIR/qubo/qubo_solvers/oriented_tangle
+# source $QUBO_DIR/qubo_venv/bin/activate
 
 echo "Solve with pathfinder copy numbers"
-echo $pathfinder $pathfinder_opts $gfa_filepath
-eval $pathfinder $pathfinder_opts $gfa_filepath 2>$gfa_filepath.pf.err > "$query".path
+eval $pathfinder $pathfinder_opts "$gfa_filepath" 2>"$gfa_filepath.pf.err" > "$query.path"
 
 awk '
     BEGIN { 
@@ -38,14 +36,14 @@ awk '
             print $3, $6;
         }
     }
-    ' "$query".path > "$query".subgraph
+    ' "$query.path" > "$query.subgraph"
 
     awk '
     BEGIN {
-        in_subgraph_table = 0;           # Flag to indicate if we are currently inside a subgraph table
-        current_subgraph_name = "";      # Stores the name of the current subgraph being processed
-        node_list = "";                  # Accumulates space-separated node names for the current subgraph
-        data_list = "";                  # Accumulates space-separated second column data for the current subgraph
+        in_subgraph_table = 0;           
+        current_subgraph_name = "";      
+        node_list = "";                  
+        data_list = "";                  
     }
 
     /^Subgraph/ {
@@ -120,8 +118,8 @@ awk '
             output_data_file="${query}.copy_numbers.${current_subgraph_name}.txt"
 
             echo "Creating $output_gfa_file and $output_data_file..."
-            > "$output_gfa_file" 
-            > "$output_data_file" 
+            touch "$output_gfa_file" 
+            touch "$output_data_file" 
 
             if [ -n "$current_data_str" ]; then
                 echo "$current_data_str" | tr ' ' ',' >> "$output_data_file"
@@ -150,9 +148,7 @@ awk '
                     }
                 ' "$gfa_filepath" >> "$output_gfa_file"
 
-		echo python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$output_gfa_file" -d "$outdir" -c "$(cat $output_data_file)" -p "$penalties"
                 python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$output_gfa_file" -d "$outdir" -c "$(cat $output_data_file)" -p "$penalties"
-                echo python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$output_gfa_file" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.subgraph.$current_subgraph_name.gaf"
                 python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$output_gfa_file" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.subgraph.$current_subgraph_name.gaf"
 
                 for t in ${time_limits//,/ }; do

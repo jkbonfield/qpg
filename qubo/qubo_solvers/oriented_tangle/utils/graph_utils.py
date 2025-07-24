@@ -34,7 +34,7 @@ def edge2node_oriented_graph(filename: str, copy_numbers: list[str]):
     return graph
 
 
-def oriented_graph_with_copy_numbers(filename, copy_numbers, nodes: list | None=None):
+def oriented_graph_with_copy_numbers(filename, copy_numbers: list[float] | None ):
     """Reads a .gfa file into an oriented graph, where each node has a positive and negative version.
 
     Args:
@@ -43,8 +43,11 @@ def oriented_graph_with_copy_numbers(filename, copy_numbers, nodes: list | None=
     Returns:
         nx.Graph: corresponding oriented graph.
     """
-    # TODO: deal with subgraphs via the nodes parameter
     gfa = gfapy.Gfa.from_file(filename, vlevel=0)
+    
+    if copy_numbers is None:
+        copy_numbers = [segment_line.SC for segment_line in gfa.segments]
+    
     graph = nx.DiGraph()
     for index, segment_line in enumerate(gfa.segments):
         graph.add_node(f'{segment_line.name}_+', weight=copy_numbers[index], start=segment_line.st)
