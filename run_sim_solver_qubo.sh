@@ -8,7 +8,8 @@ help() {
     echo "    -q,--query     STR     Name of sequence aligned against the graph"
     echo "    -t,--times     INT_LIST   Time limits provided to QUBO solvers"
     echo "    -j,--jobs      INT     Number of runs of QUBO solvers"
-    echo "    -n,--training  INT     Number of strings to use as training set [10]"
+    echo "       --pathfinder INT    Use Pathfinder to get subgraphs and copy numbers if eq 1"
+    echo "       --edge2node INT    Use edge2node to get copy numbers if eq 1"
     echo ""
 }
 
@@ -129,7 +130,7 @@ else
     while (<>) {
         next unless /^S/;
         m/SC:f:([0-9.]*)/;
-        print int($1/50 + 0.8), ",";
+        print int($1/30 + 0.8), ",";
     }
     ' $gfa_filepath)
     

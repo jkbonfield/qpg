@@ -19,7 +19,7 @@ awk '!/^=/ && !/^-/ && !/^#/ && !/^Per/ && !/^eval/ && NF {print}' "$temp_file" 
 
 awk -v table_size_new=$table_size_new -v batch_size=$batch_size '
 {
-    if (NF < 4 || $3 == 0) next;  # Skip lines with insufficient columns
+    if (NF < 10 || $3 == 0) next;  # Skip lines with insufficient columns
 
     row_idx = (NR - 1) % table_size_new # Row index within each table (0: num_training - 1)
     table_idx = int(((NR-1) % (table_size_new * batch_size)) / table_size_new) # Table index within each batch

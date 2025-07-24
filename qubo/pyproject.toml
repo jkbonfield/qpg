@@ -1,0 +1,15 @@
+[project]
+name = "qubo_solvers"
+version = "0.1.0"
+description = "QPG QUBO Solvers for Tangle Resolution"
+dependencies = [
+  "gfapy",
+  "gurobipy",
+  "dwave-ocean_sdk",
+  "numpy",
+  "networkx",
+]
+
+[build-system]
+requires = ["flit_core<4"]
+build-backend = "flit_core.buildapi"
