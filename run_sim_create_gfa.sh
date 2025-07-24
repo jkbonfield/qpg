@@ -37,7 +37,7 @@ echo "Node count:" "$(grep -E -c '^S' pop.gfa)"
 cat `cat fofn.train` > train.fa
 
 # Build the nodeseq index
-if [ "$annotate" == "km" ]
+if expr "$annotate" : ".*km.*"
 then
     echo "=== Creating nodeseq files, kmers $k1, $k2, $k3"
     /nfs/sam_scratch/jkb/conda22.old/bin/GraphAligner -g pop.gfa -f train.fa -x vg -a pop.gaf >pop.GraphAligner.out
