@@ -2,8 +2,6 @@
 data_type="$1"
 for annotate in ga km mg; do
 for solver in pathfinder mqlib gurobi dwave; do
-# for solver in pathfinder dwave; do
-
 
 INPUT_FILE="./$solver.$annotate.$data_type.avg.txt"
 

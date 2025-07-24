@@ -130,7 +130,7 @@ else
     while (<>) {
         next unless /^S/;
         m/SC:f:([0-9.]*)/;
-        print int($1/5 + 0.8), ",";
+        print int($1/30 + 0.8), ",";
     }
     ' $gfa_filepath)
     
