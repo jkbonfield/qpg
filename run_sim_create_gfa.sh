@@ -40,7 +40,7 @@ cat `cat fofn.train` > train.fa
 if expr "$annotate" : ".*km.*"
 then
     echo "=== Creating nodeseq files, kmers $k1, $k2, $k3"
-    /nfs/sam_scratch/jkb/conda22.old/bin/GraphAligner -g pop.gfa -f train.fa -x vg -a pop.gaf >pop.GraphAligner.out
+    GraphAligner -g pop.gfa -f train.fa -x vg -a pop.gaf >pop.GraphAligner.out
     gaf2nodeseq2.pl pop.gaf train.fa pop.gfa "$k1" > pop.gfa.ns"$k1"
     gaf2nodeseq2.pl pop.gaf train.fa pop.gfa "$k2" > pop.gfa.ns"$k2"
     gaf2nodeseq2.pl pop.gaf train.fa pop.gfa "$k3" > pop.gfa.ns"$k3"
