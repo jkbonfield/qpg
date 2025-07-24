@@ -1,57 +1,59 @@
 #!/bin/bash
-
+data_type="$1"
 for annotate in ga km mg; do
-for solver in pathfinder mqlib gurobi; do
+for solver in pathfinder mqlib gurobi dwave; do
+# for solver in pathfinder dwave; do
 
-INPUT_FILE="./$solver.$annotate.avg.txt"
+
+INPUT_FILE="./$solver.$annotate.$data_type.avg.txt"
 
 
 if [ ! -f "$INPUT_FILE" ]; then
     echo "Error: Input file '$INPUT_FILE' not found or is not readable." >&2
-    exit 1
-fi
+else
+    awk '
+    BEGIN {
+        patterns[0] = "Average stats"
+        patterns[1] = "covered"
+        patterns[2] = "used"
+        patterns[3] = "ncontig"
+        patterns[4] = "nbreaks"
+        patterns[5] = "nindel"
+        patterns[6] = "ndiff"
+        patterns[7] = "identity"
+        num_patterns = 8 
 
-awk '
-BEGIN {
-    patterns[0] = "Average stats"
-    patterns[1] = "covered"
-    patterns[2] = "used"
-    patterns[3] = "nbreaks"
-    patterns[4] = "nindel"
-    patterns[5] = "ndiff"
-    patterns[6] = "identity"
-    num_patterns = 7 
+        current_pattern_idx = 0
 
-    current_pattern_idx = 0
+        delete extracted_values
+    }
 
-    delete extracted_values
-}
+    {
+        if (index($0, patterns[current_pattern_idx]) == 1) {
+            # If a match is found:
 
-{
-    if (index($0, patterns[current_pattern_idx]) == 1) {
-        # If a match is found:
+            val = $NF
 
-        val = $NF
+            gsub(/[^0-9.]/, "", val)
 
-        gsub(/[^0-9.]/, "", val)
+            extracted_values[current_pattern_idx] = val
 
-        extracted_values[current_pattern_idx] = val
+            current_pattern_idx++
 
-        current_pattern_idx++
+            if (current_pattern_idx == num_patterns) {
 
-        if (current_pattern_idx == num_patterns) {
+                for (i = 0; i < num_patterns; i++) {
+                    printf "%s%s", extracted_values[i], (i == num_patterns - 1 ? "" : " ")
+                }
+                printf "\n" 
 
-            for (i = 0; i < num_patterns; i++) {
-                printf "%s%s", extracted_values[i], (i == num_patterns - 1 ? "" : " ")
+                current_pattern_idx = 0
+                delete extracted_values
             }
-            printf "\n" 
-
-            current_pattern_idx = 0
-            delete extracted_values
         }
     }
-}
-' "$INPUT_FILE" > $solver.$annotate.avg.parsed.txt
+    ' "$INPUT_FILE" > $solver.$annotate.$data_type.avg.parsed.txt
+fi
 
 
 done

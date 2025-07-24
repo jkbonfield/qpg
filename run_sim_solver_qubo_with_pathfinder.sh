@@ -108,7 +108,7 @@ awk '
     ' "$query".subgraph | while IFS= read -r line; do
 
         if [[ "$line" == "SUBGRAPH_START:"* ]]; then
-            current_subgraph_name="${line#SUBGRAPH_START:}" # Extract the subgraph name
+            current_subgraph_name="${line#SUBGRAPH_START:}" 
             current_nodes_str=""
             current_data_str=""
         elif [[ "$line" == "NODES_LIST:"* ]]; then

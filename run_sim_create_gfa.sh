@@ -11,7 +11,7 @@ num_training=$5
 . ${CONFIG:-$QDIR/config_hifi_km.sh} # $mode
 
 # Produce sequences
-echo "=== Creating population"
+echo "=== Creating population $seed"
 eval genome_create "$genome_opts" -s "$seed" -P1 -G0 > pop0.fa
 eval genome_create "$genome_opts" -s "$seed" > pop.fa
 
