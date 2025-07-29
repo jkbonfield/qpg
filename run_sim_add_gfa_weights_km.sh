@@ -29,6 +29,6 @@ eval $kmer2node -U -k$k3 $nodeseq3 $shred_fa -E /dev/stdout | egrep 'Edge|Node' 
 merge_kmer2node.pl $gfa $query.nodes.$k1 $query.nodes.$k2 $query.nodes.$k3 > $query.nodes
 
 # Annotate the GFA with kmer counts
-tag_gfa.pl $gfa < $query.nodes > $query.gfa
+tag_gfa_km.pl $gfa < $query.nodes > $query.gfa
 
 exit 0

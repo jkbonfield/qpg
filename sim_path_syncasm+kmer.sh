@@ -45,7 +45,7 @@ eval ${KMER2NODE:-./kmer2node2} -k $k1 -K $k1 $tmp/kmer$k1.nodeseq $tmp/shred.fa
 cat $tmp/kmer$k1.nodes
 
 cp $tmp/kmer$k1.nodes $tmp/kmers.nodes
-./tag_gfa.pl $gfa < $tmp/kmers.nodes > $gfa.tagged
+./tag_gfa_km.pl $gfa < $tmp/kmers.nodes > $gfa.tagged
 gfa=$gfa.tagged
 
 # Find a path and generate the candidate sequence
