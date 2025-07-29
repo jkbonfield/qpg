@@ -57,11 +57,13 @@ my %nbreaks;  # No. of alignments minus ncontigs
 # Should we remove --no-long-join?
 #my $aligner = "minimap2";
 #my $aligner_index = "/bin/true";
-#my $aligner_opts = "-a -O 2 -E 4 -r 100 -x lr:hq --no-long-join --secondary=no";
+##my $aligner_opts = "-a -O 2 -E 4 -r 100 -x lr:hq --secondary=no";
+#my $aligner_opts = "-x lr:hq -a -B3 -O 2,20 -E 4,1 -r 100 --no-long-join --secondary=no";
 
 my $aligner = "/software/sciops/pkgg/bwa/0.7.17/bin/bwa mem";
 my $aligner_index = "/software/sciops/pkgg/bwa/0.7.17/bin/bwa index";
 my $aligner_opts = "-B4 -O4 -E2";
+#my $aligner_opts = "-B6 -O4,10 -E2,1";
 
 # TODO: something about bsub breaks next line
 system("$aligner_index $ARGV[0] 1>log.txt 2>bwa_idx.err") && die "$!";

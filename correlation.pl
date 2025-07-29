@@ -17,8 +17,11 @@ while (<>) {
 #    my $y = $F[5] - 0.5*$F[7];
 
     # F1 score vs primary-2*supp
-    my $x = $F[1] - 2*$F[2];    #2  0.751   %primary_mapped - 2*%supp
-    my $y = $F[5];              #           F1 score
+#    my $x = $F[1] - 2*$F[2];    #2  0.751   %primary_mapped - 2*%supp
+#    my $y = $F[5];              #           F1 score
+
+    my $x = $F[-1];             # final estimated score from estimate_qual.pl
+    my $y = $F[-6];              # F1 score
 
 #    my $x = $F[1] - 5*$F[2];    #3  0.712
 #    my $y = $F[5] - 1.5*$F[7] - 0.5*($F[6]-1);
