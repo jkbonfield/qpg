@@ -3,6 +3,7 @@
 if [ $# -lt 2 ]
 then
     echo Usage: run_miniasm_sim.sh seed [out_prefix] 1>&2
+    echo Set CONFIG environment variable to change configuration. 1>&2
     exit 1
 fi
 
@@ -25,7 +26,7 @@ cd $out_dir
 # we get a consistent list of test genomes.  TODO: hive this off to
 # its own script for efficiency.
 export use_syncasm=1
-run_sim_create_gfa.sh $seed 10 20 30
+run_sim_create_gfa.sh $seed 10 20 30 10
 
 ## Creates seq_* and fofn.test
 #eval genome_create $genome_opts -s $seed | tail -20 | \
