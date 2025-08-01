@@ -21,8 +21,7 @@ def mqlib_sample_qubo(qubo_description: QuboDescription):
         
         for _ in range(qubo_description.jobs):
             # Run the MQLib solver and capture output
-            # process = subprocess.run(["MQLib", "-fQ", input_filepath, "-h", "PALUBECKIS2004bMST2", "-r", str(time_limit), "-s", str(rng.integers(0, 65535)), "-ps"], capture_output=True)
-            process = subprocess.run(["MQLib", "-fQ", input_filepath, "-h", "BURER2002", "-r", str(time_limit), "-s", str(rng.integers(0, 65535)), "-ps"], capture_output=True)
+            process = subprocess.run(["MQLib", "-fQ", input_filepath, "-h", "PALUBECKIS2004bMST2", "-r", str(time_limit), "-s", str(rng.integers(0, 65535)), "-ps"], capture_output=True)
 
             out = process.stdout.decode("utf-8")
 
