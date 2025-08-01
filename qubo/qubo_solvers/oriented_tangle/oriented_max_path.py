@@ -6,7 +6,7 @@ import numpy as np
 import argparse
 import re
 from qubo_solvers.oriented_tangle.utils.sampling_utils import dwave_sample_qubo, mqlib_sample_qubo, gurobi_sample_qubo, validate_path, validate_edge2node_path
-from qubo_solvers.definitions import DATA_DIR, OUT_DIR, Solver, QuboDescription
+from qubo_solvers.definitions import Solver, QuboDescription
 from qubo_solvers.logging import get_logger
 
 
@@ -14,12 +14,12 @@ logger = get_logger(__name__)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-f', '--filepath', default=f'{DATA_DIR}/test.gfa')
+parser.add_argument('-f', '--filepath')
 parser.add_argument('-t', '--times', help='delimited list input', 
     type=lambda s: [int(item) for item in s.split(',')])
 parser.add_argument('-j', '--jobs', type=int)
 parser.add_argument('-s', '--solver', required=True)
-parser.add_argument('-d', '--data-dir', default=f'{OUT_DIR}/oriented')
+parser.add_argument('-d', '--data-dir')
 parser.add_argument('-o', '--output')
 parser.add_argument('--edge2node', action='store_true')
 
