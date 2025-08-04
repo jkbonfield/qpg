@@ -1,6 +1,5 @@
 #!/bin/bash
-mode=$3
-. ${CONFIG:-$QDIR/config_illumina.sh} $mode
+. ${CONFIG:-$QDIR/config_illumina.sh}
 
 # Adds weights using minigraph to align and amend the GFA
 

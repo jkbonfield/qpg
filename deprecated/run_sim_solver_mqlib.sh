@@ -1,7 +1,5 @@
 #!/bin/bash
-mode=$2
-
-. ${CONFIG:-$QDIR/config_illumina.sh} $mode
+. ${CONFIG:-$QDIR/config_illumina.sh}
 
 copy_numbers=$(perl -e '
 use strict;

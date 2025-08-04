@@ -5,9 +5,8 @@ query=$2
 k1=$3
 k2=$4
 k3=$5
-mode=$6
 
-. ${CONFIG:-$QDIR/config_illumina.sh} $mode
+. ${CONFIG:-$QDIR/config_illumina.sh}
 
 
 nodeseq1=$gfa.ns$k1
