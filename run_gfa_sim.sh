@@ -144,22 +144,15 @@ echo "$out_dir"
 rm -rf "$out_dir" 2>/dev/null
 mkdir "$out_dir"
 
-k1=75
-k2=35
-k3=20
-
 cd "$out_dir" || exit 1
 
 (
 # Create fake genomes and use the training set to create a pangenome
 # Creates:
 #    pop.gfa
-#    pop.gfa.ns$k1
-#    pop.gfa.ns$k2
-#    pop.gfa.ns$k3
 #    fofn.test
 #    fofn.train
-run_sim_create_gfa.sh "$seed" $k1 $k2 $k3 "$num_training"
+run_sim_create_gfa.sh "$seed" "$num_training"
 
 # Foreach test genome, not used in pangenome creation, find path and eval
 for i in $(cat fofn.test)
@@ -169,13 +162,8 @@ do
     #     $i.gfa (primary output; annotated pop.gfa)
     #     $i.shred.fa
     #     $i.mg
-    # For kmer2node also creates:
-    #     $i.nodes.$k1
-    #     $i.nodes.$k2
-    #     $i.nodes.$k3
-    #     $i.nodes
-    echo "Annotate: run_sim_add_gfa_weights_${annotate}.sh pop.gfa $i $k1 $k2 $k3"
-    eval run_sim_add_gfa_weights_${annotate}.sh pop.gfa "$i" $k1 $k2 $k3
+    echo "Annotate: run_sim_add_gfa_weights_${annotate}.sh pop.gfa $i"
+    eval run_sim_add_gfa_weights_${annotate}.sh pop.gfa "$i"
     gfa_edge_to_node.pl < "$i".gfa > "$i".edge2node.gfa
 
     # Find a path

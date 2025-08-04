@@ -1,14 +1,9 @@
 #!/bin/bash
 
 seed=$1
-k1=$2
-k2=$3
-k3=$4
-num_training=$5
-# mode=$6
+num_training=$2
 
-
-. ${CONFIG:-$QDIR/config_hifi_km.sh} # $mode
+. ${CONFIG:-$QDIR/config_hifi_km.sh}
 
 # Produce sequences
 echo "=== Creating population $seed"
@@ -35,21 +30,5 @@ minigraph  -l 1000 -d 10000 -n 5,20 -cxggs $(cat fofn.train) > pop.gfa 2>pop.min
 echo "Node count:" "$(grep -E -c '^S' pop.gfa)"
 
 cat `cat fofn.train` > train.fa
-
-# Build the nodeseq index
-if expr "$annotate" : ".*km.*"
-then
-    echo "=== Creating nodeseq files, kmers $k1, $k2, $k3"
-    GraphAligner -g pop.gfa -f train.fa -x vg -a pop.gaf >pop.GraphAligner.out
-    gaf2nodeseq2.pl pop.gaf train.fa pop.gfa "$k1" > pop.gfa.ns"$k1"
-    gaf2nodeseq2.pl pop.gaf train.fa pop.gfa "$k2" > pop.gfa.ns"$k2"
-    gaf2nodeseq2.pl pop.gaf train.fa pop.gfa "$k3" > pop.gfa.ns"$k3"
-
-#    # Faster alternative using population GFA file only
-#    # Oddly this is sometimes better than using GraphAligner despite fewer kmers
-#    gfa2nodeseq.pl pop.gfa $k1 > pop.gfa.ns$k1
-#    gfa2nodeseq.pl pop.gfa $k2 > pop.gfa.ns$k2
-#    gfa2nodeseq.pl pop.gfa $k3 > pop.gfa.ns$k3
-fi
 
 exit 0
