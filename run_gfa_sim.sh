@@ -164,7 +164,6 @@ do
     #     $i.mg
     echo "Annotate: run_sim_add_gfa_weights_${annotate}.sh pop.gfa $i"
     eval run_sim_add_gfa_weights_${annotate}.sh pop.gfa "$i"
-    gfa_edge_to_node.pl < "$i".gfa > "$i".edge2node.gfa
 
     # Find a path
     # Creates:
@@ -183,6 +182,7 @@ do
         gfa_file_name="$i".gfa
         if [ "$edge2node" -eq 1 ]; then
             echo "Using edge2node"
+	    gfa_edge_to_node.pl < "$i".gfa > "$i".edge2node.gfa
             gfa_file_name="$i".edge2node.gfa
         fi
 
