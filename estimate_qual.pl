@@ -9,6 +9,15 @@ use strict;
 
 foreach my $base (@ARGV) {
     foreach my $fn (sort glob("$base.bam.*")) {
+	# Remap again?
+	# We're evaluating the *path_cons* files, so we remap the reads to
+	# this to get BAM stats from.
+	#
+	# This slows down the estimator considerably, but it ups correlation
+	# from R=0.919 to 0.926
+#	`minimap2 -x lr:hq -a $base.path_cons.0.0 $base.shred.fq | samtools sort -o $base.bam2.0.0 2>/dev/null`;
+#	$fn = "$base.bam2.0.0";
+	
 	# Read mapping stats
 	my ($nmapped,$mapped,$supp);
 	open(FH, "samtools flagstat $fn |") || die;
@@ -52,9 +61,9 @@ foreach my $base (@ARGV) {
 	close(FH);
 
 	my $path_seq = $fn;
-	$path_seq =~ s/\.bam\./.path_seq./;
+	$path_seq =~ s/\.bam\d*\./.path_seq./;
 	my $path_cons = $fn;
-	$path_cons =~ s/\.bam\./.path_cons./;
+	$path_cons =~ s/\.bam\d+\./.path_cons./;
 
 	my $seq_len  = `wc -c < $path_seq`;
 	my $cons_len = `wc -c < $path_cons`;
@@ -75,7 +84,7 @@ foreach my $base (@ARGV) {
 	# Measured eval_cons stats
 	my $supp_perc = int($supp/($supp+$nmapped) * 100 * 1000 + 0.5)/1000;
 	$mapped=~tr/%(//d;
-	$fn =~ s/bam/eval_cons/;
+	$fn =~ s/bam\d*/eval_cons/;
 	open(FH, "<$fn") || die "$fn";
 	my ($cov,$used,$contigs,$breaks);
 	while (<FH>) {
@@ -91,18 +100,18 @@ foreach my $base (@ARGV) {
 	my $f1 = int(2*$cov*$used/($cov+$used)*1000+.5)/1000;
 	close(FH);
 
-	#my $score = $mapped -2*$supp_perc - 2*($nalign-1) - $nm/100;
-	# -indel/1000  is 0.14 drop
-	# -indel_fract is small drop
-	# -err*100     is 0.06 drop (like NM but a fract)
-	#$mapped = 100-(100-$mapped)/2; # poor!; -0.3 ish
-	my $score = $mapped -2*$supp_perc - 2*($nalign-1) - $nm/100;
-	$score -= $var/40;      # variance
-	#$score -= sqrt($var);  # or sd
-	$score = 1 if $score < 1;
+	# An empirically derived formula for a score that's correlated against
+	# the harmonic mean of used% and covered%.
+	my $score = $mapped**1.4 * 0.1614;
+	$score -=   $supp_perc**0.5 * 2.74;
+	$score -=   $nalign**0.7 * 2.22;
+	$score -=   $nm/100;
+	$score -=   $var/30;
+	$score = 0.1 if $score < 0.1;
+	$score = $score**0.9 + 42;
 	$score = 100 if $score > 100;
-	#$score = ($score**0.5);
-	#print $score,"\t",($score**0.47)*10,"\n";
+
+	#        0   1        2           3     X4    X5     X6   X7        X8       9        10   11
 	print "$fn\t$mapped\t$supp_perc\t$var\t$cov\t$used\t$f1\t$contigs\t$breaks\t$nalign\t$nm\t$score\n";
     }
 }
