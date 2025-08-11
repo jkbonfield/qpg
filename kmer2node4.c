@@ -33,16 +33,24 @@ static FILE *edge_fp = NULL;
 
 // KMER_IDX is the hash table size for storing kmer entries.
 #ifndef KMER_IDX
-#define KMER_IDX 28
+// mg    = 1m56 13m47 0m55  85.1	91.2	4.7	2.3	1.0
+// 28/20 = 3m19 13m22 10m26 88.3	93.2	2.8	1.9	1.2
+// 24/20 = 2m48 12m56 7m5   88.2	93.1	2.8	1.9	1.3
+// 24/10 = 2m31 11m52 5m53  88.3	93.1	2.8	2.0	1.3
+// 22/10 = 2m00 11m2  3m1   88.5	93.0	2.7	2.0	1.3 <<<
+// 19/10 = 1m45 10m54 1m19  88.6	92.4	2.8	2.0	1.3
+#define KMER_IDX 22
 #endif
 
 #define KSIZE (1<<KMER_IDX)
 #define KMASK (KSIZE-1)
 
-#define MAX_DUPS 20 // maximum number of nodes a kmer can be in.
-#define MAX_NODES (100*1024)
+#define MAX_DUPS 10 // maximum number of nodes a kmer can be in.
+#define MAX_NODES (15*1024)
 
 static int ndup = 0, nuniq = 0;
+
+//#define TRANSITION_COUNT
 
 // Node->node edge counts
 // FIXME: need to map ++, +-, -+ and -- transitions
@@ -237,7 +245,7 @@ typedef struct {
     khash_t(node) *nodes;
     int nnodes;
     char kdup[KSIZE]; // last used ele of kmer[].  >0 implies duplicated
-    int kmer[KSIZE][MAX_DUPS];   // maps hash(kmer) to node number
+    uint16_t kmer[KSIZE][MAX_DUPS];   // maps hash(kmer) to node number
     char kdir[KSIZE][MAX_DUPS];  // 0=unknown, 1=+ 2=- 3=both (eg dup within node)
     int unique[KSIZE]; // number of unique maps for this kmer
     node *num2node[MAX_NODES];
@@ -523,7 +531,9 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 
     int poss_nodes[MAX_NODES] = {0};
 
+#ifdef DEBUG
     printf("Seq %s\n", bam_get_qname(b));
+#endif
     int last_node = -1, last_node_base = 0, last_node_poss = 0, last_dir = 0;
     int last_node_count = 0;
     int nposs_run = 0; // for node -1 and then changing node
@@ -545,6 +555,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	int num = ns->kmer[k][0];
 	int dir = ns->kdir[k][0];
 
+#ifdef DEBUG
 	printf("Pos %d, dup=%d num=%d,%s dir=%d last=%d,%d x %d",
 	       i, dup, num, num?ns->num2node[num]->name:"*", dir, last_node, last_node_poss, nposs_run);
 	for (int kc=0; kc<MAX_DUPS && ns->kmer[k][kc]; kc++) {
@@ -552,6 +563,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	    printf(" %s", ns->num2node[n]->name);
 	}
 	printf("\n");
+#endif
 
 	// FIXME: we may start with a duplicate node and transition into
 	// unique, but for now we only rescue the other way around.
@@ -612,11 +624,13 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		kc = kc1;
 		num = ns->kmer[k][kc];
 		dir = ns->kdir[k][kc];
+#ifdef DEBUG
 		if (last_node_poss != num)
 		    printf("Found transition %s %s %d (%d)\n",
 			   ns->num2node[last_node_poss]->name,
 			   ns->num2node[num]->name,
 			   last_node_count, kc);
+#endif
 		dup = 0;
 	    }
 	}
