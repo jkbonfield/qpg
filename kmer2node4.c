@@ -39,6 +39,9 @@ static FILE *edge_fp = NULL;
 // 24/10 = 2m31 11m52 5m53  88.3	93.1	2.8	2.0	1.3
 // 22/10 = 2m00 11m2  3m1   88.5	93.0	2.7	2.0	1.3 <<<
 // 19/10 = 1m45 10m54 1m19  88.6	92.4	2.8	2.0	1.3
+//
+// With rearrange nodeset struct
+// 22/10 = 1m54 10m43 2m42  88.5	93.0	2.7	2.0	1.3 <<<
 #define KMER_IDX 22
 #endif
 
@@ -242,12 +245,16 @@ KHASH_MAP_INIT_STR(node, node*)
 //} node_list;
 
 typedef struct {
+    char     kdup;           // last used ele of kmer[].  >0 implies duplicated
+    uint16_t kmer[MAX_DUPS]; // maps hash(kmer) to node number
+    char     kdir[MAX_DUPS]; // 0=unknown, 1=+ 2=- 3=both (eg dup within node)
+    int      unique;	     // number of unique maps for this kmer
+} kc;
+
+typedef struct {
     khash_t(node) *nodes;
     int nnodes;
-    char kdup[KSIZE]; // last used ele of kmer[].  >0 implies duplicated
-    uint16_t kmer[KSIZE][MAX_DUPS];   // maps hash(kmer) to node number
-    char kdir[KSIZE][MAX_DUPS];  // 0=unknown, 1=+ 2=- 3=both (eg dup within node)
-    int unique[KSIZE]; // number of unique maps for this kmer
+    kc kc [KSIZE];
     node *num2node[MAX_NODES];
 } nodeset;
 
@@ -328,38 +335,38 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
 
 	int unique = 0, kc;
 
-	if (ns->kmer[k][0] && ns->kmer[k][0] != num) {
-	    if (ns->kdup[k] == 0) {
+	if (ns->kc[k].kmer[0] && ns->kc[k].kmer[0] != num) {
+	    if (ns->kc[k].kdup == 0) {
 		// Not previously observed as duplicated.
 		// Fix up the first occurance kmer_unique/dup counts.
-		node *dup_n = ns->num2node[ns->kmer[k][0]];
-		dup_n->kmer_unique -= ns->unique[k];
-		dup_n->kmer_dup    += ns->unique[k];
+		node *dup_n = ns->num2node[ns->kc[k].kmer[0]];
+		dup_n->kmer_unique -= ns->kc[k].unique;
+		dup_n->kmer_dup    += ns->kc[k].unique;
 	    }
-	    int kc = ++ns->kdup[k];
+	    int kc = ++ns->kc[k].kdup;
 
 	    // While it's dup, it may not be a new dup to us.
-	    for (kc = 1; kc < MAX_DUPS && ns->kmer[k][kc]; kc++)
-		if (ns->kmer[k][kc] == num)
+	    for (kc = 1; kc < MAX_DUPS && ns->kc[k].kmer[kc]; kc++)
+		if (ns->kc[k].kmer[kc] == num)
 		    break;
 
-	    if (kc < MAX_DUPS && ns->kmer[k][kc] == 0) {
+	    if (kc < MAX_DUPS && ns->kc[k].kmer[kc] == 0) {
 		// Not observed with this node before
 		//printf("Set ns->kmer[%d][%d] = %d\n", k, kc, num);
-		ns->kdup[k] = kc;
-		ns->kmer[k][kc] = num;
+		ns->kc[k].kdup = kc;
+		ns->kc[k].kmer[kc] = num;
 		int kdir=2-bidir; // 1(+)->1 0(-)->2
-		ns->kdir[k][kc] = (ns->kdir[k][kc] && ns->kdir[k][kc] != kdir)
+		ns->kc[k].kdir[kc] = (ns->kc[k].kdir[kc] && ns->kc[k].kdir[kc] != kdir)
 		    ? 3 : kdir;
 	    }
 	    n->kmer_dup++;
 	} else {	
 	    // First time finding it or only ever found in this same node
-	    ns->kmer[k][0] = num;
-	    ns->unique[k]++;
+	    ns->kc[k].kmer[0] = num;
+	    ns->kc[k].unique++;
 	    n->kmer_unique++;
 	    int kdir=2-bidir; // 1(+)->1 0(-)->2
-	    ns->kdir[k][0] = (ns->kdir[k][0] && ns->kdir[k][0] != kdir)
+	    ns->kc[k].kdir[0] = (ns->kc[k].kdir[0] && ns->kc[k].kdir[0] != kdir)
 		? 3 : kdir;
 	    unique = 1;
 	}
@@ -551,15 +558,15 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	//kh = hash_seq(bases+i); // FNV1a
 	uint32_t k = kh & KMASK;
 
-	int dup = (ns->kdup[k] > 0), was_dup = dup;
-	int num = ns->kmer[k][0];
-	int dir = ns->kdir[k][0];
+	int dup = (ns->kc[k].kdup > 0), was_dup = dup;
+	int num = ns->kc[k].kmer[0];
+	int dir = ns->kc[k].kdir[0];
 
 #ifdef DEBUG
 	printf("Pos %d, dup=%d num=%d,%s dir=%d last=%d,%d x %d",
 	       i, dup, num, num?ns->num2node[num]->name:"*", dir, last_node, last_node_poss, nposs_run);
-	for (int kc=0; kc<MAX_DUPS && ns->kmer[k][kc]; kc++) {
-	    int n = ns->kmer[k][kc];
+	for (int kc=0; kc<MAX_DUPS && ns->kc[k].kmer[kc]; kc++) {
+	    int n = ns->kc[k].kmer[kc];
 	    printf(" %s", ns->num2node[n]->name);
 	}
 	printf("\n");
@@ -571,8 +578,8 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 	// Dup, but maybe graph unambiguates it for us.
 	if (dup && last_node_poss > 0) {
 	    int kc, kc1, kcn = 0;
-	    for (kc = 0; kc < MAX_DUPS && ns->kmer[k][kc]; kc++) {
-		int n = ns->kmer[k][kc];
+	    for (kc = 0; kc < MAX_DUPS && ns->kc[k].kmer[kc]; kc++) {
+		int n = ns->kc[k].kmer[kc];
 
 		//if (n != last_node_poss)
 		//    printf("k=%08x i=%d: last=%d,%d dup %d %d %s\n", k, i, last_node_poss, last_dir,  kc, n, ns->num2node[n]->name);
@@ -581,10 +588,10 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 				    ns->num2node[last_node_poss]->name,
 				    "?+-b"[last_dir],
 				    ns->num2node[n]->name,
-				    "?+-b"[ns->kdir[k][kc]]) ||
+				    "?+-b"[ns->kc[k].kdir[kc]]) ||
 		    gfa_edge_exists(gfa_edges,
 				    ns->num2node[n]->name,
-				    "?-+b"[ns->kdir[k][kc]],
+				    "?-+b"[ns->kc[k].kdir[kc]],
 				    ns->num2node[last_node_poss]->name,
 				    "?-+b"[last_dir])) {
 		    kc1 = kc;
@@ -592,7 +599,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		}
 	    }
 
-	    //printf("kcn=%d last kc1=%d %s\n", kcn, kc1, ns->num2node[ns->kmer[k][kc1]]->name);
+	    //printf("kcn=%d last kc1=%d %s\n", kcn, kc1, ns->num2node[ns->kc[k].kmer[kc1]]->name);
 
 // Attempt to track the number of copies of a node before/after a dup
 // so we don't create transitions unless the number is significant.
@@ -622,8 +629,8 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 #endif
 	    {
 		kc = kc1;
-		num = ns->kmer[k][kc];
-		dir = ns->kdir[k][kc];
+		num = ns->kc[k].kmer[kc];
+		dir = ns->kc[k].kdir[kc];
 #ifdef DEBUG
 		if (last_node_poss != num)
 		    printf("Found transition %s %s %d (%d)\n",
@@ -671,8 +678,8 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		    kh2 = hash_shift(kh2, bases[j-1], bases[j+kmer-1], kmer);
 		    uint32_t k = kh2 & KMASK;
 		    printf("%d %d, %c, %d ns->kmer[%u][0]=%d\n",
-			   i, j, bases[j-1], num, k, ns->kmer[k][0]);
-		    if (ns->kdup[k] > 0 || ns->kmer[k][0] != num)
+			   i, j, bases[j-1], num, k, ns->kc[k].kmer[0]);
+		    if (ns->kc[k].kdup > 0 || ns->kc[k].kmer[0] != num)
 			break;
 		}
 		printf("Run for %d more kmers\n", j-i-1);
@@ -747,8 +754,8 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		ns->num2node[last_node_poss]->hit_possible+=nposs_run;
 		nposs_run = 0;
 	} else if (dup && num) {
-	    for (int kc=0; kc<MAX_DUPS && ns->kmer[k][kc]; kc++) {
-		int n = ns->kmer[k][kc];
+	    for (int kc=0; kc<MAX_DUPS && ns->kc[k].kmer[kc]; kc++) {
+		int n = ns->kc[k].kmer[kc];
 		if (use_non_uniq)
 		    ns->num2node[n]->hit_count+=0.1;
 		else
@@ -801,8 +808,8 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		nposs_run = 0;
 	    } else {
 		nposs_run++;
-		for (int kc = 0; kc < MAX_DUPS && ns->kmer[k][kc]; kc++)
-		    poss_nodes[ns->kmer[k][kc]]++;
+		for (int kc = 0; kc < MAX_DUPS && ns->kc[k].kmer[kc]; kc++)
+		    poss_nodes[ns->kc[k].kmer[kc]]++;
 		nposs_dir = dir;
 	    }
 	}
