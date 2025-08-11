@@ -2,7 +2,6 @@ import pickle
 from collections import Counter
 from datetime import datetime
 import os
-import numpy as np
 import argparse
 import re
 from qubo_solvers.oriented_tangle.utils.sampling_utils import dwave_sample_qubo, mqlib_sample_qubo, gurobi_sample_qubo, validate_path, validate_edge2node_path
@@ -83,6 +82,7 @@ def main():
             for i in range(qubo_description.jobs):         
                 path_fragments = []
                 fragment = [] 
+                # TODO: need to check that a fragment doesn't have broken graph steps?
                 for path_step in paths[time_limit][i][2]:
                     node = path_step[1]
                     if node == 'end':
@@ -95,12 +95,16 @@ def main():
                         fragment.append(f'{">" if match.group(2) == "+" else "<"}{match.group(1)}\n')
                 path_fragments.append(fragment)
 
-                # TODO: handle multiple contigs?
-                # TODO: need to check that a fragment doesn't have broken graph steps?
-                longest_frag_index = np.argmax([len(fragment) for fragment in path_fragments])        
                 with open(f'{args.output}.{time_limit}.{i}', 'w') as f:
-                    for node in path_fragments[longest_frag_index]:
-                        f.write(node)
+                    for fragment in path_fragments:
+                        f.write('Begin fragment')
+                        for node in fragment:
+                            f.write(node)
+                                  
+                # longest_frag_index = np.argmax([len(fragment) for fragment in path_fragments])        
+                # with open(f'{args.output}.{time_limit}.{i}', 'w') as f:
+                #     for node in path_fragments[longest_frag_index]:
+                #         f.write(node)
 
     return 0
 

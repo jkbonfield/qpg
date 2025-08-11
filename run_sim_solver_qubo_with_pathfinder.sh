@@ -153,8 +153,38 @@ awk '
 
                 for t in ${time_limits//,/ }; do
                     for ((idx=0;idx<num_jobs;idx++)); do
-                        echo ">contig_$current_subgraph_name" >> "$query.path_seq.$t.$idx"
-                        path2seq.pl "$output_gfa_file" "$query.subgraph.$current_subgraph_name.gaf.$t.$idx" >> "$query.path_seq.$t.$idx"
+                        fragment_content=""
+                        in_fragment=false
+                        counter=0
+                        while IFS= read -r line || [[ -n "$line" ]]; do
+                            if [[ "$line" == "Begin fragment" ]]; then
+                                if [ "$in_fragment" = true ] && [ -n "$fragment_content" ]; then
+                                    tmp_file=$(mktemp)
+                                    echo -e "$fragment_content" > "$tmp_file"
+                                    echo ">contig_$current_subgraph_name.$counter" >> "$query.path_seq.$t.$idx"
+                                    path2seq.pl "$output_gfa_file" "$tmp_file" >> "$query.path_seq.$t.$idx"
+                                    counter=$(expr $counter + 1)
+                                    rm "$tmp_file"
+                                fi
+
+                                in_fragment=true
+                                fragment_content=""
+                                continue 
+                            fi
+
+                            if [ "$in_fragment" = true ]; then
+                                fragment_content+="$line"$'\n'
+                            fi
+                        done  < "$query.subgraph.$current_subgraph_name.gaf.$t.$idx"
+                        
+                        if [ "$in_fragment" = true ] && [ -n "$fragment_content" ]; then
+                            tmp_file=$(mktemp)
+                            echo -e "$fragment_content" > "$tmp_file"
+                            echo ">contig_$current_subgraph_name.$counter" >> "$query.path_seq.$t.$idx"
+                            cat "$tmp_file"
+                            path2seq.pl "$output_gfa_file" "$tmp_file" >> "$query.path_seq.$t.$idx"
+                            rm "$tmp_file"
+                        fi
                     done
                 done
 
