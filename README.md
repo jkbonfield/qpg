@@ -24,7 +24,7 @@ script.  The usage is
            --trim-edges        Use trim_edges.pl
            --pathfinder        Use pathfinder to get subgraphs
 
-Solver can be mqlib or pathfinder.
+Solver can be mqlib, gurobi, dwave or pathfinder.
 
 It uses a configuration file to control parameters such as the graph
 complexity, but also which algorithms to use.  Use the CONFIG environment
@@ -37,9 +37,11 @@ Premade configuration files are:
     config_hifi_{km,mg,ga,vg}.sh        Hifi using a specific --annotate option
     config_illumina_{km,mg,ga,vg}.sh    Ilumina using a specific --annotate opt
 
+We recommend using Pathfinder to partition the graph and assign copy numbers based on the annotated graph. This can be enabled with the --pathfinder option.
+
 For example:
 
-    run_gfa_sim.sh -c config_hifi_mg.sh -s 1 --solver pathfinder -p pf_hifi_mg_
+    run_gfa_sim.sh -c config_hifi_mg.sh -s 1 --solver pathfinder -p pf_hifi_mg_ --pathfinder
 
 
 Multiple runs can be launch via xargs:
@@ -132,3 +134,29 @@ run_sim_evaluate_path.sh
 Compares a true sequence to a candidate assembly sequence and reports how well
 they match.  It compares A to B and B to A to get symmetric data on coverage
 (how much of A is in B and vice versa).
+
+
+QUBO
+============
+
+Code used to map annotated graphs into a QUBO problem and for sampling solutions from said QUBO problem are provided in `qubo/`.
+
+`build_oriented_qubo_matrix.py` takes 4 arguments:
+    -f : the path to a .gfa file
+    -c : a list of copy numbers for the graph (comma separated)
+    -p : a list of 3 Lagrange multipliers for the 1-node-per-time, graph steps and node weight constraints respectively (comma separated)
+    -d : a directory to write the results to
+
+`oriented_max_path.py` takes arguments:
+    -f : the path to a .gfa file
+    -t : a list of time limits to provide to the solver
+    -j : the number of jobs to run per time limit
+    -s : the solver [mqlib, gurobi, dwave]
+    -d : the directory to read QUBO input data from
+    -o : a directory in which to write the located paths
+
+To use MQLib, the binary must be installed and added to the path. Instructions for installing MQLib can be found at [https://github.com/MQLib/MQLib](https://github.com/MQLib/MQLib).
+
+To use Gurobi, a license must be obtained. Free academic licenses are available. Instructions are available at [https://www.gurobi.com/solutions/licensing/](https://www.gurobi.com/solutions/licensing/).
+
+To use D-Wave, an API key must be obtained; free trials are available. Instructions can be found at [https://www.dwavequantum.com/quantum-launchpad/](https://www.dwavequantum.com/quantum-launchpad/).

@@ -65,7 +65,6 @@ my $aligner_index = "/software/sciops/pkgg/bwa/0.7.17/bin/bwa index";
 my $aligner_opts = "-B4 -O4 -E2";
 #my $aligner_opts = "-B6 -O4,10 -E2,1";
 
-# TODO: something about bsub breaks next line
 system("$aligner_index $ARGV[0] 1>log.txt 2>bwa_idx.err") && die "$!";
 open(my $mm, "$aligner $aligner_opts @ARGV 2>bwa_mem.err | tee _.sam|samtools sort -O sam|") || die "$!";
 

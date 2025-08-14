@@ -182,27 +182,27 @@ do
         gfa_file_name="$i".gfa
         if [ "$edge2node" -eq 1 ]; then
             echo "Using edge2node"
-	    gfa_edge_to_node.pl < "$i".gfa > "$i".edge2node.gfa
+	        gfa_edge_to_node.pl < "$i".gfa > "$i".edge2node.gfa
             gfa_file_name="$i".edge2node.gfa
         fi
 
-	if [ "$trimedges" -eq 1 ]; then
-	    echo ">>> Using trim_edges.pl"
-	    trim_edges.pl $gfa_file_name > $i.edited.gfa
-	    gfa_file_name=$i.edited.gfa
-	fi
+        if [ "$trimedges" -eq 1 ]; then
+            echo ">>> Using trim_edges.pl"
+            trim_edges.pl $gfa_file_name > $i.edited.gfa
+            gfa_file_name=$i.edited.gfa
+        fi
 
         run_sim_solver_qubo.sh -f "$gfa_file_name" -s "$solver" -q "$i" -t "$time_limits" -j "$num_jobs" --edge2node "$edge2node" --pathfinder "$pathfinder_copy_numbers"
         echo "Finished sim solver qubo"
     else
         time_limits=0
         num_jobs=1
-	gfa=$i.gfa
-	if [ "$trimedges" -eq 1 ]; then
-	    echo ">>> Using trim_edges.pl"
-	    trim_edges.pl $i.gfa > $i.edited.gfa
-	    gfa=$i.edited.gfa
-	fi
+        gfa=$i.gfa
+        if [ "$trimedges" -eq 1 ]; then
+            echo ">>> Using trim_edges.pl"
+            trim_edges.pl $i.gfa > $i.edited.gfa
+            gfa=$i.edited.gfa
+        fi
         echo "Start $solver"
         run_sim_solver_"$solver".sh $gfa > "$i".path
         pathfinder2seq.pl pop.gfa "$i".path > "$i".path_seq.0.0
