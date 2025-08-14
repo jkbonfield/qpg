@@ -20,6 +20,12 @@ def mqlib_sample_qubo(qubo_description: QuboDescription):
         paths[time_limit] = []
         
         for _ in range(qubo_description.jobs):
+            if qubo_description.T < 5:
+                logger.info(f'Small problem, T = {qubo_description.T}. Setting time limit to <=5')
+                time_limit = min(time_limit, 5)
+            elif qubo_description.T < 10:
+                logger.info(f'Small problem, T = {qubo_description.T}. Setting time limit to <=10')
+                time_limit = min(time_limit, 10)
             # Run the MQLib solver and capture output
             process = subprocess.run(["MQLib", "-fQ", input_filepath, "-h", "PALUBECKIS2004bMST2", "-r", str(time_limit), "-s", str(rng.integers(0, 65535)), "-ps"], capture_output=True)
 

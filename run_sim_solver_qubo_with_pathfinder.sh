@@ -164,7 +164,7 @@ awk '
                                     echo -e "$fragment_content" > "$tmp_file"
                                     echo ">contig_$current_subgraph_name.$counter" >> "$query.path_seq.$t.$idx"
                                     path2seq.pl "$output_gfa_file" "$tmp_file" >> "$query.path_seq.$t.$idx"
-                                    counter=$(expr $counter + 1)
+                                    counter=$((counter+1))
                                     rm "$tmp_file"
                                 fi
 
@@ -182,7 +182,6 @@ awk '
                             tmp_file=$(mktemp)
                             echo -e "$fragment_content" > "$tmp_file"
                             echo ">contig_$current_subgraph_name.$counter" >> "$query.path_seq.$t.$idx"
-                            cat "$tmp_file"
                             path2seq.pl "$output_gfa_file" "$tmp_file" >> "$query.path_seq.$t.$idx"
                             rm "$tmp_file"
                         fi
