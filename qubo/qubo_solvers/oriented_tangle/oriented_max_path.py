@@ -94,7 +94,8 @@ def main():
                         if match is None:
                             raise Exception(f'Could not parse node: {node}')
                         fragment.append(f'{">" if match.group(2) == "+" else "<"}{match.group(1)}\n')
-                path_fragments.append(fragment)
+                if len(fragment):
+                    path_fragments.append(fragment)
 
                 with open(f'{args.output}.{time_limit}.{i}', 'w') as f:
                     for fragment in path_fragments:
