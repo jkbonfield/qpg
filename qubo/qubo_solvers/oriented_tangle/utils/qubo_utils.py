@@ -115,7 +115,7 @@ def qubo_matrix_from_graph(graph: nx.DiGraph, alpha: float | None=None, penaltie
     
     if penalties is None:
         # Penalty Values
-        lambda_t = 100
+        lambda_t = 200
         lambda_g = 50
         lambda_w = 1    
     else:
@@ -161,13 +161,16 @@ def qubo_matrix_from_graph(graph: nx.DiGraph, alpha: float | None=None, penaltie
     # for each i
     # ( sum_{t,b} x_{t,i,b} - w(i) ) * ( sum_{t,b} x_{t,i,b} - w(i) + 0.5) 
     # = w(i)(w(i) - 0.5) - (2w(i) - 0.5) * sum_{t,b} ( x_{t,i,b} ) + sum_{t1,b1,t2,b2} ( x_{t1,i,b1} x_{t2,i,b2})
-    def W_qubo_matrix(weight):
-        return lambda_w * (
+    
+    # UPDATE: multiply by log(len(i)) to reflect the fact that we have more confidence in the weights of longer nodes
+    def W_qubo_matrix(weight, length):
+        return np.log10(length) * lambda_w * (
                 np.ones((T_max, 2, T_max, 2), dtype=float) # sum_{t1,b1,t2,b2} ( x_{t1,i,b1} x_{t2,i,b2})
                 - (2 * weight - 0.5) * np.array([1]+ ([0]*2*(T_max)+[1]) * (2*(T_max)-1), dtype=float).reshape((T_max,2,T_max,2)) # - (2w(i) - 0.5) * sum_{t,b} ( x_{t,i,b} )
             )
     for i in range(V):
-        qubo_matrix[:, i, :, :, i, :] += W_qubo_matrix(graph.nodes[nodes[2*i]]["weight"])
+        node = graph.nodes[nodes[2*i]]
+        qubo_matrix[:, i, :, :, i, :] += W_qubo_matrix(node["weight"], node["length"])
         
 
     qubo_matrix = qubo_matrix.reshape((T_max * (V+1) * 2), (T_max * (V+1) * 2))
@@ -180,7 +183,9 @@ def qubo_matrix_from_graph(graph: nx.DiGraph, alpha: float | None=None, penaltie
     offset = (
         lambda_t * T_max  
         + lambda_g * (T_max - 1)
-        + lambda_w * sum([graph.nodes[nodes[2 * i]]["weight"] ** 2 - 0.5 * graph.nodes[nodes[2 * i]]["weight"] for i in range(V)])
+        + lambda_w * sum([
+            (graph.nodes[nodes[2 * i]]["weight"] ** 2 - 0.5 * graph.nodes[nodes[2 * i]]["weight"]) * np.log10(graph.nodes[nodes[2 * i]]["length"])
+        for i in range(V)])
     )
     
     # normalisation = np.max(np.abs(qubo_matrix))

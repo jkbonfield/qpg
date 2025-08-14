@@ -18,8 +18,8 @@ def edge2node_oriented_graph(filename: str, copy_numbers: list[str]):
     gfa = gfapy.Gfa.from_file(filename, vlevel=0)
     graph = nx.DiGraph()
     for index, segment_line in enumerate(gfa.segments):
-        graph.add_node(f'{segment_line.name}_+', weight=copy_numbers[2*index], start=segment_line.st)
-        graph.add_node(f'{segment_line.name}_-', weight=copy_numbers[2*index+1], start=segment_line.st)
+        graph.add_node(f'{segment_line.name}_+', weight=copy_numbers[2*index], length=segment_line.LN)
+        graph.add_node(f'{segment_line.name}_-', weight=copy_numbers[2*index+1], length=segment_line.LN)
     for edge_line in gfa.edges:
         v1 = edge_line.sid1
         v2 = edge_line.sid2
@@ -50,8 +50,8 @@ def oriented_graph_with_copy_numbers(filename, copy_numbers: list[float] | None 
     
     graph = nx.DiGraph()
     for index, segment_line in enumerate(gfa.segments):
-        graph.add_node(f'{segment_line.name}_+', weight=copy_numbers[index], start=segment_line.st)
-        graph.add_node(f'{segment_line.name}_-', weight=copy_numbers[index], start=segment_line.st)
+        graph.add_node(f'{segment_line.name}_+', weight=copy_numbers[index], length=segment_line.LN)
+        graph.add_node(f'{segment_line.name}_-', weight=copy_numbers[index], length=segment_line.LN)
     for edge_line in gfa.edges:
         v1 = edge_line.sid1
         v2 = edge_line.sid2
