@@ -69,9 +69,9 @@ outdir="."
 
 . ${CONFIG:-$QDIR/config_illumina.sh}
 
-QUBO_DIR=/software/qpg/qubo
-PATH=$PATH:$QUBO_DIR
-source $QUBO_DIR/qubo_venv/bin/activate
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+QUBO_DIR=$SCRIPT_DIR/qubo/qubo_solvers/oriented_tangle
+
 
 echo "Gfa:         $gfa_filepath"
 echo "Query:       $query"
@@ -119,7 +119,7 @@ if [ "$edge2node" -eq 1 ]; then
 
 
 elif [ "$pathfinder_copy_numbers" -eq 1 ]; then
-    run_sim_solver_qubo_with_pathfinder.sh $gfa_filepath $query $outdir $penalties $solver $num_jobs $time_limits
+    run_sim_solver_qubo_with_pathfinder.sh "$gfa_filepath" "$query" "$outdir" "$penalties" "$solver" "$num_jobs" "$time_limits"
 
     
 else
@@ -130,7 +130,7 @@ else
     while (<>) {
         next unless /^S/;
         m/SC:f:([0-9.]*)/;
-        print $1/30 + 0.8, ",";
+        print $1/30 + 0.5, ",";
     }
     ' $gfa_filepath)
     

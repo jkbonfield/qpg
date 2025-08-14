@@ -10,7 +10,8 @@ time_limits=$7
 
 . ${CONFIG:-$QDIR/config_illumina.sh}
 
-QUBO_DIR=$QDIR/qubo/qubo_solvers/oriented_tangle
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+QUBO_DIR=$SCRIPT_DIR/qubo/qubo_solvers/oriented_tangle
 # source $QUBO_DIR/qubo_venv/bin/activate
 
 echo "Solve with pathfinder copy numbers"
