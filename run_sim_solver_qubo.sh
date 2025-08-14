@@ -83,9 +83,9 @@ echo "Pathfinder:  $pathfinder_copy_numbers"
 echo ""
 
 if [[ " dwave " =~  $solver  ]]; then
-    penalties="10,5,1"
+    penalties="40,10,1"
 else
-    penalties="100,50,1"
+    penalties="200,50,1"
 fi
 echo $penalties
 

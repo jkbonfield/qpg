@@ -86,7 +86,8 @@ def main():
                 for path_step in paths[time_limit][i][2]:
                     node = path_step[1]
                     if node == 'end':
-                        path_fragments.append(fragment)
+                        if len(fragment):
+                            path_fragments.append(fragment)
                         fragment = []
                     else:
                         match: re.Match | None = re.search(r'([!-)+-<>-~][!-~]*)\_([+-])', node)
@@ -97,7 +98,7 @@ def main():
 
                 with open(f'{args.output}.{time_limit}.{i}', 'w') as f:
                     for fragment in path_fragments:
-                        f.write('Begin fragment')
+                        f.write('Begin fragment\n')
                         for node in fragment:
                             f.write(node)
                                   

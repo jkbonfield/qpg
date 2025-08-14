@@ -167,7 +167,7 @@ def qubo_matrix_from_graph(graph: nx.DiGraph, alpha: float | None=None, penaltie
                 - (2 * weight - 0.5) * np.array([1]+ ([0]*2*(T_max)+[1]) * (2*(T_max)-1), dtype=float).reshape((T_max,2,T_max,2)) # - (2w(i) - 0.5) * sum_{t,b} ( x_{t,i,b} )
             )
     for i in range(V):
-        qubo_matrix[:, i, :, :, i, :] += W_qubo_matrix(graph.nodes[nodes[i]]["weight"])
+        qubo_matrix[:, i, :, :, i, :] += W_qubo_matrix(graph.nodes[nodes[2*i]]["weight"])
         
 
     qubo_matrix = qubo_matrix.reshape((T_max * (V+1) * 2), (T_max * (V+1) * 2))
