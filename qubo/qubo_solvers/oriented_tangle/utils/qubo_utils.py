@@ -110,7 +110,7 @@ def qubo_matrix_from_graph(graph: nx.DiGraph, alpha: float | None=None, penaltie
     # T_max = total weight + "a bit"
     if alpha is None:
         alpha = 1.1
-    T_max = floor(total_weight * alpha)
+    T_max = max(floor(total_weight * alpha), 1)
     logger.info(f'V: {V}, T: {T_max}')
     
     if penalties is None:
