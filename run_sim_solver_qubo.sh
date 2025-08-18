@@ -9,7 +9,8 @@ help() {
     echo "    -t,--times     INT_LIST   Time limits provided to QUBO solvers"
     echo "    -j,--jobs      INT     Number of runs of QUBO solvers"
     echo "    -a,--annotator STR     The annotator used to build the gfa"
-    echo "       --pathfinder INT    Use Pathfinder to get subgraphs and copy numbers if eq 1"
+    echo "       --pathfinder_graph INT    Use Pathfinder to get subgraphs and copy numbers if eq 1"
+    echo "       --pathfinder INT    Use Pathfinder to get subgraphs if eq 1"
     echo "       --edge2node INT    Use edge2node to get copy numbers if eq 1 [DEPRECATED]"
     echo ""
 }
@@ -54,6 +55,21 @@ do
 	    shift 2
 	    continue
 	    ;;
+	'-c1'|'--const1')
+	    const1=$2
+	    shift 2
+	    continue
+	    ;;
+	'-c2'|'--const2')
+	    const2=$2
+	    shift 2
+	    continue
+	    ;;
+	'--pathfinder_graph')
+	    pathfinder_graph=$2
+	    shift 2
+	    continue
+	    ;;
 	'--pathfinder')
 	    pathfinder_copy_numbers=$2
 	    shift 2
@@ -79,14 +95,15 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 QUBO_DIR=$SCRIPT_DIR/qubo/qubo_solvers/oriented_tangle
 
 
-echo "Gfa:         $gfa_filepath"
-echo "Query:       $query"
-echo "Solver:      $solver"
-echo "Time limits: $time_limits"
-echo "Num jobs:    $num_jobs"
-echo "Annotator:   $annotator"
-echo "Edge2node:   $edge2node"
-echo "Pathfinder:  $pathfinder_copy_numbers"
+echo "Gfa:                    $gfa_filepath"
+echo "Query:                  $query"
+echo "Solver:                 $solver"
+echo "Time limits:            $time_limits"
+echo "Num jobs:               $num_jobs"
+echo "Annotator:              $annotator"
+echo "Edge2node:              $edge2node"
+echo "Pathfinder graph only:  $pathfinder_graph"
+echo "Pathfinder:             $pathfinder_copy_numbers"
 echo ""
 
 if [[ " dwave " =~  $solver  ]]; then
@@ -125,19 +142,24 @@ if [ "$edge2node" -eq 1 ]; then
     #     done
     # done
 
+elif [ "$pathfinder_graph" -eq 1 ]; then
+    echo "Solve with pathfinder graph"
+    run_sim_solver_qubo_with_pathfinder_graph.sh "$gfa_filepath" "$query" "$outdir" "$penalties" "$solver" "$num_jobs" "$time_limits" "$annotator" "$const1" "$const2"
+
 
 elif [ "$pathfinder_copy_numbers" -eq 1 ]; then
+    echo "Solve with pathfinder copy numbers"
     run_sim_solver_qubo_with_pathfinder.sh "$gfa_filepath" "$query" "$outdir" "$penalties" "$solver" "$num_jobs" "$time_limits"
 
     
 else
     echo "Default solve"
     if [[ " km " =~  $annotator  ]]; then
-        const=0.5
+        const=0.8
     elif [[ " mg " =~  $annotator  ]]; then
-        const=0.5
+        const=0.8
     else
-        const=0
+        const=0.8
     fi
 
     copy_numbers=$(perl -e '
@@ -146,7 +168,7 @@ else
     while (<$gfa>) {
         next unless /^S/;
         m/SC:f:([0-9.]*)/;
-        print $1/30 + $ARGV[0], ",";
+        print int($1/30 + $ARGV[0]), ",";
     }
     ' "$gfa_filepath" "$const")
     
