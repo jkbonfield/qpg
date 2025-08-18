@@ -35,7 +35,8 @@ echo "===============" >> "$avg_file_name"
 
 
 
-for solver in $solvers; do    
+for solver in $solvers; do
+    [[ " pathfinder " =~ $solver ]] && continue;   
     avg_file_name="$solver.$annotate.$data_type.avg.txt"
     rm "$avg_file_name" 2> /dev/null
 

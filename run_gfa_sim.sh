@@ -79,6 +79,16 @@ do
 	    shift 2
 	    continue
 	    ;;
+	'-c1'|'--const1')
+	    const1=$2
+	    shift 2
+	    continue
+	    ;;
+	'-c2'|'--const2')
+	    const2=$2
+	    shift 2
+	    continue
+	    ;;
 	'--shred-len')
 	    shred_len=$2
 	    shift 2
@@ -101,6 +111,11 @@ do
         ;;
     '--pathfinder')
         pathfinder_copy_numbers=1
+        shift 1
+        continue
+        ;;
+    '--pathfinder_graph')
+        pathfinder_graph=1
         shift 1
         continue
         ;;
@@ -129,6 +144,7 @@ export QDIR=${QDIR:-$(pwd)}
 export PATH=$QDIR:$PATH
 export CONFIG=$config; # still used in some other scripts
 
+
 echo "Config:   $config"
 echo "Solver:   $solver"
 echo "Seed:     $seed"
@@ -136,6 +152,7 @@ echo "Annotate: $annotate"
 echo "prefix:   $prefix"
 echo "Edge2node:$edge2node"
 echo "TrimEdges:$trimedges"
+echo "PathfinderGraph:$pathfinder_graph"
 echo "Pathfinder:$pathfinder_copy_numbers"
 echo ""
 
@@ -192,7 +209,10 @@ do
             gfa_file_name=$i.edited.gfa
         fi
 
-        run_sim_solver_qubo.sh -f "$gfa_file_name" -s "$solver" -q "$i" -t "$time_limits" -j "$num_jobs" --edge2node "$edge2node" --pathfinder "$pathfinder_copy_numbers"
+        run_sim_solver_qubo.sh -f "$gfa_file_name" -s "$solver" -q "$i" \
+        -t "$time_limits" -j "$num_jobs" -a "$annotate" \
+        -c1 "$const1" -c2 "$const2" \
+        --edge2node "$edge2node" --pathfinder "$pathfinder_copy_numbers" --pathfinder_graph "$pathfinder_graph"
         echo "Finished sim solver qubo"
     else
         time_limits=0
