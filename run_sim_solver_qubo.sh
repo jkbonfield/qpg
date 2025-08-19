@@ -11,12 +11,19 @@ help() {
     echo "    -a,--annotator STR     The annotator used to build the gfa"
     echo "       --pathfinder_graph INT    Use Pathfinder to get subgraphs and copy numbers if eq 1"
     echo "       --pathfinder INT    Use Pathfinder to get subgraphs if eq 1"
-    echo "       --edge2node INT    Use edge2node to get copy numbers if eq 1 [DEPRECATED]"
+    echo "       --edge2node INT     Use edge2node to get copy numbers if eq 1 [DEPRECATED]"
+    echo "       --subgraph  D W     Split graphs where nodes are more than D edges from"
+    echo "                               nodes with weight >= W."
     echo ""
 }
 
 edge2node=0
 pathfinder_copy_numbers=0
+pathfinder_graph=0
+subgraph_D=0
+subgraph_W=0
+const1=0.8
+const2=0.8
 
 while true
 do
@@ -75,11 +82,18 @@ do
 	    shift 2
 	    continue
 	    ;;
-    '--edge2node')
-        edge2node=$2
-        shift 2
-        continue
-        ;;
+	'--subgraph')
+	    subgraph_D=$2
+	    subgraph_W=$3
+	    shift 3
+	    continue;
+	    ;;
+
+	'--edge2node')
+            edge2node=$2
+            shift 2
+            continue
+            ;;
 	*)
 	    break
 	    ;;
@@ -104,6 +118,7 @@ echo "Annotator:              $annotator"
 echo "Edge2node:              $edge2node"
 echo "Pathfinder graph only:  $pathfinder_graph"
 echo "Pathfinder:             $pathfinder_copy_numbers"
+echo "Subgraph:               $subgraph_D $subgraph_W"
 echo ""
 
 if [[ " dwave " =~  $solver  ]]; then
@@ -154,63 +169,76 @@ elif [ "$pathfinder_copy_numbers" -eq 1 ]; then
     
 else
     echo "Default solve"
-    if [[ " km " =~  $annotator  ]]; then
-        const=0.8
-    elif [[ " mg " =~  $annotator  ]]; then
-        const=0.8
+#    if [[ " km " =~  $annotator  ]]; then
+#        const1=0.8
+#    elif [[ " mg " =~  $annotator  ]]; then
+#        const1=0.8
+#    else
+#        const1=0.8
+#    fi
+
+    if [ "$subgraph_D" -ne 0 ]; then
+	partition_graph.pl $gfa_filepath $subgraph_D $subgraph_W
+	gfa_list=`echo $gfa_filepath.sub_graph.*`
     else
-        const=0.8
+	gfa_list=$gfa_filepath
     fi
 
-    copy_numbers=$(perl -e '
+    counter=0
+    for gfa_filepath in $gfa_list
+    do
+        counter=$((counter+1))
+	echo gfa_filepath=$gfa_filepath
+	copy_numbers=$(perl -e '
     use strict;
     open(my $gfa, "<", shift(@ARGV)) || die;
     while (<$gfa>) {
         next unless /^S/;
         m/SC:f:([0-9.]*)/;
-        print int($1/30 + $ARGV[0]), ",";
+        #print int($1/30 + $ARGV[0]), ",";
+ 	print STDOUT (($1/30)+$ARGV[0]), ","; #P1
     }
-    ' "$gfa_filepath" "$const")
-    
-    # print int($1/'$shred_depth' + 0.8), ",";
-    python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$gfa_filepath" -d "$outdir" -c "$copy_numbers" -p "$penalties"
-    python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.gaf"
+    ' "$gfa_filepath" "$const1" "$const2")
+	
+	# print int($1/'$shred_depth' + 0.8), ",";
+	python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$gfa_filepath" -d "$outdir" -c "$copy_numbers" -p "$penalties"
+	python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.gaf"
 
 
-    for t in ${time_limits//,/ }; do
-        for ((idx=0;idx<num_jobs;idx++)); do
-            fragment_content=""
-            in_fragment=false
-            counter=0
-            while IFS= read -r line || [[ -n "$line" ]]; do
-                if [[ "$line" == "Begin fragment" ]]; then
-                    if [ "$in_fragment" = true ] && [ -n "$fragment_content" ]; then
-                        tmp_file=$(mktemp)
-                        echo -e "$fragment_content" > "$tmp_file"
-                        echo ">contig_$counter" >> "$query.path_seq.$t.$idx"
-                        path2seq.pl "$gfa_filepath" "$tmp_file" >> "$query.path_seq.$t.$idx"
-                        counter=$((counter+1))
-                        rm "$tmp_file"
+	for t in ${time_limits//,/ }; do
+            for ((idx=0;idx<num_jobs;idx++)); do
+		fragment_content=""
+		in_fragment=false
+		while IFS= read -r line || [[ -n "$line" ]]; do
+                    if [[ "$line" == "Begin fragment" ]]; then
+			if [ "$in_fragment" = true ] && [ -n "$fragment_content" ]; then
+                            tmp_file=$(mktemp)
+                            echo -e "$fragment_content" > "$tmp_file"
+                            echo ">contig_$counter" >> "$query.path_seq.$t.$idx"
+                            path2seq.pl "$gfa_filepath" "$tmp_file" >> "$query.path_seq.$t.$idx"
+                            counter=$((counter+1))
+                            rm "$tmp_file"
+			fi
+
+			in_fragment=true
+			fragment_content=""
+			continue 
                     fi
 
-                    in_fragment=true
-                    fragment_content=""
-                    continue 
-                fi
-
-                if [ "$in_fragment" = true ]; then
-                    fragment_content+="$line"$'\n'
-                fi
-            done  < "$query.gaf.$t.$idx"
-            
-            if [ "$in_fragment" = true ] && [ -n "$fragment_content" ]; then
-                tmp_file=$(mktemp)
-                echo -e "$fragment_content" > "$tmp_file"
-                echo ">contig_$counter" >> "$query.path_seq.$t.$idx"
-                path2seq.pl "$gfa_filepath" "$tmp_file" >> "$query.path_seq.$t.$idx"
-                rm "$tmp_file"
-            fi
-        done
+                    if [ "$in_fragment" = true ]; then
+			fragment_content+="$line"$'\n'
+                    fi
+		done  < "$query.gaf.$t.$idx"
+		
+		if [ "$in_fragment" = true ] && [ -n "$fragment_content" ]; then
+                    tmp_file=$(mktemp)
+                    echo -e "$fragment_content" > "$tmp_file"
+                    echo ">contig_$counter" >> "$query.path_seq.$t.$idx"
+                    path2seq.pl "$gfa_filepath" "$tmp_file" >> "$query.path_seq.$t.$idx"
+                    rm "$tmp_file"
+		fi
+            done
+	done
     done
 fi
 

@@ -30,6 +30,7 @@ edge2node=0
 trimedges=0
 pathfinder_copy_numbers=0
 
+qubo_opts=""
 while true
 do
     case "$1" in
@@ -80,11 +81,13 @@ do
 	    continue
 	    ;;
 	'-c1'|'--const1')
+	    qubo_opts="$qubo_opts -c1 $2"
 	    const1=$2
 	    shift 2
 	    continue
 	    ;;
 	'-c2'|'--const2')
+	    qubo_opts="$qubo_opts -c2 $2"
 	    const2=$2
 	    shift 2
 	    continue
@@ -99,26 +102,37 @@ do
 	    shift 2
 	    continue
 	    ;;
-    '--edge2node')
-        edge2node=1
-        shift 1
-        continue
-        ;;
-    '--trim-edges')
-        trimedges=1
-        shift 1
-        continue
-        ;;
-    '--pathfinder')
-        pathfinder_copy_numbers=1
-        shift 1
-        continue
-        ;;
-    '--pathfinder_graph')
-        pathfinder_graph=1
-        shift 1
-        continue
-        ;;
+	'--edge2node')
+	    qubo_opts="$qubo_opts --edge2node 1"
+            edge2node=1
+            shift 1
+            continue
+            ;;
+	'--trim-edges')
+            trimedges=1
+            shift 1
+            continue
+            ;;
+	'--pathfinder')
+	    qubo_opts="$qubo_opts --pathfinder_copy_numbers 1"
+            pathfinder_copy_numbers=1
+            shift 1
+            continue
+            ;;
+	'--pathfinder_graph')
+	    qubo_opts="$qubo_opts --pathfinder_graph 1"
+            pathfinder_graph=1
+            shift 1
+            continue
+            ;;
+
+	'--subgraph')
+	    qubo_opts="$qubo_opts --subgraph $2 $3"
+	    subgraph_D=$2
+	    subgraph_W=$3
+	    shift 3
+	    continue;
+	    ;;
 	*)
 	    break
 	    ;;
@@ -209,10 +223,9 @@ do
             gfa_file_name=$i.edited.gfa
         fi
 
-        run_sim_solver_qubo.sh -f "$gfa_file_name" -s "$solver" -q "$i" \
-        -t "$time_limits" -j "$num_jobs" -a "$annotate" \
-        -c1 "$const1" -c2 "$const2" \
-        --edge2node "$edge2node" --pathfinder "$pathfinder_copy_numbers" --pathfinder_graph "$pathfinder_graph"
+	echo "run_sim_solver_qubo.sh -f "$gfa_file_name" -s "$solver" -q "$i" -t "$time_limits" -j "$num_jobs" -a "$annotate"  $qubo_opts"
+        eval run_sim_solver_qubo.sh -f "$gfa_file_name" -s "$solver" -q "$i" \
+        -t "$time_limits" -j "$num_jobs" -a "$annotate"  $qubo_opts
         echo "Finished sim solver qubo"
     else
         time_limits=0
