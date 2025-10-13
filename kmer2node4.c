@@ -31,6 +31,8 @@ static int use_non_uniq = 0;
 // Output edge metrics too;
 static FILE *edge_fp = NULL;
 
+static int small_node_fix = 1;
+
 // KMER_IDX is the hash table size for storing kmer entries.
 #ifndef KMER_IDX
 // mg    = 1m56 13m47 0m55  85.1	91.2	4.7	2.3	1.0
@@ -495,8 +497,10 @@ void nodeset_report(nodeset *ns) {
 //	}
 
 	// Also compensation for small nodes.
-	double r = sqrt(n->length)/10;
-	ratio *= r>1?1:r;
+	if (small_node_fix) {
+	    double r = sqrt(n->length)/10;
+	    ratio *= r>1?1:r;
+	}
 
 	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d+%-6d\tratio %.2f\n",
 	       n->name, n->length, expected2, n->hit_count,(int)n->hit_possible,
@@ -826,6 +830,7 @@ void usage(int ret) {
     printf("   -U         Account for non-unique kmers in kmer ratio\n");
     printf("   -E FILE    Output edge weights too to FILE\n");
     printf("   -G FILE    Load GFA from FILE\n");
+    printf("   -s         Do not adjust depth on small nodes\n");
     exit(ret);
 }
 
@@ -836,8 +841,12 @@ int main(int argc, char **argv) {
     bam1_t *b = NULL;
     int c;
 
-    while ((c = getopt(argc, argv, "hk:K:UE:G:")) != -1) {
+    while ((c = getopt(argc, argv, "hk:K:UE:G:s")) != -1) {
 	switch (c) {
+	case 's':
+	    small_node_fix = 0;
+	    break;
+
 	case 'k':
 	    kmer = atoi(optarg);
 	    // fall through
