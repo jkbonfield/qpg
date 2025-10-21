@@ -103,7 +103,7 @@ do
 	    continue
 	    ;;
 	'--edge2node')
-	    qubo_opts="$qubo_opts --edge2node 1"
+	    #qubo_opts="$qubo_opts --edge2node 1"
             edge2node=1
             shift 1
             continue
@@ -183,10 +183,11 @@ cd "$out_dir" || exit 1
 #    pop.gfa
 #    fofn.test
 #    fofn.train
-run_sim_create_gfa.sh "$seed" "$num_training"
+#run_sim_create_gfa.sh "$seed" "$num_training"
+run_sim_create_gfa${GFA_CREATE}.sh "$seed" "$num_training"
 
 # Foreach test genome, not used in pangenome creation, find path and eval
-for i in $(cat fofn.test)
+for i in $(sort fofn.test)
 do
     # Add weights to the GFA via minigraph
     # Creates:
@@ -219,7 +220,7 @@ do
 
         if [ "$trimedges" -eq 1 ]; then
             echo ">>> Using trim_edges.pl"
-            trim_edges.pl $gfa_file_name > $i.edited.gfa
+            eval trim_edges.pl ${TRIM_LEVEL} $gfa_file_name > $i.edited.gfa
             gfa_file_name=$i.edited.gfa
         fi
 
@@ -233,12 +234,12 @@ do
         gfa=$i.gfa
         if [ "$trimedges" -eq 1 ]; then
             echo ">>> Using trim_edges.pl"
-            trim_edges.pl $i.gfa > $i.edited.gfa
+            eval trim_edges.pl ${TRIM_LEVEL} $i.gfa > $i.edited.gfa
             gfa=$i.edited.gfa
         fi
         echo "Start $solver"
         run_sim_solver_"$solver".sh $gfa > "$i".path
-        pathfinder2seq.pl pop.gfa "$i".path > "$i".path_seq.0.0
+        pathfinder2seq.pl $gfa "$i".path > "$i".path_seq.0.0
         sed -n '/PATH/,$p' "$i".path \
         | awk '/^\[/ {printf("%s ",$3)} END {print "\n"}' 1>&2
     fi
