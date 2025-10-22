@@ -57,7 +57,7 @@ foreach my $base (@ARGV) {
 	    $sum_sq += $F[-1]*$F[-1];
 	    $count++;
 	}
-	my $var = $sum_sq/$count - ($sum/$count)*($sum/$count);
+	my $var = $count ? $sum_sq/$count - ($sum/$count)*($sum/$count) : 0;
 	close(FH);
 
 	my $path_seq = $fn;
@@ -82,7 +82,9 @@ foreach my $base (@ARGV) {
 	close(FH);
 
 	# Measured eval_cons stats
-	my $supp_perc = int($supp/($supp+$nmapped) * 100 * 1000 + 0.5)/1000;
+	my $supp_perc = $supp+$nmapped
+	    ? int($supp/($supp+$nmapped) * 100 * 1000 + 0.5)/1000
+	    : 0;
 	$mapped=~tr/%(//d;
 	$fn =~ s/bam\d*/eval_cons/;
 	open(FH, "<$fn") || die "$fn";
@@ -97,7 +99,7 @@ foreach my $base (@ARGV) {
 	    $contigs = $F[5];
 	    $breaks  = $F[6];
 	}
-	my $f1 = int(2*$cov*$used/($cov+$used)*1000+.5)/1000;
+	my $f1 = $cov+$used ? int(2*$cov*$used/($cov+$used)*1000+.5)/1000 : 0;
 	close(FH);
 
 	# An empirically derived formula for a score that's correlated against
