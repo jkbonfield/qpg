@@ -150,8 +150,8 @@ def qubo_matrix_from_graph(graph: nx.DiGraph, alpha: float | None=None, penaltie
         v_idx = nodes.index(v)
         j, bj = v_idx // 2, v_idx % 2
         G_qubo_matrix[i, bi, j, bj] = -1 * lambda_g # - sum_{i1, b1} ( x_{t,i1,b1} * ( sum_{i2,b2 neighbour i1, b1} x_{t+1,i2,b2} ) )
-    for i, b in product(range(V), range(2)):
-        G_qubo_matrix[V, 0, i, b] = -0.8 * lambda_g # - 0.8 *  x_{t, end 0} * ( sum_{i, b} x_{t, i , b} )
+    # for i, b in product(range(V), range(2)):
+    #     G_qubo_matrix[V, 0, i, b] = -0.8 * lambda_g # - 0.8 *  x_{t, end 0} * ( sum_{i, b} x_{t, i , b} )
     
     for t in range(T_max - 1):
         qubo_matrix[t, :, :, t+1, :, :] = G_qubo_matrix 
@@ -164,10 +164,16 @@ def qubo_matrix_from_graph(graph: nx.DiGraph, alpha: float | None=None, penaltie
     
     # UPDATE: multiply by log(len(i)) to reflect the fact that we have more confidence in the weights of longer nodes
     def W_qubo_matrix(weight, length):
-        return np.log10(length) * lambda_w * (
+        return lambda_w * (
                 np.ones((T_max, 2, T_max, 2), dtype=float) # sum_{t1,b1,t2,b2} ( x_{t1,i,b1} x_{t2,i,b2})
                 - (2 * weight - 0.5) * np.array([1]+ ([0]*2*(T_max)+[1]) * (2*(T_max)-1), dtype=float).reshape((T_max,2,T_max,2)) # - (2w(i) - 0.5) * sum_{t,b} ( x_{t,i,b} )
             )
+        # return np.log10(length) * lambda_w * (
+        #         np.ones((T_max, 2, T_max, 2), dtype=float) # sum_{t1,b1,t2,b2} ( x_{t1,i,b1} x_{t2,i,b2})
+        #         - (2 * weight - 0.5) * np.array([1]+ ([0]*2*(T_max)+[1]) * (2*(T_max)-1), dtype=float).reshape((T_max,2,T_max,2)) # - (2w(i) - 0.5) * sum_{t,b} ( x_{t,i,b} )
+        #     )
+        
+        
     for i in range(V):
         node = graph.nodes[nodes[2*i]]
         qubo_matrix[:, i, :, :, i, :] += W_qubo_matrix(node["weight"], node["length"])
@@ -184,7 +190,7 @@ def qubo_matrix_from_graph(graph: nx.DiGraph, alpha: float | None=None, penaltie
         lambda_t * T_max  
         + lambda_g * (T_max - 1)
         + lambda_w * sum([
-            (graph.nodes[nodes[2 * i]]["weight"] ** 2 - 0.5 * graph.nodes[nodes[2 * i]]["weight"]) * np.log10(graph.nodes[nodes[2 * i]]["length"])
+            (graph.nodes[nodes[2 * i]]["weight"] ** 2 - 0.5 * graph.nodes[nodes[2 * i]]["weight"]) # * np.log10(graph.nodes[nodes[2 * i]]["length"])
         for i in range(V)])
     )
     

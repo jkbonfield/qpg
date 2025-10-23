@@ -138,7 +138,7 @@ awk '
                 while (<$gfa>) {
                     next unless /^S/;
                     m/SC:f:([0-9.]*)/;
-                    print ((($1/30+.1)**0.8 + $ARGV[0] + int($1/30+$ARGV[1]))/2);
+                    print int($1/30 + 0.8);
                     print ",";
                 }
                 ' "$output_gfa_file" "$const1" "$const2")

@@ -21,5 +21,5 @@ else
 fi
 
 "$QDIR/tangle_resolution_benchmark_stats.sh" "$max_seed" "$time_limits" "$num_jobs" "$num_training" "$solvers" "cons"
-"$QDIR/tangle_resolution_benchmark_parse_stats.sh" "cons"
+# "$QDIR/tangle_resolution_benchmark_parse_stats.sh" "cons"
 "$QDIR/tangle_resolution_benchmark_violin.sh" "$time_limits" "$solvers" "cons"
