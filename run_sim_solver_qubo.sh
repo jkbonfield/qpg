@@ -17,6 +17,7 @@ help() {
 
 edge2node=0
 pathfinder_copy_numbers=0
+pathfinder_graph=0
 
 while true
 do
@@ -93,7 +94,7 @@ outdir="."
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 QUBO_DIR=$SCRIPT_DIR/qubo/qubo_solvers/oriented_tangle
-
+echo $QUBO_DIR
 
 echo "Gfa:                    $gfa_filepath"
 echo "Query:                  $query"
@@ -168,9 +169,10 @@ else
     while (<$gfa>) {
         next unless /^S/;
         m/SC:f:([0-9.]*)/;
-        print int($1/30 + $ARGV[0]), ",";
+        print int($1), ",";
     }
     ' "$gfa_filepath" "$const")
+    # print int($1/30 + $ARGV[0]), ",";
     
     # print int($1/'$shred_depth' + 0.8), ",";
     python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$gfa_filepath" -d "$outdir" -c "$copy_numbers" -p "$penalties"
