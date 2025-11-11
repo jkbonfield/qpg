@@ -24,7 +24,7 @@ shred.pl -s 1 -l $shred_len -e $shred_err -d $shred_depth $query > $shred_fa
 echo === Mapping kmers: k=$kmers
 for k in $kmers
 do
-    eval kmer2node4 -G $gfa -U -k$k -K$k1 $gfa.ns$k1 $shred_fa -E /dev/stdout | egrep 'Edge|Node' > $query.nodes.$k
+    eval kmer2node4 -s -G $gfa -U -k$k -K$k1 $gfa.ns$k1 $shred_fa -E /dev/stdout | egrep 'Edge|Node' > $query.nodes.$k
 done
 merge_kmer2node.pl $gfa $query.nodes.* > $query.nodes
 
