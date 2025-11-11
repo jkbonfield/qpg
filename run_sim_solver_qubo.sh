@@ -240,6 +240,7 @@ else
             fi
         done
     done
+  done; #gfa_list
 fi
 
 
