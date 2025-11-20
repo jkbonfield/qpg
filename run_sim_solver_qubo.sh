@@ -195,7 +195,8 @@ else
     while (<$gfa>) {
         next unless /^S/;
         m/SC:f:([0-9.]*)/;
-        print int($1/'$shred_depth' + $ARGV[0]), ",";
+        #print int($1/'$shred_depth' + $ARGV[0]), ",";
+        print $1/'$shred_depth' + $ARGV[0], ",";
     }
     ' "$gfa_filepath" "$const1")
     # print int($1/30 + $ARGV[0]), ",";
