@@ -22,7 +22,7 @@ pathfinder_copy_numbers=0
 pathfinder_graph=0
 subgraph_D=0
 subgraph_W=0
-const1=0.8
+const1=0.6
 const2=0.8
 
 while true
@@ -169,14 +169,6 @@ elif [ "$pathfinder_copy_numbers" -eq 1 ]; then
     
 else
     echo "Default solve"
-#    if [[ " km " =~  $annotator  ]]; then
-#        const1=0.8
-#    elif [[ " mg " =~  $annotator  ]]; then
-#        const1=0.8
-#    else
-#        const1=0.8
-#    fi
-
     if [ "$subgraph_D" -ne 0 ]; then
 	partition_graph.pl $gfa_filepath $subgraph_D $subgraph_W
 	gfa_list=`echo $gfa_filepath.sub_graph.*`

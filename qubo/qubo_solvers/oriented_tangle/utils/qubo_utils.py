@@ -164,7 +164,7 @@ def qubo_matrix_from_graph(graph: nx.DiGraph, alpha: float | None=None, penaltie
     
     # UPDATE: multiply by log(len(i)) to reflect the fact that we have more confidence in the weights of longer nodes
     def W_qubo_matrix(weight, length):
-        return lambda_w * (
+        return (1+np.sqrt(1+length)/10) * lambda_w * (
                 np.ones((T_max, 2, T_max, 2), dtype=float) # sum_{t1,b1,t2,b2} ( x_{t1,i,b1} x_{t2,i,b2})
                 - (2 * weight - 0.5) * np.array([1]+ ([0]*2*(T_max)+[1]) * (2*(T_max)-1), dtype=float).reshape((T_max,2,T_max,2)) # - (2w(i) - 0.5) * sum_{t,b} ( x_{t,i,b} )
             )
@@ -190,7 +190,7 @@ def qubo_matrix_from_graph(graph: nx.DiGraph, alpha: float | None=None, penaltie
         lambda_t * T_max  
         + lambda_g * (T_max - 1)
         + lambda_w * sum([
-            (graph.nodes[nodes[2 * i]]["weight"] ** 2 - 0.5 * graph.nodes[nodes[2 * i]]["weight"]) # * np.log10(graph.nodes[nodes[2 * i]]["length"])
+            (graph.nodes[nodes[2 * i]]["weight"] ** 2 - 0.5 * graph.nodes[nodes[2 * i]]["weight"]) * (1+np.sqrt(graph.nodes[nodes[2 * i]]["length"])/10)
         for i in range(V)])
     )
     
