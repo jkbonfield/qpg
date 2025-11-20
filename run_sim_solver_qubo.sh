@@ -188,8 +188,8 @@ else
     for gfa_filepath in $gfa_list
     do
         counter=$((counter+1))
-	echo gfa_filepath=$gfa_filepath
-	copy_numbers=$(perl -e '
+        echo gfa_filepath=$gfa_filepath
+        copy_numbers=$(perl -e '
     use strict;
     open(my $gfa, "<", shift(@ARGV)) || die;
     while (<$gfa>) {
@@ -197,50 +197,49 @@ else
         m/SC:f:([0-9.]*)/;
         print int($1/'$shred_depth' + $ARGV[0]), ",";
     }
-    ' "$gfa_filepath" "$const")
+    ' "$gfa_filepath" "$const1")
     # print int($1/30 + $ARGV[0]), ",";
     
-    # print int($1/'$shred_depth' + 0.8), ",";
-    python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$gfa_filepath" -d "$outdir" -c "$copy_numbers" -p "$penalties"
-    python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.gaf"
+        # print int($1/'$shred_depth' + 0.8), ",";
+        python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$gfa_filepath" -d "$outdir" -c "$copy_numbers" -p "$penalties"
+        python3 "$QUBO_DIR/oriented_max_path.py" -s "$solver" -f "$gfa_filepath" -d "$outdir" -j "$num_jobs" -t "$time_limits" -o "$query.gaf"
 
 
-    for t in ${time_limits//,/ }; do
-        for ((idx=0;idx<num_jobs;idx++)); do
-            fragment_content=""
-            in_fragment=false
-            counter=0
-            while IFS= read -r line || [[ -n "$line" ]]; do
-                if [[ "$line" == "Begin fragment" ]]; then
-                    if [ "$in_fragment" = true ] && [ -n "$fragment_content" ]; then
-                        tmp_file=$(mktemp)
-                        echo -e "$fragment_content" > "$tmp_file"
-                        echo ">contig_$counter" >> "$query.path_seq.$t.$idx"
-                        path2seq.pl "$gfa_filepath" "$tmp_file" >> "$query.path_seq.$t.$idx"
-                        counter=$((counter+1))
-                        rm "$tmp_file"
+        for t in ${time_limits//,/ }; do
+            for ((idx=0;idx<num_jobs;idx++)); do
+                fragment_content=""
+                in_fragment=false
+                while IFS= read -r line || [[ -n "$line" ]]; do
+                    if [[ "$line" == "Begin fragment" ]]; then
+                        if [ "$in_fragment" = true ] && [ -n "$fragment_content" ]; then
+                            tmp_file=$(mktemp)
+                            echo -e "$fragment_content" > "$tmp_file"
+                            echo ">contig_$counter" >> "$query.path_seq.$t.$idx"
+                            path2seq.pl "$gfa_filepath" "$tmp_file" >> "$query.path_seq.$t.$idx"
+                            counter=$((counter+1))
+                            rm "$tmp_file"
+                        fi
+
+                        in_fragment=true
+                        fragment_content=""
+                        continue 
                     fi
 
-                    in_fragment=true
-                    fragment_content=""
-                    continue 
+                    if [ "$in_fragment" = true ]; then
+                        fragment_content+="$line"$'\n'
+                    fi
+                done  < "$query.gaf.$t.$idx"
+                
+                if [ "$in_fragment" = true ] && [ -n "$fragment_content" ]; then
+                    tmp_file=$(mktemp)
+                    echo -e "$fragment_content" > "$tmp_file"
+                    echo ">contig_$counter" >> "$query.path_seq.$t.$idx"
+                    path2seq.pl "$gfa_filepath" "$tmp_file" >> "$query.path_seq.$t.$idx"
+                    rm "$tmp_file"
                 fi
-
-                if [ "$in_fragment" = true ]; then
-                    fragment_content+="$line"$'\n'
-                fi
-            done  < "$query.gaf.$t.$idx"
-            
-            if [ "$in_fragment" = true ] && [ -n "$fragment_content" ]; then
-                tmp_file=$(mktemp)
-                echo -e "$fragment_content" > "$tmp_file"
-                echo ">contig_$counter" >> "$query.path_seq.$t.$idx"
-                path2seq.pl "$gfa_filepath" "$tmp_file" >> "$query.path_seq.$t.$idx"
-                rm "$tmp_file"
-            fi
+            done
         done
-    done
-  done; #gfa_list
+    done; #gfa_list
 fi
 
 
