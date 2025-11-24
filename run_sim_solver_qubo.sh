@@ -23,7 +23,7 @@ pathfinder_graph=0
 subgraph_D=0
 subgraph_W=0
 const1=0.6
-const2=0.8
+const2=1.0
 
 while true
 do
@@ -188,9 +188,9 @@ else
         next unless /^S/;
         m/SC:f:([0-9.]*)/;
         #print int($1/'$shred_depth' + $ARGV[0]), ",";
-        print $1/'$shred_depth' + $ARGV[0], ",";
+        print $1/'$shred_depth'*$ARGV[1] + $ARGV[0], ",";
     }
-    ' "$gfa_filepath" "$const1")
+    ' "$gfa_filepath" "$const1" "$const2")
     # print int($1/30 + $ARGV[0]), ",";
     
         # print int($1/'$shred_depth' + 0.8), ",";
