@@ -3,15 +3,18 @@
 use strict;
 $"="\t";
 
-my $level=1;
-if ($ARGV[0] =~ /^-\d+/) {
-    $level=-shift(@ARGV);
-}
+use Getopt::Long;
 
-#    my $min_node_depth = 10;
-#    my $min_edge_depth = 10;
+my $level = 1;
 my $min_node_depth = 3;
 my $min_edge_depth = 1;
+
+GetOptions("l|level=i"          => \$level,
+	   "n|min-node-depth=i" => \$min_node_depth,
+	   "e|min-edge-depth=i" => \$min_edge_depth)
+or die("Usage: trim_edges.pl [-l|-level trim-level] [-n|-min-node-depth depth] [-e|-min-edge-depth depth]\n");
+
+print STDERR "level=$level min_node_depth=$min_node_depth min_edge_depth=$min_edge_depth\n";
 
 # Parse GFA
 my %seq;      # node sequence

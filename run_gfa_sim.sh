@@ -108,7 +108,8 @@ do
             shift 1
             continue
             ;;
-	'--trim-edges')
+	'--trim-edges'*)
+	    trim_args=`echo $1 | sed 's/--trim-edges=//'|tr =, ' '`
             trimedges=1
             shift 1
             continue
@@ -165,7 +166,7 @@ echo "Seed:     $seed"
 echo "Annotate: $annotate"
 echo "prefix:   $prefix"
 echo "Edge2node:$edge2node"
-echo "TrimEdges:$trimedges"
+echo "TrimEdges:$trim_args"
 echo "PathfinderGraph:$pathfinder_graph"
 echo "Pathfinder:$pathfinder_copy_numbers"
 echo ""
@@ -219,8 +220,8 @@ do
         fi
 
         if [ "$trimedges" -eq 1 ]; then
-            echo ">>> Using trim_edges.pl"
-            eval trim_edges.pl ${TRIM_LEVEL} $gfa_file_name > $i.edited.gfa
+            echo ">>> Using trim_edges.pl $trim_args"
+            eval trim_edges.pl $trim_args $gfa_file_name > $i.edited.gfa
             gfa_file_name=$i.edited.gfa
         fi
 
@@ -233,8 +234,8 @@ do
         num_jobs=1
         gfa=$i.gfa
         if [ "$trimedges" -eq 1 ]; then
-            echo ">>> Using trim_edges.pl"
-            eval trim_edges.pl ${TRIM_LEVEL} $i.gfa > $i.edited.gfa
+            echo ">>> Using trim_edges.pl $trim_args"
+            eval trim_edges.pl $trim_args $i.gfa > $i.edited.gfa
             gfa=$i.edited.gfa
         fi
         echo "Start $solver"
