@@ -235,5 +235,7 @@ else
     done; #gfa_list
 fi
 
+# Tidy up intermediary files
+rm *.pkl mqlib_input*.txt
 
 exit 0
