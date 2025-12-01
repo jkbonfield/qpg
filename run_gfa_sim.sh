@@ -220,8 +220,8 @@ do
         fi
 
         if [ "$trimedges" -eq 1 ]; then
-            echo ">>> Using trim_edges.pl $trim_args"
-            eval trim_edges.pl $trim_args $gfa_file_name | eval trim_nodes.pl ${TRIM_NODES:-d 3} | merge_nodes.pl > $i.edited.gfa
+            echo ">>> Using trim_edges.pl $trim_args | trim_nodes ${TRIM_NODES:--d 3}"
+            eval trim_edges.pl $trim_args $gfa_file_name | eval trim_nodes.pl ${TRIM_NODES:--d 3} | merge_nodes.pl > $i.edited.gfa
             gfa_file_name=$i.edited.gfa
         fi
 
@@ -234,8 +234,8 @@ do
         num_jobs=1
         gfa=$i.gfa
         if [ "$trimedges" -eq 1 ]; then
-            echo ">>> Using trim_edges.pl $trim_args"
-            eval trim_edges.pl $trim_args $i.gfa | eval trim_nodes.pl ${TRIM_NODES:-d 3} | merge_nodes.pl > $i.edited.gfa
+            echo ">>> Using trim_edges.pl $trim_args | trim_nodes ${TRIM_NODES:--d 3}"
+            eval trim_edges.pl $trim_args $i.gfa | eval trim_nodes.pl ${TRIM_NODES:--d 3} | merge_nodes.pl > $i.edited.gfa
             gfa=$i.edited.gfa
         fi
         echo "Start $solver"
