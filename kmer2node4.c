@@ -9,6 +9,10 @@
 
 #include "buzhash.h"
 
+// TODO: when indexing, our expected rate should be the maximum of any
+// nodeseq rather than the average of all.  We want to match *a* node
+// and not *all* nodes.  Or we record mean and s.d. somehow?
+
 // kmer2node [-k kmersize] graph.nodeseq in.fasta
 
 // nodeseq is a file consisting of "@name" and then one line per
@@ -323,6 +327,13 @@ void nodeset_index_kmers(nodeset *ns, node *n, char *str, int bidir) {
     int num = n->num;
     int i, j, len = strlen(str);
 
+    // Remove homopolymers
+    for (i=1;i<len;i++)
+	if (str[i] != str[0])
+	    break;
+    if (i == len)
+	return;
+
     //printf("Indexing %s\n", str);
     // Assign "kmer" to node "num".  Duplicates get number -1
     uint32_t kh;
@@ -502,8 +513,8 @@ void nodeset_report(nodeset *ns) {
 	    ratio *= r>1?1:r;
 	}
 
-	printf("Node %10s\tlen %6d\texp %6.1f\thit %6d+%-6d\tratio %.2f\n",
-	       n->name, n->length, expected2, n->hit_count,(int)n->hit_possible,
+	printf("Node %10s\tlen %6d\texp %6.1f %6d %6d\thit %6d+%-6d\tratio %.2f\n",
+	       n->name, n->length, expected2, n->kmer_unique, n->kmer_dup, n->hit_count,(int)n->hit_possible,
 	       ratio);
     }
 
@@ -541,6 +552,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
     uint8_t *seq = bam_get_seq(b);
 
     int poss_nodes[MAX_NODES] = {0};
+    int in_node_rep = 0;
 
 #ifdef DEBUG
     printf("Seq %s\n", bam_get_qname(b));
@@ -654,8 +666,10 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		ns->num2node[num]->hit_possible++;
 	    else
 		ns->num2node[num]->hit_count++;
+	    in_node_rep++;
 	    if (i > last_node_base+1 && last_node == num) {
 		// Correct for missing kmers from SNPs
+		in_node_rep+=last_node_base - (i-1);
 		int j;
 		for (j = i-1; j > last_node_base && j > i-KMER_IDX; j--) {
 //		    printf("Fix-up %d:%d  last_node_base %d\n",
@@ -756,6 +770,7 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 //		printf("Possible %d hits in NEW node %s\n",
 //		       nposs_run, ns->num2node[last_node_poss]->name);
 		ns->num2node[last_node_poss]->hit_possible+=nposs_run;
+		in_node_rep += nposs_run;
 		nposs_run = 0;
 	} else if (dup && num) {
 	    for (int kc=0; kc<MAX_DUPS && ns->kc[k].kmer[kc]; kc++) {
@@ -779,12 +794,30 @@ void count_bam_kmers(nodeset *ns, bam1_t *b) {
 		d1 = dir==3 ? 3 : 3-dir;
 		n1 = num;
 	    }
-//	    fprintf(stderr, "Switch node %s%c -> %s%c -> %d\n",
-//	    	    ns->num2node[n1]->name, "?+-b"[d1],
-//	    	    ns->num2node[n2]->name, "?+-b"[d2],
-//		    gfa_edge_exists(gfa_edges,
-//				    ns->num2node[n1]->name, "?+-"[d1],
-//				    ns->num2node[n2]->name, "?+-"[d2]));
+	    int self_loop = gfa_edge_exists(gfa_edges,
+					    ns->num2node[n1]->name, 1,
+					    ns->num2node[n1]->name, 1);
+	    if (self_loop && in_node_rep - ns->num2node[n1]->length > 0) {
+		// Add self loop edge count
+		int d1 = 1, d2 = 1;
+		uint64_t ee = ((int64_t)(n1*4+d1)<<32) | (n1*4+d2);
+		khiter_t k = kh_put(edge, edges, ee, &ret);
+		int l = in_node_rep - ns->num2node[n1]->length;
+		if (ret > 0) {
+		    // new
+		    kh_value(edges, k) = l;
+		} else {
+		    kh_value(edges, k) += l;
+		}
+	    }
+	    //fprintf(stderr, "Switch node (len %d loop %d mat-run %d) %s%c -> %s%c -> %d\n",
+	    //	    ns->num2node[n1]->length, self_loop, in_node_rep,
+	    //	    ns->num2node[n1]->name, "?+-b"[d1],
+	    //	    ns->num2node[n2]->name, "?+-b"[d2],
+	    //	    gfa_edge_exists(gfa_edges,
+	    //			    ns->num2node[n1]->name, "?+-"[d1],
+	    //			    ns->num2node[n2]->name, "?+-"[d2]));
+	    in_node_rep = 0;
 
 	    uint64_t ee = ((int64_t)(n1*4+d1)<<32) | (n2*4+d2);
 	    k = kh_put(edge, edges, ee, &ret);
