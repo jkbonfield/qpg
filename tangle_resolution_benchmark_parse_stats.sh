@@ -41,7 +41,7 @@ else
             if (current_pattern_idx == num_patterns) {
 
                 for (i = 0; i < num_patterns; i++) {
-                    printf "%s%s", extracted_values[i], (i == num_patterns - 1 ? "" : " ")
+                    printf "%s%s", extracted_values[i], (i == num_patterns - 1 ? "" : " & ")
                 }
                 printf "\n" 
 
