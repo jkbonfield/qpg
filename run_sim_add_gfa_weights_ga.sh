@@ -6,7 +6,7 @@ gfa=$1
 query=$2
 
 # Shred the FASTA file into small bits, simulating sequencing
-echo === Shredding genome $query
+echo === Shredding genome $query with depth $shred_depth
 shred_fa=$query.shred.fa
 shred.pl -s 1 -l $shred_len -e $shred_err -d $shred_depth $query > $shred_fa
 
