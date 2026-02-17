@@ -18,7 +18,7 @@ for annotate in km mg ga; do
     done
 
     solver=pathfinder
-    rm "$solver.$annotate.violin.txt" 2> /dev/null
+    rm "$solver.$annotate.$data_type.violin.txt" 2> /dev/null
     {
         echo 0
         awk '/seq/ && NF {print ($4 + $5)/2}' < $solver.$annotate.$data_type.max.txt
