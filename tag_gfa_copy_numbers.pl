@@ -5,7 +5,14 @@
 
 use strict;
 
+my $verbose = 0;
+if ($ARGV[0] eq "-v") {
+    shift(@ARGV);
+    $verbose++;
+}
+
 # Parse GFA
+my @node_order;
 my %seq;      # node sequence
 my %node;     # node GFA line (S)
 my @edge;     # edge GFA line (L)
@@ -17,6 +24,7 @@ local $"="\t";
 while (<>) {
     chomp();
     if (/^S\s+(\S+)/) {
+	push(@node_order, $1);
         $node{$1} = $_;
         my @N = split("\t", $_);
         $seq{$N[1]} = $N[2];
@@ -52,7 +60,6 @@ my $total = 0;
 my $tlen = 0;
 foreach my $n (sort keys %node) {
     my ($d) = $node{$n} =~ m/SC:f:(-?\d+(\.\d+)?)/;
-	print "$n=$n 1=$1 d=$d\n";
     if ($d > $min_depth) {
 	# For initial average, exclude self loops
 	next if exists($self_loop{$n});
@@ -63,7 +70,9 @@ foreach my $n (sort keys %node) {
     }
 }
 $avg_depth = $total / $tlen;
-print "Avg depth $avg_depth\n";
+if ($verbose) {
+    print "Avg depth $avg_depth\n";
+}
 
 # When running on an trimmed sub-graph our stats can be skewed.
 # Rerun on the entire file to get a better estimate of the starting average
@@ -71,13 +80,16 @@ print "Avg depth $avg_depth\n";
 #
 # Detrimental to minigraph based GFAs.
 # Marginally helpful to alfapang graphs, but maybe not worth it.
-if (0 && $ARGV =~ /\.edited\./) {
-    my ($base) = $ARGV =~ m/(.*)\.edited\..*/;
-    $_=`tag_gfa_copy_numbers.pl $base.gfa | grep "Avg depth"`;
-    my @F = split(/\s+/, $_);
-    print "Avg $F[-1]\n";
-    $avg_depth = $F[-1];
-}
+# Relies on the print "Avg depth" above, but we're not using this now
+# anyway.
+#
+#if ($ARGV =~ /\.edited\./) {
+#    my ($base) = $ARGV =~ m/(.*)\.edited\..*/;
+#    $_=`tag_gfa_copy_numbers.pl $base.gfa | grep "Avg depth"`;
+#    my @F = split(/\s+/, $_);
+#    print "Avg $F[-1]\n";
+#    $avg_depth = $F[-1];
+#}
 
 # Alternative; try fitting depth to D, 1*D, 2*D, etc.
 my $best_try=$avg_depth;
@@ -89,12 +101,12 @@ for (my $try=$avg_depth/1.3; $try<$avg_depth*1.3; $try+=0.5) {
 	my ($d) = $node{$n} =~ m/SC:f:(-?\d+(\.\d+)?)/;
 	if ($d > $avg_depth/4) {
 	    my $mult = int(0.5+$d/$try);
-	    my $diff = abs($d-$mult*$try);#/sqrt($try);
-	    #my $diff = $d % int($try+0.5)/sqrt($try);
+	    my $diff = abs($d-$mult*$try)/$try;
+	    #my $diff = $d % int($try+0.5)/$try; # better with minigraph?
 	    $delta += $diff*(length($seq{$n}));
-	    printf("    %s\t%.2f\t%d\t%d\t%.2f\t%8.2f\n",
-		   $n,$d,$mult,length($seq{$n}),$diff,
-		   $diff*(length($seq{$n})));
+	    #printf("    %s\t%.2f\t%d\t%d\t%.2f\t%8.2f\n",
+	    #	   $n,$d,$mult,length($seq{$n}),$diff,
+	    #	   $diff*(length($seq{$n})));
 	}
     }
 
@@ -106,9 +118,12 @@ for (my $try=$avg_depth/1.3; $try<$avg_depth*1.3; $try+=0.5) {
 	$best_delta = $delta;
 	$best_try = $try;
     }
-    print "try $try, delta=$delta\n";
+    #print "try $try, delta=$delta\n";
 }
-print "Possibly 1-depth = $best_try\n";
+
+if ($verbose) {
+    print "Possibly 1-depth = $best_try\n";
+}
 
 $avg_depth = $best_try;
 
@@ -118,10 +133,23 @@ $avg_depth = $best_try;
 # and if it's not noisy then the chances are we found the correct depth. 
 
 
-# Now add depth tags to ??
-foreach my $n (sort keys %node) {
-    my ($d) = $node{$n} =~ m/SC:f:(-?\d+(\.\d+)?)/;
-    printf("%s\t%.2f\t%.2f\t%d\n", $n, $d, $d/$avg_depth, int($d/$avg_depth+0.5));
+# Report
+# TODO: maybe output a new GFA with CN:i: or CN:f: values?
+
+if ($verbose) {
+    foreach my $n (@node_order) {
+	my ($d) = $node{$n} =~ m/SC:f:(-?\d+(\.\d+)?)/;
+	printf("%s\t%.2f\t%.2f\t%d\n", $n, $d, $d/$avg_depth,
+	       int($d/$avg_depth+0.5));
+    }
+} else {
+    my @copy;
+    foreach my $n (@node_order) {
+	my ($d) = $node{$n} =~ m/SC:f:(-?\d+(\.\d+)?)/;
+	push(@copy, int($d/$avg_depth+0.5));
+    }
+    local $"=",";
+    print "@copy\n";
 }
 
 __END__
@@ -133,36 +161,6 @@ compare:
 [NB: works better on the unedited.gfa to get initial depth]
 
 [But pathfinder picks the wrong values too]
-
-
-~/lustre/tmp/_ga_pf2k-t2.25_00100/seq_1089-0054-#1#1.edited.gfa
-cat seq_1089-0054-#1#1 > _.fa
-GraphAligner --min-alignment-score 90 --seeds-minimizer-ignore-frequent 1e-2 -g seq_1089-0054-#1#1.edited.gfa  -f _.fa -x vg -a _.gaf
-
->78>81>8>82>81>8>82>81>8>82>81>8>82>81>8>82>81>8>82>81>8>82>81>8>82>81>8>82>81>8>82>81>8>9>10>11>15>16>19>20>21>1>4>4>4>4>5>7>8>9>10>11>15>16>19>19>19>19>19>19>19>19>19>19>19>19>19>19>21>1>4>4>4>4>5>7>8>9>10>11>15>16>19>20>21>25>32>33>15>16>19>19>19>19>19>19>19>19>19>19>19>19>19>19>21>1>4>4>4>4>5>7>8>9>10>11>15>16>19>20>21>25>32>33>15>16>19>19>19>19>19>19>19>19>19>19>19>19>19>19>21>1>4>4>4>4>5>7>8>9>10>11>15>16>19>20>21>25>32>33>32>61
-
-Coverage real,   auto (d=37)    d=30.5          pathfinder
-1       4        3  -1          4               1
-4       16       13 -3          16              3
-5       4        3  -1          4               1
-7       4        3  -1          4               1
-8       15       12 -3          15              5
-9       5        4  -1          5               1
-10      5        4  -1          5               2
-11      5        4  -1          5               1
-15      7        6  -1          7               2
-16      7        6  -1          7               2
-19      46       40 -6          49 +3           5
-20      4        3  -1          3  -1           1
-21      7        6  -1          7               2
-25      3        2  -1          3               1
-32      4        3  -1          4               1
-33      3        3              3               1
-61      1        1              1               0
-78      1        1              1               0
-81      11       9 -1           11              4
-82      10       8 -2           10              4
-
 
 
 See also ../_km_pf2k-t1.25_00102/seq_1055-0054-#1#1.edited.gfa for
