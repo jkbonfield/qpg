@@ -82,6 +82,11 @@ do
 	    shift 2
 	    continue
 	    ;;
+	'--pathfinder_copy_numbers')
+	    pathfinder_copy_numbers=$2
+	    shift 2
+	    continue
+	    ;;
 	'--subgraph')
 	    subgraph_D=$2
 	    subgraph_W=$3
@@ -191,7 +196,10 @@ else
         print $1/'$shred_depth'*$ARGV[1] + $ARGV[0], ",";
     }
     ' "$gfa_filepath" "$const1" "$const2")
-    # print int($1/30 + $ARGV[0]), ",";
+    #copy_numbers=$(tag_gfa_copy_numbers.pl $gfa_filepath)
+    #copy_numbers=$(tag_gfa_copy_numbers.pl -f --offset=$const1 -d=$const2 $gfa_filepath)
+
+    echo "COPY_NUMBERS=$copy_numbers"
     
         # print int($1/'$shred_depth' + 0.8), ",";
         python3 "$QUBO_DIR/build_oriented_qubo_matrix.py" -f "$gfa_filepath" -d "$outdir" -c "$copy_numbers" -p "$penalties"
