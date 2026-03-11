@@ -22,12 +22,15 @@ my @edge;     # edge GFA line (L)
 my $edge_num=0;
 my %edge_in;  # index into @edge above
 my %edge_out; # index into @edge above
+my %node_order;
+my $node_num = 0;
 open(my $fh, "<", $gfa) || die;
 local $"="\t";
 while (<$fh>) {
     chomp();
     if (/^S\s+(\S+)/) {
         $node{$1} = $_;
+	$node_order{$1} = $node_num++;
     } elsif (/^L\s+(\S+)\s+(.)\s+(\S+)\s+(.)/) {
         $edge[$edge_num] = $_;
         push(@{$edge_out{$1}}, $edge_num);
@@ -130,17 +133,11 @@ sub sub_graph {
     close($fh);
 }
 
-sub nat_sort {
-    my ($s) = @_;
-    my ($d) = $s =~ /(\d+)/;
-    return $d;
-}
-
 while ($nvisited < scalar(keys %node)) {
     foreach my $n (sort keys(%node)) {
 	if (!$visited{$n}) {
 	    my @node_list = partition($n, $dist, 0);
-	    @node_list = sort { nat_sort($a) <=> nat_sort($b) } @node_list;
+	    @node_list = sort { $node_order{$a} <=> $node_order{$b} } @node_list;
 
 	    # Also check the node list has at least one node with minimum depth
 	    my $non_zero_depth = 0;
