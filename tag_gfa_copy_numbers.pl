@@ -11,12 +11,14 @@ my $offset = 0;
 my $float_copy = 0;
 my $min_depth = 0.1;
 my $depth_div = 4;
+my $max_copy = 10;
 
 GetOptions("v|verbose"    => \$verbose,
 	   "offset=f"     => \$offset,
 	   "f|float-copy" => \$float_copy,
            "m|min-depth:f"=> \$min_depth,
-           "d|depth-div:f"=> \$depth_div);
+           "d|depth-div:f"=> \$depth_div,
+           "C|max-copy:i" => \$max_copy);
 
 # Parse GFA
 my @node_order;
@@ -68,11 +70,76 @@ while (<>) {
     }
 }
 
+# Find simple cycles.  This isn't particularly fast on large graphs.
+# TODO: look at Johnson's algorithm, or rewrite-in / callout to Python which
+# has an implementation of this in networkx:
+#
+# my $code = "import networkx as nx\nG=nx.DiGraph()\n";
+# $code .= "G.add_nodes_from([\"" . join("\",\"",@node_order) . "\"])\n";
+# my @edge_str;
+# foreach (@edge) {
+#     m/^L\s+(\S+)\s+(.)\s+(\S+)\s+(.)/;
+#     push(@edge_str, "(\"".$1."\",\"".$3."\")");
+# }
+# $code .= "G.add_edges_from([" . join(",", @edge_str) . "])\n";
+# $code .= "print(list(nx.simple_cycles(G)))\n";
+# my $simple_cycles = `python -c '$code'`;
+# $simple_cycles =~ tr/[],'/ /;
+# $simple_cycles =~ s/^\s+//;
+# foreach (split(/\s+/,$simple_cycles)) {
+#     $loop{$_}=1;
+# }
+
+sub find_all_cycles {
+    my @all_cycles;
+
+    for my $start (@node_order) {
+        my @stack = ([$start, [$start]]);
+        while (@stack) {
+            my ($node, $path) = @{pop @stack};
+	    my @next;
+
+	    # Do we also need to do edge_in here, or take into account orientation?
+	    foreach (@{$edge_out{$node}}) {
+		$edge[$_] =~ m/^L\s+(\S+)\s+(.)\s+(\S+)\s+(.)/;
+		if ($1 eq $node) {
+		    push(@next, $3);
+		} else {
+		    push(@next, $1);
+		}
+	    }
+
+            for my $neighbour (sort @next) {
+                if ($neighbour eq $path->[0] && @$path > 1) {
+                    push @all_cycles, [@$path];
+                } elsif (!grep { $_ eq $neighbour } @$path[1..$#$path]) {
+                    push @stack, [$neighbour, [@$path, $neighbour]];
+                }
+            }
+        }
+    }
+    return @all_cycles;
+}
+
+my @all_cycles = find_all_cycles();
+my %loop;
+foreach my $cycle (@all_cycles) {
+    foreach (@$cycle) {
+	$loop{$_}=1;
+    }
+}
+if ($verbose) {
+    print "In loops:";
+    foreach (sort keys %loop) {
+	print " $_";
+    }
+    print "\n";
+}
+
 
 # An array of raw depths.  Filter very low figures (unused nodes), compute
 # average, and then cycle again with a revised estimate of what low-depth
 # means.
-my @depths = ();
 my $avg_depth = 0;
 my $total;
 my $tlen;
@@ -80,7 +147,6 @@ my $tlen;
 my $last_avg_depth;
 my $ncycles = 0;
 do {
-    @depths = ();
     $last_avg_depth = $avg_depth;
     $avg_depth = 0;
     $total = 0;
@@ -88,15 +154,18 @@ do {
 
     foreach my $n (sort keys %node) {
 	my ($d) = $node{$n} =~ m/SC:f:(-?\d+(\.\d+)?)/;
+	#if ($verbose) {
+	#    print "Node $n\tdepth ",int(100*$d)/100,"\tlen ",length($seq{$n}),"\tin-loop ",exists($loop{$n}) ? 1 : 0, "\n";
+	#}
 	if ($d > $min_depth) {
 	    # For initial average, exclude self loops
 	    next if exists($self_loop{$n});
+	    next if $loop{$n};
 
-	    # edge cases only
-	    next unless (exists($edge_in{$n})  && scalar(@{$edge_in{$n}})==0) ||  \
-		(exists($edge_out{$n}) && scalar(@{$edge_out{$n}})==0);
+	    #if ($verbose) {
+	    #	print "Using $n len ",length($seq{$n}), " depth $d\n";
+	    #}
 
-	    push(@depths, $d);
 	    $total += $d*(length($seq{$n}));
 	    $tlen += (length($seq{$n}));
 	}
@@ -123,9 +192,9 @@ do {
 #
 #if ($ARGV =~ /\.edited\./) {
 #    my ($base) = $ARGV =~ m/(.*)\.edited\..*/;
-#    $_=`tag_gfa_copy_numbers.pl $base.gfa | grep "Avg depth"`;
+#    $_=`tag_gfa_copy_numbers.pl -v $base.gfa | grep "1-depth"`;
 #    my @F = split(/\s+/, $_);
-#    print "Avg $F[-1]\n";
+#    #print "Avg $F[-1]\n";
 #    $avg_depth = $F[-1];
 #}
 
@@ -184,11 +253,14 @@ if ($verbose) {
     my @copy;
     foreach my $n (@node_order) {
 	my ($d) = $node{$n} =~ m/SC:f:(-?\d+(\.\d+)?)/;
+	my $copy;
 	if ($float_copy) {
-	    push(@copy, $d/$avg_depth+$offset);
+	    $copy = $d/$avg_depth+$offset;
 	} else {
-	    push(@copy, int($d/$avg_depth+0.5+$offset));
+	    $copy = int($d/$avg_depth+0.5+$offset);
 	}
+	$copy = $max_copy if ($copy > $max_copy);
+	push(@copy, $copy);
     }
     local $"=",";
     print "@copy\n";
