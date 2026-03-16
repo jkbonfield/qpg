@@ -22,8 +22,8 @@ pathfinder_copy_numbers=0
 pathfinder_graph=0
 subgraph_D=0
 subgraph_W=0
-const1=0.6
-const2=1.0
+const1=0.4
+const2=5.0
 
 while true
 do
@@ -186,18 +186,25 @@ else
     do
         counter=$((counter+1))
         echo gfa_filepath=$gfa_filepath
-        copy_numbers=$(perl -e '
-    use strict;
-    open(my $gfa, "<", shift(@ARGV)) || die;
-    while (<$gfa>) {
-        next unless /^S/;
-        m/SC:f:([0-9.]*)/;
-        #print int($1/'$shred_depth' + $ARGV[0]), ",";
-        print $1/'$shred_depth'*$ARGV[1] + $ARGV[0], ",";
-    }
-    ' "$gfa_filepath" "$const1" "$const2")
-    #copy_numbers=$(tag_gfa_copy_numbers.pl $gfa_filepath)
-    #copy_numbers=$(tag_gfa_copy_numbers.pl -f --offset=$const1 -d=$const2 $gfa_filepath)
+#        copy_numbers=$(perl -e '
+#    use strict;
+#    open(my $gfa, "<", shift(@ARGV)) || die;
+#    while (<$gfa>) {
+#        next unless /^S/;
+#        m/SC:f:([0-9.]*)/;
+#        #print int($1/'$shred_depth' + $ARGV[0]), ",";
+#        print $1/'$shred_depth'*$ARGV[1] + $ARGV[0], ",";
+#    }
+#    ' "$gfa_filepath" "$const1" "$const2")
+
+    # Negative const2 is request for floating point output
+    if [ $const2 -lt 0 ]
+    then
+	const2=`expr 0 - $const2`
+	copy_numbers=$(tag_gfa_copy_numbers.pl --mode=f --offset=$const1 -d=$const2 $gfa_filepath)
+    else
+	copy_numbers=$(tag_gfa_copy_numbers.pl --mode=i --offset=$const1 -d=$const2 $gfa_filepath)
+    fi
 
     echo "COPY_NUMBERS=$copy_numbers"
     

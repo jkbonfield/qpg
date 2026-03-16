@@ -7,18 +7,28 @@ use strict;
 use Getopt::Long;
 
 my $verbose = 0;
-my $offset = 0;
-my $float_copy = 0;
+my $offset = 0.4;
+my $float_copy = 1;
 my $min_depth = 0.1;
 my $depth_div = 4;
 my $max_copy = 10;
+my $mode = "float";
 
-GetOptions("v|verbose"    => \$verbose,
-	   "offset=f"     => \$offset,
-	   "f|float-copy" => \$float_copy,
-           "m|min-depth:f"=> \$min_depth,
-           "d|depth-div:f"=> \$depth_div,
-           "C|max-copy:i" => \$max_copy);
+GetOptions("v|verbose"     => \$verbose,
+	   "offset=f"      => \$offset,
+	   "mode=s"        => \$mode,
+           "m|min-depth=f" => \$min_depth,
+           "d|depth-div=f" => \$depth_div,
+           "C|max-copy=i"  => \$max_copy);
+
+if ($mode =~ /^f.*/) {
+    $float_copy = 1;
+} elsif ($mode =~ /^i.*/) {
+    $float_copy = 0;
+} else {
+    print STDERR "Illegal mode: use 'f' or 'i'\n";
+    exit(1);
+}
 
 # Parse GFA
 my @node_order;
