@@ -13,13 +13,15 @@ my $min_depth = 0.1;
 my $depth_div = 4;
 my $max_copy = 10;
 my $mode = "float";
+my $min_copy = 0.45;
 
 GetOptions("v|verbose"     => \$verbose,
 	   "offset=f"      => \$offset,
 	   "mode=s"        => \$mode,
            "m|min-depth=f" => \$min_depth,
            "d|depth-div=f" => \$depth_div,
-           "C|max-copy=i"  => \$max_copy);
+           "C|max-copy=i"  => \$max_copy,
+           "c|min-copy=i"  => \$min_copy);
 
 if ($mode =~ /^f.*/) {
     $float_copy = 1;
@@ -269,6 +271,7 @@ if ($verbose) {
 	} else {
 	    $copy = int($d/$avg_depth+0.5+$offset);
 	}
+	$copy = $min_copy if ($copy < $min_copy);
 	$copy = $max_copy if ($copy > $max_copy);
 	push(@copy, $copy);
     }

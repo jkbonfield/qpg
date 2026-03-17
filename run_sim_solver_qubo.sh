@@ -201,9 +201,9 @@ else
     if [ $const2 -lt 0 ]
     then
 	const2=`expr 0 - $const2`
-	copy_numbers=$(tag_gfa_copy_numbers.pl --mode=f --offset=$const1 -d=$const2 $gfa_filepath)
+	copy_numbers=$(tag_gfa_copy_numbers.pl -c 0.45 --mode=f --offset=$const1 -d=$const2 $gfa_filepath)
     else
-	copy_numbers=$(tag_gfa_copy_numbers.pl --mode=i --offset=$const1 -d=$const2 $gfa_filepath)
+	copy_numbers=$(tag_gfa_copy_numbers.pl -c 0.45 --mode=i --offset=$const1 -d=$const2 $gfa_filepath)
     fi
 
     echo "COPY_NUMBERS=$copy_numbers"
